@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 2: Resource Lanes</title>
+<style>
+  :root {
+    --magenta: #E60063;
+    --magenta-soft: #FFE0EC;
+    --blue: #5B5BE6;
+    --blue-soft: #E8E8FE;
+    --amber: #F59E0B;
+    --amber-soft: #FEF3C7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+  header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand { width: 28px; height: 28px; background: var(--magenta); color: white; display: grid; place-items: center; font-weight: 700; border-radius: 4px; }
+  .crumb { color: var(--magenta); font-weight: 600; }
+  .pill { background: var(--blue); color: white; padding: 6px 14px; border-radius: 6px; font-weight: 600; }
+
+  .main { padding: 16px 24px; }
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+    background: white; font-size: 13px;
+  }
+  .week-nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .week-nav button { width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; }
+  .week-label { color: var(--muted); }
+
+  .grid { background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .grid-header {
+    display: grid; grid-template-columns: 250px repeat(7, 1fr);
+    border-bottom: 1px solid var(--border); background: #FAFBFC;
+  }
+  .grid-header div { padding: 12px 8px; text-align: center; font-weight: 600; color: var(--muted); font-size: 12px; }
+  .grid-header div:first-child { text-align: left; }
+  .grid-header .today { background: var(--magenta); color: white; }
+  .grid-header .weekend { color: #94A3B8; }
+
+  .loc-block { border-bottom: 1px solid var(--border); }
+  .loc-block:last-child { border-bottom: none; }
+  .loc-header {
+    display: grid; grid-template-columns: 250px 1fr;
+    background: linear-gradient(to right, #FFF5F8, transparent);
+    padding: 0; align-items: center;
+  }
+  .loc-header .loc-name {
+    padding: 12px 14px; font-weight: 700; font-size: 14px; color: var(--magenta);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .loc-header .loc-name .toggle {
+    color: var(--muted); font-size: 12px;
+  }
+  .loc-header .loc-stats {
+    padding: 12px 14px; color: var(--muted); font-size: 11px;
+  }
+
+  .func-row {
+    display: grid; grid-template-columns: 250px repeat(7, 1fr);
+    border-top: 1px solid var(--border); min-height: 78px;
+  }
+  .func-label {
+    padding: 12px 14px 12px 30px; background: white;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .func-label .name { font-weight: 600; }
+  .func-label small { color: var(--muted); font-size: 11px; }
+
+  .day-cell {
+    border-right: 1px solid var(--border); padding: 6px;
+    position: relative;
+  }
+  .day-cell:last-child { border-right: none; }
+  .day-cell.weekend { background: #FAFBFC; }
+  .day-cell.today { background: #FFF5F8; }
+
+  .block { border-radius: 6px; padding: 6px 8px; margin-bottom: 4px; font-size: 11px; line-height: 1.3; cursor: pointer; }
+  .block.contract { background: var(--blue-soft); border: 1px solid var(--blue); }
+  .block.contract .name { color: var(--text); font-weight: 600; }
+  .block.contract .meta { color: var(--muted); font-size: 10px; }
+  .block.shift-open { background: var(--amber-soft); border: 1px dashed var(--amber); color: #92400E; position: relative; }
+  .block.shift-open .name { font-weight: 600; }
+  .block.shift-open .meta { font-size: 10px; opacity: 0.8; }
+  .block.shift-open .badge { position: absolute; top: -8px; right: -8px; background: var(--amber); color: white; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; font-size: 11px; font-weight: 700; border: 2px solid white; }
+  .block.shift-open.zero { background: #FEE2E2; border-color: #DC2626; color: #991B1B; }
+  .block.shift-open.zero .badge { background: #DC2626; }
+
+  /* Floating popover */
+  .popover {
+    position: fixed; top: 290px; left: 700px;
+    width: 320px; background: white; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    font-size: 13px;
+  }
+  .popover h4 { margin: 0 0 4px 0; font-size: 13px; }
+  .popover .sub { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+  .popover .candidate-line {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 6px; cursor: pointer;
+  }
+  .popover .candidate-line:hover { background: var(--green-soft); border-color: var(--green); }
+  .popover .candidate-line .left { display: flex; flex-direction: column; gap: 2px; }
+  .popover .candidate-line .name { font-weight: 600; font-size: 12px; }
+  .popover .candidate-line .stat { font-size: 11px; color: var(--green); font-weight: 600; }
+  .popover .candidate-line button {
+    background: var(--magenta); color: white; border: none;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600;
+  }
+  .popover .actions {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; font-size: 11px;
+  }
+  .popover .actions a { color: var(--magenta); text-decoration: none; }
+
+  .availability-strip {
+    margin-top: 16px; background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .availability-strip h3 { margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.4px; }
+  .a-row { display: grid; grid-template-columns: 250px repeat(7, 1fr); gap: 0; align-items: center; }
+  .a-row .who { padding: 8px 14px; font-weight: 500; }
+  .a-row .who .stat { font-size: 11px; color: var(--green); font-weight: 600; }
+  .a-cell { padding: 4px; min-height: 36px; }
+  .a-cell.weekend { background: #FAFBFC; }
+  .a-pill {
+    background: var(--green-soft); border: 1px solid var(--green);
+    color: #065F46; border-radius: 4px; padding: 4px 6px;
+    font-size: 10px; font-weight: 500; cursor: grab;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">S</div>
+  <div class="crumb">IzyKoffie Gent</div>
+  <span class="pill">Planning</span>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <input placeholder="Zoek functie of medewerker">
+    <select><option>Alle locaties</option></select>
+    <select><option>Alle functies</option></select>
+    <select><option>Open shifts</option><option>Toegewezen</option><option>Alles</option></select>
+    <div class="week-nav">
+      <button>&lsaquo;</button>
+      <span class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</span>
+      <button>&rsaquo;</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="grid-header">
+      <div>Locatie + functie</div>
+      <div class="today">ma 4</div>
+      <div>di 5</div>
+      <div>wo 6</div>
+      <div>do 7</div>
+      <div>vr 8</div>
+      <div class="weekend">za 9</div>
+      <div class="weekend">zo 10</div>
+    </div>
+
+    <!-- KORENMARKT -->
+    <div class="loc-block">
+      <div class="loc-header">
+        <div class="loc-name">▾ Korenmarkt <span class="toggle">2 functies</span></div>
+        <div class="loc-stats">3 contracten · 1 open shift deze week</div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Bar</span><small>flexi, jobstudent</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell">
+          <div class="block contract">
+            <div class="name">Anouk Staelens</div>
+            <div class="meta">12:00 - 17:00 · flexi</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Afwas</span><small>flexi, jobstudent, arbeider</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell" style="position: relative;">
+          <div class="block shift-open">
+            <span class="badge">3</span>
+            <div class="name">Open shift</div>
+            <div class="meta">13:00 - 20:00 · deadline ma 18u</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+    </div>
+
+    <!-- SINT-PIETERS -->
+    <div class="loc-block">
+      <div class="loc-header">
+        <div class="loc-name">▾ Sint-Pieters <span class="toggle">2 functies</span></div>
+        <div class="loc-stats">0 contracten · 1 open shift deze week</div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Bar</span><small>flexi, jobstudent</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell" style="position: relative;">
+          <div class="block shift-open">
+            <span class="badge">1</span>
+            <div class="name">Open shift</div>
+            <div class="meta">17:00 - 23:00 · deadline di 12u</div>
+          </div>
+        </div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Service</span><small>flexi, jobstudent, bediende</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+    </div>
+
+    <!-- SLUIZEKEN -->
+    <div class="loc-block">
+      <div class="loc-header">
+        <div class="loc-name">▾ Sluizeken <span class="toggle">2 functies</span></div>
+        <div class="loc-stats">1 contract · 1 open shift zonder kandidaten</div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Bar</span><small>flexi, jobstudent</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend" style="position: relative;">
+          <div class="block shift-open zero">
+            <span class="badge">0</span>
+            <div class="name">Open shift</div>
+            <div class="meta">11:00 - 18:00 · deadline verstreken</div>
+          </div>
+        </div>
+        <div class="day-cell weekend"></div>
+      </div>
+      <div class="func-row">
+        <div class="func-label"><span class="name">Service</span><small>flexi, jobstudent, bediende</small></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell">
+          <div class="block contract">
+            <div class="name">Joke Carton</div>
+            <div class="meta">10:00 - 18:00 · flexi</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Beschikbaarheidsstrook onder de planning -->
+  <div class="availability-strip">
+    <h3>Beschikbaarheden uit de pool deze week</h3>
+    <div class="a-row">
+      <div class="who">Anouk Staelens<div class="stat">flexi</div></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"><div class="a-pill">12:00 - 22:00</div></div>
+      <div class="a-cell weekend"></div>
+      <div class="a-cell weekend"></div>
+    </div>
+    <div class="a-row">
+      <div class="who">Jeff Callebaut<div class="stat">student</div></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"><div class="a-pill">10:00 - 15:00</div></div>
+      <div class="a-cell"><div class="a-pill">11:00 - 18:00</div></div>
+      <div class="a-cell"><div class="a-pill">17:00 - 22:00</div></div>
+      <div class="a-cell weekend"></div>
+      <div class="a-cell weekend"></div>
+    </div>
+    <div class="a-row">
+      <div class="who">Lieven Bonamie<div class="stat">student</div></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell"></div>
+      <div class="a-cell weekend"><div class="a-pill">9:00 - 17:00</div></div>
+      <div class="a-cell weekend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Popover: alsof iemand op een open shift heeft geklikt -->
+<div class="popover">
+  <h4>Open shift, Korenmarkt - Afwas</h4>
+  <div class="sub">wo 6/5, 13:00 - 20:00 · 3 kandidaten · deadline ma 4/5 18u</div>
+  <div class="candidate-line">
+    <div class="left"><div class="name">Jeff Callebaut</div><div class="stat">student</div></div>
+    <button>Kies</button>
+  </div>
+  <div class="candidate-line">
+    <div class="left"><div class="name">Anouk Staelens</div><div class="stat">flexi</div></div>
+    <button>Kies</button>
+  </div>
+  <div class="candidate-line">
+    <div class="left"><div class="name">Joke Carton</div><div class="stat">flexi</div></div>
+    <button>Kies</button>
+  </div>
+  <div class="actions">
+    <a href="#">Capaciteit verhogen</a>
+    <a href="#">Sluiten zonder keuze</a>
+    <a href="#">Heropenen</a>
+  </div>
+</div>
+</body>
+</html>

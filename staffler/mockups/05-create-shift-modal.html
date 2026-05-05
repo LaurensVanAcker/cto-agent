@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 5: Nieuwe shift aanmaken</title>
+<style>
+  :root {
+    --magenta: #E60063;
+    --magenta-soft: #FFE0EC;
+    --blue: #5B5BE6;
+    --blue-soft: #E8E8FE;
+    --amber: #F59E0B;
+    --amber-soft: #FEF3C7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --bg: #F1F5F9;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+    --whatsapp: #25D366;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .pagewrap {
+    max-width: 1280px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+  }
+
+  .modal {
+    background: white; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  }
+
+  .modal-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-header h2 { margin: 0; font-size: 16px; }
+  .modal-header .x { color: var(--muted); cursor: pointer; font-size: 18px; }
+
+  .modal-body { padding: 16px 20px; max-height: 80vh; overflow-y: auto; }
+
+  .label-caption {
+    margin-bottom: 14px; padding: 10px 12px;
+    background: var(--magenta-soft); border-radius: 6px;
+    font-size: 12px; color: #6B0030; line-height: 1.5;
+  }
+
+  fieldset {
+    border: none; padding: 0; margin: 0 0 18px 0;
+  }
+  legend {
+    font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: 0.4px; font-weight: 700; margin-bottom: 8px;
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text); }
+  .field input, .field select {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; background: white;
+  }
+
+  .capacity-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .capacity-input {
+    width: 64px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    text-align: center; font-size: 14px; font-weight: 600;
+  }
+
+  .slot-list {
+    display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;
+  }
+  .slot {
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 10px;
+    align-items: center; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: white;
+  }
+  .slot.assigned { background: var(--blue-soft); border-color: var(--blue); }
+  .slot.open { background: var(--amber-soft); border-color: var(--amber); }
+
+  .slot-icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700; font-size: 11px;
+  }
+  .slot.assigned .slot-icon { background: var(--blue); color: white; }
+  .slot.open .slot-icon { background: var(--amber); color: white; }
+
+  .slot-content .name { font-weight: 600; font-size: 13px; }
+  .slot-content .meta { font-size: 11px; color: var(--muted); }
+  .slot-content .name select {
+    font-size: 13px; padding: 4px 8px; border: 1px solid var(--border);
+    border-radius: 4px; background: white;
+  }
+
+  .slot-actions { display: flex; gap: 6px; align-items: center; }
+  .icon-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px solid var(--border); background: white;
+    display: grid; place-items: center; cursor: pointer; font-size: 13px;
+  }
+  .icon-btn:hover { background: #F1F5F9; }
+  .icon-btn.send { color: var(--whatsapp); }
+  .icon-btn.sent {
+    background: var(--green-soft); border-color: var(--green);
+    color: var(--green); cursor: default;
+  }
+  .icon-btn.delete { color: var(--muted); }
+
+  .add-slot {
+    padding: 10px 12px; border: 1px dashed var(--border); border-radius: 8px;
+    text-align: center; cursor: pointer; color: var(--magenta);
+    font-weight: 500; font-size: 12px;
+  }
+  .add-slot:hover { background: var(--magenta-soft); }
+
+  .broadcast-block {
+    background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 10px;
+    padding: 14px; margin-top: 16px;
+  }
+  .broadcast-block h4 {
+    margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase;
+    color: #92400E; letter-spacing: 0.4px;
+  }
+  .broadcast-options { display: flex; flex-direction: column; gap: 6px; }
+  .opt {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: white; border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; font-size: 12px;
+  }
+  .opt input[type=radio] { margin: 0; }
+  .opt.checked { border-color: var(--amber); background: #FEF3C7; }
+  .deadline-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;
+  }
+
+  .modal-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: #FAFBFC;
+  }
+  .footer-left { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 14px; border-radius: 6px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+    background: white; color: var(--text);
+  }
+  .btn.primary { background: var(--magenta); color: white; border-color: var(--magenta); }
+  .btn.primary:hover { background: #C5004F; }
+  .btn.ghost { color: var(--muted); border-color: transparent; }
+
+  /* Variant labels */
+  .variant-label {
+    display: inline-block; padding: 4px 10px;
+    background: var(--blue); color: white; font-size: 11px;
+    font-weight: 600; border-radius: 12px; margin-bottom: 8px;
+  }
+
+  /* Whatsapp tag */
+  .wa-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    background: var(--green-soft); color: #065F46;
+  }
+  .wa-status::before { content: "✓"; }
+
+  h1.page-title { grid-column: 1 / -1; margin: 0 0 8px 0; font-size: 20px; }
+  p.page-sub { grid-column: 1 / -1; margin: 0 0 16px 0; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="pagewrap">
+
+  <h1 class="page-title">Nieuwe shift aanmaken — twee scenario's naast elkaar</h1>
+  <p class="page-sub">Eén form voor alle gevallen: enkel direct inplannen, enkel open shift, of een mengvorm. De broadcast-sectie verschijnt alleen wanneer er open plaatsen zijn.</p>
+
+  <!-- LEFT: scenario A — alle plaatsen direct ingevuld -->
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nieuwe shift</h2>
+      <span class="x">×</span>
+    </div>
+    <div class="modal-body">
+      <span class="variant-label">Scenario A: alles direct ingevuld</span>
+      <div class="label-caption">
+        Klant kent de mensen al (Niveau 1). Geen broadcast nodig, geen open plaatsen.
+      </div>
+
+      <fieldset>
+        <legend>Locatie en functie</legend>
+        <div class="row">
+          <div class="field">
+            <label>Locatie</label>
+            <select><option>Korenmarkt</option><option>Sint-Pieters</option><option>Sluizeken</option></select>
+          </div>
+          <div class="field">
+            <label>Functie</label>
+            <select><option>Bar</option><option>Afwas</option><option>Service</option></select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wanneer</legend>
+        <div class="row">
+          <div class="field">
+            <label>Datum (van)</label>
+            <input type="date" value="2026-05-06">
+          </div>
+          <div class="field">
+            <label>Datum (tot)</label>
+            <input type="date" value="2026-05-06">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Werkuren van</label>
+            <input type="time" value="12:00">
+          </div>
+          <div class="field">
+            <label>Werkuren tot</label>
+            <input type="time" value="17:00">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Pauze van</label>
+            <input type="time" value="14:00">
+          </div>
+          <div class="field">
+            <label>Pauze tot</label>
+            <input type="time" value="14:15">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie</legend>
+        <div class="capacity-row">
+          <span style="font-size:12px;color:var(--muted)">Capaciteit</span>
+          <input class="capacity-input" type="number" value="2" min="1">
+          <span style="font-size:12px;color:var(--muted)">personen</span>
+        </div>
+
+        <div class="slot-list">
+          <div class="slot assigned">
+            <div class="slot-icon">1</div>
+            <div class="slot-content">
+              <div class="name">Anouk Staelens</div>
+              <div class="meta">flexi · default loonpakket</div>
+            </div>
+            <div class="slot-actions">
+              <button class="icon-btn delete" title="Verwijder">✕</button>
+            </div>
+          </div>
+          <div class="slot assigned">
+            <div class="slot-icon">2</div>
+            <div class="slot-content">
+              <div class="name">Joke Carton</div>
+              <div class="meta">flexi · default loonpakket</div>
+            </div>
+            <div class="slot-actions">
+              <button class="icon-btn delete" title="Verwijder">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="add-slot">+ Nog een persoon</div>
+      </fieldset>
+    </div>
+    <div class="modal-footer">
+      <div class="footer-left">
+        <button class="btn ghost">Annuleer</button>
+      </div>
+      <div>
+        <button class="btn primary">Opslaan, contracten aanmaken</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: scenario B — gemengd, met broadcast -->
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nieuwe shift</h2>
+      <span class="x">×</span>
+    </div>
+    <div class="modal-body">
+      <span class="variant-label">Scenario B: gemengd, deels gekend, deels open</span>
+      <div class="label-caption">
+        Klant kent één persoon, twee plaatsen open. Broadcast naar selectie of volledige pool. Eén persoon krijgt al direct een persoonlijke uitnodiging via WhatsApp.
+      </div>
+
+      <fieldset>
+        <legend>Locatie en functie</legend>
+        <div class="row">
+          <div class="field">
+            <label>Locatie</label>
+            <select><option>Korenmarkt</option></select>
+          </div>
+          <div class="field">
+            <label>Functie</label>
+            <select><option>Afwas</option></select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wanneer</legend>
+        <div class="row">
+          <div class="field">
+            <label>Datum</label>
+            <input type="date" value="2026-05-06">
+          </div>
+          <div class="field">
+            <label>Werkuren</label>
+            <input type="text" value="13:00 - 20:00">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie</legend>
+        <div class="capacity-row">
+          <span style="font-size:12px;color:var(--muted)">Capaciteit</span>
+          <input class="capacity-input" type="number" value="3" min="1">
+          <span style="font-size:12px;color:var(--muted)">personen, 1 toegewezen, 2 open</span>
+        </div>
+
+        <div class="slot-list">
+          <div class="slot assigned">
+            <div class="slot-icon">1</div>
+            <div class="slot-content">
+              <div class="name">Anouk Staelens</div>
+              <div class="meta">flexi · <span class="wa-status">WhatsApp verzonden 14:32</span></div>
+            </div>
+            <div class="slot-actions">
+              <button class="icon-btn sent" title="Notificatie verzonden">✓</button>
+              <button class="icon-btn delete" title="Verwijder">✕</button>
+            </div>
+          </div>
+
+          <div class="slot open">
+            <div class="slot-icon">2</div>
+            <div class="slot-content">
+              <div class="name">Open plaats</div>
+              <div class="meta">wacht op kandidaten</div>
+            </div>
+            <div class="slot-actions">
+              <button class="icon-btn delete" title="Verwijder">✕</button>
+            </div>
+          </div>
+
+          <div class="slot open">
+            <div class="slot-icon">3</div>
+            <div class="slot-content">
+              <div class="name">Open plaats</div>
+              <div class="meta">wacht op kandidaten</div>
+            </div>
+            <div class="slot-actions">
+              <button class="icon-btn delete" title="Verwijder">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="add-slot">+ Nog een persoon</div>
+      </fieldset>
+
+      <!-- Broadcast block, alleen zichtbaar als er open slots zijn -->
+      <div class="broadcast-block">
+        <h4>Voor de 2 open plaatsen, naar wie verstuur je deze shift?</h4>
+
+        <div class="broadcast-options">
+          <label class="opt checked">
+            <input type="radio" name="bc" checked>
+            Volledige pool van Korenmarkt (8 medewerkers)
+          </label>
+          <label class="opt">
+            <input type="radio" name="bc">
+            Selectie van medewerkers (kies hieronder)
+          </label>
+          <label class="opt">
+            <input type="radio" name="bc">
+            Niet versturen, ik vul ze later in
+          </label>
+        </div>
+
+        <div class="deadline-row">
+          <div class="field">
+            <label>Deadline kandidaten</label>
+            <input type="datetime-local" value="2026-05-04T18:00">
+          </div>
+          <div class="field">
+            <label>Maximaal aantal kandidaten</label>
+            <input type="number" value="0" placeholder="0 = geen limiet">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="footer-left">
+        <button class="btn ghost">Annuleer</button>
+        <button class="btn">Opslaan als concept</button>
+      </div>
+      <div>
+        <button class="btn primary">📤 Verstuur shift</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

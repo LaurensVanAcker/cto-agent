@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Levensloop van een planning-blokje</title>
+<style>
+  :root {
+    --magenta: #E60063;
+    --blue: #5B5BE6;
+    --amber: #F59E0B;
+    --green: #10B981;
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  header {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 18px 32px; display: flex; align-items: center; gap: 16px;
+  }
+  .brand { width: 28px; height: 28px; background: var(--magenta); color: white; display: grid; place-items: center; font-weight: 700; border-radius: 4px; }
+  header h1 { margin: 0; font-size: 16px; color: var(--magenta); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  h2 { margin-top: 40px; font-size: 22px; }
+  h3 { margin-top: 28px; font-size: 17px; color: var(--magenta); }
+  p { margin: 10px 0; }
+  pre.flow {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px; overflow: auto;
+  }
+  .diagram-card {
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin: 16px 0 24px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  th { background: #F1F5F9; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .pill.n1 { background: #E8E8FE; color: var(--blue); }
+  .pill.n2 { background: #FEF3C7; color: #92400E; }
+  .pill.n3 { background: #D1FAE5; color: #065F46; }
+  .legend { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+  .legend ul { margin: 4px 0; padding-left: 20px; }
+  .nav { background: white; border-radius: 8px; padding: 14px 18px; border: 1px solid var(--border); margin-bottom: 24px; font-size: 13px; }
+  .nav a { color: var(--magenta); text-decoration: none; margin-right: 14px; }
+  .nav a:hover { text-decoration: underline; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#FFE0EC",
+        primaryTextColor: "#0F172A",
+        primaryBorderColor: "#E60063",
+        lineColor: "#5B5BE6",
+        secondaryColor: "#FEF3C7",
+        tertiaryColor: "#D1FAE5",
+        fontSize: "14px"
+      }
+    });
+  });
+</script>
+</head>
+<body>
+<header>
+  <div class="brand">S</div>
+  <h1>Staffler — Levensloop van een planning-blokje</h1>
+</header>
+
+<main>
+  <div class="nav">
+    <strong>Naar:</strong>
+    <a href="#ingangen">Drie ingangen</a>
+    <a href="#full">Volledig diagram</a>
+    <a href="#shift">Shift</a>
+    <a href="#beschikbaarheid">Beschikbaarheid</a>
+    <a href="#contract">Contract</a>
+    <a href="#meng">Mengvormen</a>
+    <a href="#visueel">Visueel</a>
+    <a href="#tijds">Tijds-as</a>
+  </div>
+
+  <p>Een blokje in het planscherm is visueel één ding, maar onder de motorkap kan het verschillende entiteiten vertegenwoordigen, afhankelijk van hoe het ontstaan is. De volledige levensloop omvat drie objecten met elk hun eigen states.</p>
+
+  <div class="legend">
+    <strong>Legenda van niveau-tags</strong>
+    <ul>
+      <li><span class="pill n1">N1</span> Niveau 1 — directe boeking, klant kent persoon en uren</li>
+      <li><span class="pill n2">N2</span> Niveau 2 — shift-broadcast, klant kent uren, kandidaten reageren</li>
+      <li><span class="pill n3">N3</span> Niveau 3 — beschikbaarheid-pull, medewerker post, klant pikt</li>
+    </ul>
+  </div>
+
+  <h2 id="ingangen">Drie ingangen, één convergentiepunt</h2>
+
+  <p>Elk planning-blokje eindigt als Contract (al dan niet gevolgd door Prestatie-bevestiging). Wat verschilt is de instap.</p>
+
+  <h3><span class="pill n1">N1</span> Directe boeking</h3>
+  <pre class="flow">[klikt op cel + kiest naam] → Contract Toegewezen → Prestatie Bevestigd</pre>
+
+  <h3><span class="pill n2">N2</span> Shift-broadcast</h3>
+  <pre class="flow">Shift Draft → Shift Open → Shift Met Kandidaten → Shift Fulfilled (= Contract Toegewezen) → Prestatie Bevestigd</pre>
+  <p>Bij capaciteit groter dan 1 spawnen meerdere Contracten uit één Fulfilled Shift.</p>
+
+  <h3><span class="pill n3">N3</span> Beschikbaarheid-pull</h3>
+  <pre class="flow">Beschikbaarheid Open → (klant pikt) → Beschikbaarheid Vastgelegd → Contract Toegewezen → Prestatie Bevestigd</pre>
+
+  <h2 id="full">Volledig state diagram</h2>
+  <p>Eén consolidatie van alle ingangen en transities. Drie objecten samen: Shift, Beschikbaarheid, Contract. Pijlen tonen wie waar in komt en hoe states overgaan.</p>
+
+  <div class="diagram-card">
+    <pre class="mermaid">
+stateDiagram-v2
+    direction TB
+    [*] --> ShiftDraft : N2 start
+    [*] --> ContractToegewezen : N1 directe boeking
+    [*] --> BeschikbaarheidOpen : N3 medewerker post
+
+    ShiftDraft --> ShiftOpen : verzenden + deadline
+    ShiftDraft --> [*] : verwijderen
+
+    ShiftOpen --> ShiftMetKandidaten : eerste applicatie
+    ShiftOpen --> ShiftClosed : deadline, 0 reacties
+    ShiftOpen --> ShiftCancelled : klant trekt in
+
+    ShiftMetKandidaten --> ShiftMetKandidaten : extra applicatie
+    ShiftMetKandidaten --> ShiftFulfilled : klant kiest, capaciteit vol
+    ShiftMetKandidaten --> ShiftClosed : deadline of manueel sluiten
+    ShiftMetKandidaten --> ShiftCancelled : klant trekt in
+
+    ShiftClosed --> ShiftMetKandidaten : heropenen
+    ShiftClosed --> ContractToegewezen : klant kiest manueel
+    ShiftClosed --> ShiftCancelled : klant trekt definitief
+
+    ShiftFulfilled --> ContractToegewezen : per gekozen kandidaat
+
+    BeschikbaarheidOpen --> BeschikbaarheidVastgelegd : klant pikt
+    BeschikbaarheidOpen --> BeschikbaarheidIngetrokken : medewerker trekt in
+    BeschikbaarheidOpen --> BeschikbaarheidVervallen : datum voorbij
+
+    BeschikbaarheidVastgelegd --> ContractToegewezen : creëert contract
+
+    ContractToegewezen --> ContractBevestigd : prestatie bevestigd
+    ContractToegewezen --> ContractAnnulatie : voor uitvoering ingetrokken
+    ContractToegewezen --> ShiftOpen : rebroadcast bij afzegging
+
+    ContractBevestigd --> [*]
+    ContractAnnulatie --> [*]
+    ShiftCancelled --> [*]
+    BeschikbaarheidIngetrokken --> [*]
+    BeschikbaarheidVervallen --> [*]
+    </pre>
+  </div>
+
+  <h2 id="shift">Shift in detail</h2>
+  <p>De vraag van de klant zonder vastgelegde persoon. Levensduur van Draft tot Cancelled, met Toegewezen Contracten als output.</p>
+
+  <div class="diagram-card">
+    <pre class="mermaid">
+stateDiagram-v2
+    direction LR
+    [*] --> Draft : klant maakt aan
+    Draft --> Open : verzenden
+    Open --> MetKandidaten : eerste applicatie
+    Open --> Closed : deadline
+    MetKandidaten --> MetKandidaten : nog een applicatie
+    MetKandidaten --> Fulfilled : capaciteit gevuld
+    MetKandidaten --> Closed : deadline
+    Closed --> MetKandidaten : heropenen
+    Closed --> Cancelled : klant annuleert
+    MetKandidaten --> Cancelled : klant annuleert
+    Open --> Cancelled : klant annuleert
+    Fulfilled --> [*]
+    Cancelled --> [*]
+    </pre>
+  </div>
+
+  <p><strong>Verschil Open en Met Kandidaten</strong>: enkel aanwezigheid van applicaties. Visueel onderscheid via badge-teller op het blokje.</p>
+  <p><strong>Closed</strong> is een tijdelijke parkeerstand. De klant kan heropenen (deadline verlengen), manueel kiezen uit nog-beschikbare medewerkers, of definitief annuleren.</p>
+  <p><strong>Fulfilled</strong> betekent: alle capaciteit gevuld. Voor capaciteit 1 = één kandidaat gekozen, één Contract aangemaakt.</p>
+
+  <h2 id="beschikbaarheid">Beschikbaarheid in detail</h2>
+  <p>Eigendom van de Medewerker, niet van een Bedrijf. Cross-bedrijf zichtbaar voor pools waar hij in zit.</p>
+
+  <div class="diagram-card">
+    <pre class="mermaid">
+stateDiagram-v2
+    direction LR
+    [*] --> Open : medewerker registreert
+    Open --> Vastgelegd : klant zet om in contract
+    Open --> Ingetrokken : medewerker verwijdert
+    Open --> Vervallen : datum voorbij zonder gebruik
+    Vastgelegd --> [*]
+    Ingetrokken --> [*]
+    Vervallen --> [*]
+    </pre>
+  </div>
+
+  <p><strong>Edge case bij gedeeltelijke booking</strong>: medewerker geeft 12-19 op, klant boekt 12-17. Voorstel: oorspronkelijke beschikbaarheid wordt Vastgelegd voor 12-17, een nieuwe Beschikbaarheid Open ontstaat voor 17-19. Voor de medewerker transparant.</p>
+
+  <h2 id="contract">Contract in detail</h2>
+  <p>Het convergentiepunt van alle drie de ingangen.</p>
+
+  <div class="diagram-card">
+    <pre class="mermaid">
+stateDiagram-v2
+    direction LR
+    [*] --> Toegewezen : ontstaan via N1, N2 of N3
+    Toegewezen --> Bevestigd : prestatie bevestigd
+    Toegewezen --> Annulatie : voor datum ingetrokken
+    Toegewezen --> Overdue : datum voorbij, niet bevestigd
+    Overdue --> Bevestigd : laattijdig bevestigd
+    Annulatie --> [*]
+    Bevestigd --> [*]
+    </pre>
+  </div>
+
+  <p>Source-veld op Contract houdt bij waar het vandaan komt: <code>NIVEAU_1_DIRECT</code>, <code>NIVEAU_2_SHIFT</code>, <code>NIVEAU_3_BESCHIKBAARHEID</code>. Voor analytics en audit-trail.</p>
+
+  <h2 id="meng">Mengvormen tussen niveaus</h2>
+
+  <h3>2 → 1: shift zonder kandidaten</h3>
+  <p>Klant heeft Shift Closed met 0 kandidaten. Vanuit die state kan hij een naam manueel kiezen uit de pool, de shift heropenen met nieuwe deadline, of annuleren.</p>
+
+  <h3>2 → 3: shift met kandidaten naast beschikbaren</h3>
+  <p>Klant ziet 2 kandidaten op een open Shift en in zijn pool een derde persoon die beschikbaarheid heeft gepost zonder zich kandidaat te stellen. Hij kan die derde uitnodigen (push via MyStaffler), of direct vastleggen op een tweede shift, of de capaciteit van de bestaande shift verhogen.</p>
+
+  <h3>1 → 2: dubbel boeken via broadcast</h3>
+  <p>Klant heeft persoon X manueel gepland (N1) op woensdag. Voor donderdag maakt hij een Shift (N2). Twee blokjes, het systeem maakt geen aanname.</p>
+
+  <h3>3 → 2: beschikbaarheid omgezet in shift-broadcast</h3>
+  <p>Klant ziet 3 medewerkers beschikbaar voor donderdag, kan niet kiezen. Maakt een Shift met selectie = die 3 namen. Beschikbaarheid blijft staan tot iemand applicatie indient.</p>
+
+  <h2 id="visueel">Visuele staten in het planscherm</h2>
+
+  <table>
+    <tr><th>Object-state</th><th>Visueel blokje</th><th>Interactie</th></tr>
+    <tr><td>Shift Draft</td><td>dikke rand, label "concept"</td><td>verder bouwen, verzenden of verwijderen</td></tr>
+    <tr><td>Shift Open, 0 kandidaten</td><td>dashed border, amber bg, badge "0"</td><td>edit, cancel</td></tr>
+    <tr><td>Shift Met Kandidaten, n&gt;0</td><td>dashed border, amber bg, badge "n"</td><td>kandidatenlijst, kies</td></tr>
+    <tr><td>Shift Closed</td><td>dashed border, gray bg, "expired" badge</td><td>heropenen, manueel kiezen, cancel</td></tr>
+    <tr><td>Shift Fulfilled</td><td>vervangen door Contract-blokje</td><td>n.v.t.</td></tr>
+    <tr><td>Contract Toegewezen</td><td>solid, blauw, naam zichtbaar</td><td>edit, cancel, herplannen</td></tr>
+    <tr><td>Contract Overdue</td><td>solid, oranje rand, "bevestiging?" badge</td><td>bevestiging</td></tr>
+    <tr><td>Contract Bevestigd</td><td>solid, gray, "bevestigd" badge</td><td>raadplegen</td></tr>
+    <tr><td>Contract Annulatie</td><td>doorgehaald, "geannuleerd"</td><td>raadplegen, eventueel rebroadcast</td></tr>
+  </table>
+
+  <p>Beschikbaarheid Open verschijnt niet als blokje in de grid maar in de pool-strook of side panel als sleepbare kaart.</p>
+
+  <h2 id="tijds">Tijds-as: deadlines en cron</h2>
+
+  <table>
+    <tr><th>Transitie</th><th>Trigger</th><th>Voorgestelde frequentie</th></tr>
+    <tr><td>Shift Open → Closed</td><td>deadline-tijdstip</td><td>event-driven, exact moment</td></tr>
+    <tr><td>Beschikbaarheid Open → Vervallen</td><td>datum verstreken</td><td>dagelijks 03:00</td></tr>
+    <tr><td>Contract Toegewezen → Overdue</td><td>datum voorbij zonder bevestiging</td><td>bestaande ActualsUpdateToOverdueSchedule (dinsdag 00:01)</td></tr>
+    <tr><td>Reminder push naar kandidaten</td><td>t-1u voor deadline</td><td>event-driven</td></tr>
+    <tr><td>Reminder confirmation</td><td>maandag 07:00</td><td>bestaande CompanyActualsConfirmationEmailSchedule</td></tr>
+  </table>
+
+  <p>Past binnen de bestaande EventBridge-architectuur. Real-time push naar kandidaten zou wel een upgrade vragen op NotificationServiceSchedule (nu 15min batch, te traag voor korte deadlines).</p>
+
+  <h2>Audit-trail en analytics</h2>
+  <p>Per Contract bewaren:</p>
+  <ul>
+    <li>source enum: <code>NIVEAU_1_DIRECT</code> / <code>NIVEAU_2_SHIFT</code> / <code>NIVEAU_3_BESCHIKBAARHEID</code></li>
+    <li>shift_id of beschikbaarheid_id als bron</li>
+    <li>aantal kandidaten op moment van keuze (alleen N2)</li>
+    <li>tijd tussen broadcast en eerste kandidaat</li>
+    <li>tijd tussen broadcast en keuze</li>
+    <li>aanleiding bij annulatie (vrij tekst of dropdown)</li>
+  </ul>
+
+  <p>Maakt later analyse mogelijk: hoe snel reageert onze pool, welke klanten gebruiken welk niveau, waar zit fulfilment-risico.</p>
+</main>
+</body>
+</html>

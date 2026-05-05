@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 3: Hybrid Timeline</title>
+<style>
+  :root {
+    --magenta: #E60063;
+    --magenta-soft: #FFE0EC;
+    --blue: #5B5BE6;
+    --blue-soft: #E8E8FE;
+    --amber: #F59E0B;
+    --amber-soft: #FEF3C7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+  header {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+  }
+  .brand { width: 28px; height: 28px; background: var(--magenta); color: white; display: grid; place-items: center; font-weight: 700; border-radius: 4px; }
+  .crumb { color: var(--magenta); font-weight: 600; }
+  .pill { background: var(--blue); color: white; padding: 6px 14px; border-radius: 6px; font-weight: 600; }
+
+  .layout { display: grid; grid-template-columns: 1fr 280px; height: calc(100vh - 60px); }
+  .main { padding: 16px 20px; overflow: auto; }
+
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 13px; }
+  .week-nav { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .week-nav button { width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; }
+  .week-label { color: var(--muted); }
+
+  .section-title {
+    display: flex; align-items: baseline; gap: 8px;
+    margin: 14px 0 8px 0;
+  }
+  .section-title h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); font-weight: 700; }
+  .section-title .hint { color: var(--muted); font-size: 11px; }
+
+  .panel { background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+
+  /* OPEN SHIFTS STRIP */
+  .open-strip { display: grid; grid-template-columns: 160px repeat(7, 1fr); border-bottom: 1px solid var(--border); }
+  .open-strip > div { padding: 8px; border-right: 1px solid var(--border); min-height: 70px; }
+  .open-strip > div:last-child { border-right: none; }
+  .open-strip .header-cell { background: #FEF3C7; font-weight: 700; font-size: 12px; color: #92400E; display: flex; align-items: center; }
+  .open-strip .day-cell.today { background: #FFF5F8; }
+  .open-strip .day-cell.weekend { background: #FAFBFC; }
+
+  .open-block {
+    background: var(--amber-soft); border: 1px dashed var(--amber);
+    color: #92400E; border-radius: 6px; padding: 5px 7px; font-size: 11px;
+    margin-bottom: 4px; cursor: pointer; line-height: 1.3; position: relative;
+  }
+  .open-block.zero { background: #FEE2E2; border-color: #DC2626; color: #991B1B; }
+  .open-block .where { font-weight: 600; }
+  .open-block .when { font-size: 10px; opacity: 0.8; }
+  .open-block .badge {
+    position: absolute; top: -7px; right: -7px;
+    background: var(--amber); color: white; border-radius: 50%;
+    width: 20px; height: 20px; display: grid; place-items: center;
+    font-size: 10px; font-weight: 700; border: 2px solid white;
+  }
+  .open-block.zero .badge { background: #DC2626; }
+
+  /* CONTRACTS GRID */
+  .grid { background: white; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .grid-header { display: grid; grid-template-columns: 200px repeat(7, 1fr); border-bottom: 1px solid var(--border); background: #FAFBFC; }
+  .grid-header div { padding: 12px 8px; text-align: center; font-weight: 600; color: var(--muted); font-size: 12px; }
+  .grid-header div:first-child { text-align: left; }
+  .grid-header .today { background: var(--magenta); color: white; }
+  .grid-header .weekend { color: #94A3B8; }
+
+  .person-row { display: grid; grid-template-columns: 200px repeat(7, 1fr); border-top: 1px solid var(--border); min-height: 70px; }
+  .person-cell {
+    padding: 10px 14px; background: white; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .person-cell .name { font-weight: 600; }
+  .person-cell .stat { color: var(--muted); font-size: 11px; }
+
+  .day-cell { border-right: 1px solid var(--border); padding: 6px; position: relative; }
+  .day-cell:last-child { border-right: none; }
+  .day-cell.today { background: #FFF5F8; }
+  .day-cell.weekend { background: #FAFBFC; }
+
+  .contract {
+    background: var(--blue-soft); border: 1px solid var(--blue);
+    border-radius: 6px; padding: 6px 8px; font-size: 11px; line-height: 1.3;
+    cursor: pointer;
+  }
+  .contract .where { font-weight: 600; }
+  .contract .meta { color: var(--muted); font-size: 10px; }
+
+  /* SIDE PANEL */
+  aside { background: white; border-left: 1px solid var(--border); overflow: auto; padding: 16px; }
+  aside h3 { margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.4px; }
+  aside p.hint { margin: 0 0 14px 0; font-size: 11px; color: var(--muted); }
+
+  .a-card {
+    border: 1px solid var(--green); background: var(--green-soft);
+    border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: grab;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .a-card .name { font-weight: 600; font-size: 12px; color: var(--text); }
+  .a-card .stat { font-size: 11px; color: #047857; font-weight: 600; }
+  .a-card .when { font-size: 11px; color: var(--muted); }
+
+  .filter-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .filter-tabs button {
+    flex: 1; padding: 6px; border: 1px solid var(--border); background: white;
+    border-radius: 6px; font-size: 11px; cursor: pointer;
+  }
+  .filter-tabs button.active { background: var(--magenta); color: white; border-color: var(--magenta); }
+
+  .pool-search {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12px; margin-bottom: 12px;
+  }
+
+  .new-btn {
+    background: var(--magenta); color: white; border: none;
+    padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">S</div>
+  <div class="crumb">IzyKoffie Gent</div>
+  <span class="pill">Planning</span>
+</header>
+
+<div class="layout">
+  <main class="main">
+    <div class="toolbar">
+      <input placeholder="Zoek medewerker">
+      <select><option>Alle locaties</option></select>
+      <select><option>Alle functies</option></select>
+      <button class="new-btn">+ Nieuwe shift</button>
+      <div class="week-nav">
+        <button>&lsaquo;</button>
+        <span class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</span>
+        <button>&rsaquo;</button>
+      </div>
+    </div>
+
+    <!-- STRIP: open shifts -->
+    <div class="section-title">
+      <h2>Open shifts deze week</h2>
+      <span class="hint">3 totaal · 4 kandidaten · 1 zonder reactie</span>
+    </div>
+
+    <div class="panel">
+      <div class="open-strip">
+        <div class="header-cell">Open shifts</div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell">
+          <div class="open-block">
+            <span class="badge">3</span>
+            <div class="where">Korenmarkt · Afwas</div>
+            <div class="when">13:00 - 20:00</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell">
+          <div class="open-block">
+            <span class="badge">1</span>
+            <div class="where">Sint-Pieters · Bar</div>
+            <div class="when">17:00 - 23:00</div>
+          </div>
+        </div>
+        <div class="day-cell weekend">
+          <div class="open-block zero">
+            <span class="badge">0</span>
+            <div class="where">Sluizeken · Bar</div>
+            <div class="when">11:00 - 18:00</div>
+          </div>
+        </div>
+        <div class="day-cell weekend"></div>
+      </div>
+    </div>
+
+    <!-- PEOPLE GRID: assigned contracts -->
+    <div class="section-title">
+      <h2>Toegewezen contracten</h2>
+      <span class="hint">Sleep een beschikbare medewerker rechts naar een lege cel.</span>
+    </div>
+
+    <div class="grid">
+      <div class="grid-header">
+        <div>Medewerker</div>
+        <div class="today">ma 4</div>
+        <div>di 5</div>
+        <div>wo 6</div>
+        <div>do 7</div>
+        <div>vr 8</div>
+        <div class="weekend">za 9</div>
+        <div class="weekend">zo 10</div>
+      </div>
+
+      <div class="person-row">
+        <div class="person-cell"><span class="name">Anouk Staelens</span><span class="stat">flexi</span></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell">
+          <div class="contract">
+            <div class="where">Korenmarkt · Bar</div>
+            <div class="meta">12:00 - 17:00</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <div class="person-row">
+        <div class="person-cell"><span class="name">Joke Carton</span><span class="stat">flexi</span></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell">
+          <div class="contract">
+            <div class="where">Sluizeken · Service</div>
+            <div class="meta">10:00 - 18:00</div>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <div class="person-row">
+        <div class="person-cell"><span class="name">Leslie Nikolov</span><span class="stat">bediende</span></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <div class="person-row">
+        <div class="person-cell"><span class="name">Jeff Callebaut</span><span class="stat">student</span></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <div class="person-row">
+        <div class="person-cell"><span class="name">Lieven Bonamie</span><span class="stat">student</span></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside>
+    <h3>Pool</h3>
+    <div class="filter-tabs">
+      <button class="active">Beschikbaar</button>
+      <button>Iedereen</button>
+      <button>Kandidaten</button>
+    </div>
+    <input class="pool-search" placeholder="Zoek in pool">
+
+    <p class="hint">Sleep naar een cel om direct in te plannen, of klik op een open shift om uit kandidaten te kiezen.</p>
+
+    <div class="a-card">
+      <div class="name">Jeff Callebaut</div>
+      <div class="stat">student</div>
+      <div class="when">wo 6/5 · 10:00 - 15:00</div>
+    </div>
+    <div class="a-card">
+      <div class="name">Jeff Callebaut</div>
+      <div class="stat">student</div>
+      <div class="when">do 7/5 · 11:00 - 18:00</div>
+    </div>
+    <div class="a-card">
+      <div class="name">Jeff Callebaut</div>
+      <div class="stat">student</div>
+      <div class="when">vr 8/5 · 17:00 - 22:00</div>
+    </div>
+    <div class="a-card">
+      <div class="name">Anouk Staelens</div>
+      <div class="stat">flexi</div>
+      <div class="when">vr 8/5 · 12:00 - 22:00</div>
+    </div>
+    <div class="a-card">
+      <div class="name">Lieven Bonamie</div>
+      <div class="stat">student</div>
+      <div class="when">za 9/5 · 9:00 - 17:00</div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

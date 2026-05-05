@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 7 v3: Simpele combineerde shift-dialog</title>
+<style>
+  :root {
+    /* Primary brand */
+    --magenta: #E60063;
+    --magenta-hover: #C5004F;
+    --magenta-soft: #FFF0F5;
+    --magenta-soft-2: #FFE0EC;
+
+    /* Block accent (lavender/indigo) */
+    --indigo: #4F46E5;
+    --indigo-text: #3730A3;
+    --indigo-soft: #EEF2FF;
+    --indigo-border: #C7D2FE;
+
+    /* Status */
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --green: #059669;
+    --green-soft: #D1FAE5;
+
+    /* Neutrals */
+    --bg: #F4F4F8;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --text: #111827;
+    --muted: #6B7280;
+    --soft: #9CA3AF;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(230, 0, 99, 0.18), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(79, 70, 229, 0.15), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh; padding: 32px;
+    display: flex; align-items: flex-start;
+    gap: 24px; flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .col {
+    display: flex; flex-direction: column; gap: 12px;
+    width: 480px; flex-shrink: 0;
+  }
+  .col h1 {
+    color: rgba(255, 255, 255, 0.85); margin: 0; font-size: 13px;
+    font-weight: 500; letter-spacing: 0.01em; padding-left: 4px;
+  }
+
+  /* Modal */
+  .modal {
+    background: var(--surface); border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    display: flex; flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    background: var(--surface);
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .modal-header h2 {
+    margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.015em;
+  }
+  .modal-header .sub {
+    color: var(--muted); font-size: 13px; margin-top: 4px;
+  }
+  .icon-x {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--muted); border: none; background: transparent;
+    transition: background 0.15s;
+  }
+  .icon-x:hover { background: var(--bg); color: var(--text); }
+
+  .modal-body { padding: 18px 22px 4px 22px; }
+
+  fieldset { border: none; padding: 0; margin: 0 0 22px 0; }
+  legend, .legend-label {
+    font-size: 11px; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.06em; font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  /* Capacity pills */
+  .capacity-pills {
+    display: inline-flex; background: #F1F1F6;
+    padding: 4px; border-radius: 12px; gap: 2px;
+  }
+  .pill-btn {
+    width: 40px; height: 36px; border-radius: 9px;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    transition: all 0.15s;
+  }
+  .pill-btn:hover { background: white; }
+  .pill-btn.active {
+    background: var(--magenta); color: white;
+    box-shadow: 0 2px 8px rgba(230, 0, 99, 0.30);
+  }
+  .pill-btn.more { color: var(--muted); font-weight: 500; }
+
+  /* Slot list */
+  .slot-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .slot {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px;
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 12px;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .slot .num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700; font-size: 12px;
+    background: #EEEEF3; color: var(--soft);
+  }
+
+  /* Slot empty: binaire keuze */
+  .slot.empty { padding: 8px 10px 8px 14px; }
+  .slot.empty .choice-row {
+    display: flex; gap: 8px;
+  }
+  .choice-btn {
+    flex: 1; padding: 9px 12px; background: white;
+    border: 1px solid var(--border); border-radius: 9px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.15s;
+  }
+  .choice-btn:hover { background: var(--bg); }
+  .choice-btn.persoon:hover {
+    border-color: var(--indigo); background: var(--indigo-soft);
+    color: var(--indigo-text);
+  }
+  .choice-btn.open:hover {
+    border-color: var(--magenta); background: var(--magenta-soft);
+    color: var(--magenta);
+  }
+  .choice-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  /* Slot assigned (Iemand toegewezen) */
+  .slot.assigned {
+    background: var(--indigo-soft);
+    border-color: var(--indigo-border);
+  }
+  .slot.assigned .num {
+    background: var(--indigo); color: white;
+  }
+  .slot.assigned .name { font-weight: 600; color: var(--indigo-text); }
+  .slot.assigned .meta {
+    font-size: 12px; color: var(--muted); margin-top: 1px;
+    display: flex; gap: 6px; align-items: center;
+  }
+  .slot.assigned .meta .dot { color: var(--green); font-weight: 700; }
+
+  /* Slot open */
+  .slot.open {
+    background: var(--magenta-soft);
+    border-color: var(--magenta-soft-2);
+    border-style: dashed;
+  }
+  .slot.open .num { background: var(--magenta); color: white; }
+  .slot.open .name {
+    color: var(--magenta); font-weight: 600;
+  }
+
+  /* Slot picking (input phase) */
+  .slot.picking {
+    background: white; border-color: var(--indigo); border-width: 2px;
+    padding: 11px 13px;
+  }
+  .slot.picking .num { background: var(--indigo); color: white; }
+  .slot.picking input {
+    border: none; outline: none; font-size: 14px; width: 100%;
+    background: transparent; font-weight: 500;
+  }
+  .slot.picking input::placeholder { color: var(--soft); font-weight: 400; }
+
+  .undo {
+    width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+    display: grid; place-items: center;
+    color: var(--muted); background: transparent; border: none;
+    transition: all 0.15s;
+  }
+  .undo:hover { background: rgba(0, 0, 0, 0.06); color: var(--text); }
+  .undo svg { width: 14px; height: 14px; }
+
+  /* Autosuggest */
+  .autosuggest { position: relative; }
+  .autosuggest-pop {
+    position: absolute; left: -42px; right: -42px; top: calc(100% + 6px);
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    z-index: 30;
+  }
+  .as-search {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    background: #FAFAFC;
+  }
+  .as-search svg { width: 14px; height: 14px; color: var(--soft); }
+  .as-search input {
+    border: none; outline: none; background: transparent;
+    font-size: 13px; flex: 1; font-weight: 500;
+  }
+  .as-search input::placeholder { color: var(--soft); font-weight: 400; }
+
+  .as-section {
+    padding: 8px 6px;
+  }
+  .as-section + .as-section { border-top: 1px solid var(--border); }
+  .as-group-label {
+    padding: 6px 12px 8px 12px;
+    font-size: 10px; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.08em; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .as-group-label .count {
+    background: #F1F1F6; color: var(--muted);
+    padding: 1px 7px; border-radius: 8px; font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .as-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    transition: background 0.1s;
+  }
+  .as-row:hover { background: var(--indigo-soft); }
+  .as-row .a-info { flex: 1; min-width: 0; }
+  .as-row .a-name { font-weight: 500; font-size: 13px; color: var(--text); }
+  .as-row .a-stat { color: var(--muted); font-size: 12px; }
+  .as-row .a-avail {
+    margin-left: auto; padding: 4px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    background: var(--green-soft); color: var(--green);
+    display: inline-flex; align-items: center; gap: 5px;
+    flex-shrink: 0;
+  }
+  .as-row .a-avail::before { content: "●"; font-size: 8px; }
+
+  .as-more {
+    text-align: center; padding: 10px 12px;
+    font-size: 12px; color: var(--magenta); font-weight: 600;
+    cursor: pointer;
+  }
+  .as-more:hover { background: var(--magenta-soft); }
+
+  /* Broadcast section */
+  .broadcast {
+    margin-top: 18px;
+    background: var(--magenta-soft);
+    border: 1px solid var(--magenta-soft-2);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .broadcast h4 {
+    margin: 0 0 12px 0; font-size: 12px; color: var(--magenta);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+  }
+
+  .radio-line {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: white;
+    border: 1px solid var(--border); border-radius: 10px;
+    cursor: pointer; font-size: 13px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+  }
+  .radio-line.checked {
+    border-color: var(--magenta);
+    box-shadow: 0 0 0 3px rgba(230, 0, 99, 0.10);
+  }
+  .radio-line input[type=radio] {
+    margin: 0; accent-color: var(--magenta);
+    width: 16px; height: 16px;
+  }
+  .radio-line .label { flex: 1; }
+  .radio-line .label strong { font-size: 14px; font-weight: 600; }
+  .radio-line .label .sub {
+    color: var(--muted); font-size: 12px; display: block; margin-top: 2px;
+  }
+
+  /* Chip input */
+  .chip-input {
+    margin-top: -2px; margin-bottom: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--magenta);
+    background: white; border-radius: 10px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 4px 4px 10px;
+    background: var(--indigo-soft);
+    color: var(--indigo-text);
+    border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .chip .x {
+    cursor: pointer; opacity: 0.55;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: inline-grid; place-items: center;
+    background: rgba(79, 70, 229, 0.14);
+  }
+  .chip .x:hover { opacity: 1; }
+  .chip .x svg { width: 10px; height: 10px; }
+  .chip-input input {
+    border: none; outline: none; font-size: 13px;
+    flex: 1; min-width: 110px; padding: 3px 4px;
+    background: transparent;
+  }
+
+  .deadline-row {
+    margin-top: 14px; display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+  }
+  .deadline-row label { color: var(--muted); font-weight: 500; }
+  .deadline-row input {
+    padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px; background: white;
+    font-family: inherit; font-weight: 500;
+  }
+  .deadline-row .date-input { width: 110px; }
+  .deadline-row .time-input { width: 76px; }
+
+  /* Specifieke namen lijst (scherm D) */
+  .specific-names {
+    margin-top: -2px; margin-bottom: 8px;
+    padding: 4px;
+    background: white;
+    border: 1px solid var(--magenta);
+    border-radius: 10px;
+  }
+  .name-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 11px; border-radius: 8px;
+  }
+  .name-row + .name-row { border-top: 1px solid var(--border); }
+  .name-row .name-info { flex: 1; min-width: 0; }
+  .name-row .name-info strong { font-size: 13px; font-weight: 600; }
+  .name-row .name-info .stat { font-size: 12px; color: var(--muted); margin-left: 6px; }
+
+  .wa-send {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: #25D366; color: white;
+    border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .wa-send:hover { background: #1FB658; }
+  .wa-send svg { width: 12px; height: 12px; }
+
+  .wa-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: var(--green-soft); color: var(--green);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .wa-status svg { width: 11px; height: 11px; }
+
+  .add-name {
+    display: block; width: 100%;
+    padding: 10px 12px; margin-top: 4px;
+    background: transparent; border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-size: 12px; color: var(--magenta);
+    font-weight: 500; cursor: pointer; font-family: inherit;
+    text-align: center;
+  }
+  .add-name:hover { background: var(--magenta-soft); border-color: var(--magenta); }
+
+  /* Status-bar in scherm E */
+  .status-bar {
+    background: var(--magenta-soft); border: 1px solid var(--magenta-soft-2);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;
+    font-size: 12px; color: var(--text);
+  }
+  .status-bar strong { color: var(--magenta); }
+  .status-bar .row1 { font-weight: 600; margin-bottom: 4px; }
+  .status-bar .row2 { color: var(--muted); }
+
+  /* Kandidaten-sectie shift-breed (scherm E) */
+  .cand-section {
+    margin-top: 18px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .cand-section h4 {
+    margin: 0;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFAFC;
+    font-size: 12px; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.06em; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .cand-section h4 .badge {
+    background: var(--magenta); color: white;
+    padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    text-transform: none; letter-spacing: 0;
+  }
+  .cand {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+  }
+  .cand + .cand { border-top: 1px solid var(--border); }
+  .cand .info { flex: 1; min-width: 0; }
+  .cand .name { font-weight: 600; font-size: 13px; }
+  .cand .stat { color: var(--muted); font-size: 12px; }
+  .cand .check-mark {
+    color: var(--green); font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-right: 8px;
+  }
+  .btn-kies {
+    padding: 7px 14px; background: var(--magenta); color: white;
+    border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-kies:hover { background: var(--magenta-hover); }
+  .btn-kies-slot {
+    padding: 7px 12px; background: white; color: var(--magenta);
+    border: 1px solid var(--magenta); border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-kies-slot:hover { background: var(--magenta-soft); }
+
+  /* Footer */
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 16px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #FAFAFC;
+  }
+  .btn {
+    padding: 9px 16px; border-radius: 9px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+    background: white; color: var(--text);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn.primary {
+    background: var(--magenta); color: white; border-color: var(--magenta);
+    box-shadow: 0 2px 8px rgba(230, 0, 99, 0.25);
+  }
+  .btn.primary:hover { background: var(--magenta-hover); }
+  .btn.ghost { color: var(--muted); border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: var(--bg); }
+</style>
+</head>
+<body>
+
+<!-- A: Lege dialog na slepen -->
+<div class="col">
+  <h1>A. Net na slepen op het planscherm</h1>
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Nieuwe shift</h2>
+        <div class="sub">IzyCoffee · Korenmarkt · Afwas · wo 6/5 · 13:00 — 20:00</div>
+      </div>
+      <button class="icon-x" title="Sluiten">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <fieldset>
+        <legend>Hoeveel personen heb je nodig?</legend>
+        <div class="capacity-pills">
+          <button class="pill-btn">1</button>
+          <button class="pill-btn">2</button>
+          <button class="pill-btn active">3</button>
+          <button class="pill-btn">4</button>
+          <button class="pill-btn">5</button>
+          <button class="pill-btn">6</button>
+          <button class="pill-btn more">+</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie?</legend>
+        <div class="slot-list">
+          <div class="slot empty">
+            <div class="num">1</div>
+            <div class="choice-row">
+              <button class="choice-btn persoon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Iemand kiezen
+              </button>
+              <button class="choice-btn open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Open shift
+              </button>
+            </div>
+            <div></div>
+          </div>
+          <div class="slot empty">
+            <div class="num">2</div>
+            <div class="choice-row">
+              <button class="choice-btn persoon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Iemand kiezen
+              </button>
+              <button class="choice-btn open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Open shift
+              </button>
+            </div>
+            <div></div>
+          </div>
+          <div class="slot empty">
+            <div class="num">3</div>
+            <div class="choice-row">
+              <button class="choice-btn persoon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Iemand kiezen
+              </button>
+              <button class="choice-btn open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Open shift
+              </button>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </fieldset>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost">Annuleer</button>
+      <button class="btn primary">Bevestig</button>
+    </div>
+  </div>
+</div>
+
+<!-- B: Klant heeft "Iemand kiezen" gekozen op slot 1, autosuggest open -->
+<div class="col">
+  <h1>B. Slot 1 op "Iemand kiezen", autosuggest open</h1>
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Nieuwe shift</h2>
+        <div class="sub">IzyCoffee · Korenmarkt · Afwas · wo 6/5 · 13:00 — 20:00</div>
+      </div>
+      <button class="icon-x" title="Sluiten">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <fieldset>
+        <legend>Hoeveel personen heb je nodig?</legend>
+        <div class="capacity-pills">
+          <button class="pill-btn">1</button>
+          <button class="pill-btn">2</button>
+          <button class="pill-btn active">3</button>
+          <button class="pill-btn">4</button>
+          <button class="pill-btn">5</button>
+          <button class="pill-btn">6</button>
+          <button class="pill-btn more">+</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie?</legend>
+        <div class="slot-list" style="position: relative;">
+          <div class="slot picking">
+            <div class="num">1</div>
+            <div class="autosuggest">
+              <input type="text" placeholder="Zoek of typ een naam" autofocus>
+              <div class="autosuggest-pop">
+                <div class="as-search">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" placeholder="Filter op naam, statuut of telefoon">
+                </div>
+
+                <div class="as-section">
+                  <div class="as-group-label">
+                    <span>Heeft beschikbaarheden doorgegeven</span>
+                    <span class="count">5</span>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Anouk Staelens</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                    <div class="a-avail">12u — 22u</div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Mehmet Yilmaz</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                    <div class="a-avail">14u — 23u</div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Sara Vandenbroucke</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                    <div class="a-avail">13u — 21u</div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Pieter Devos</div>
+                      <div class="a-stat">student</div>
+                    </div>
+                    <div class="a-avail">17u — 22u</div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Eline Verhoeven</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                    <div class="a-avail">18u — 22u</div>
+                  </div>
+                </div>
+
+                <div class="as-section">
+                  <div class="as-group-label">
+                    <span>Andere medewerkers in pool</span>
+                    <span class="count">22</span>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Andries Decoster</div>
+                      <div class="a-stat">student</div>
+                    </div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Anniek Vermeulen</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Bart De Smet</div>
+                      <div class="a-stat">flexi</div>
+                    </div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Charlotte Dewulf</div>
+                      <div class="a-stat">bediende</div>
+                    </div>
+                  </div>
+                  <div class="as-row">
+                    <div class="a-info">
+                      <div class="a-name">Dieter Janssens</div>
+                      <div class="a-stat">student</div>
+                    </div>
+                  </div>
+                  <div class="as-more">+ 17 meer ▾</div>
+                </div>
+              </div>
+            </div>
+            <button class="undo" title="Annuleer keuze">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="slot empty">
+            <div class="num">2</div>
+            <div class="choice-row">
+              <button class="choice-btn persoon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Iemand kiezen
+              </button>
+              <button class="choice-btn open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Open shift
+              </button>
+            </div>
+            <div></div>
+          </div>
+          <div class="slot empty">
+            <div class="num">3</div>
+            <div class="choice-row">
+              <button class="choice-btn persoon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Iemand kiezen
+              </button>
+              <button class="choice-btn open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Open shift
+              </button>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </fieldset>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost">Annuleer</button>
+      <button class="btn primary">Bevestig</button>
+    </div>
+  </div>
+</div>
+
+<!-- C: 1 toegewezen, 2 open, broadcast verschijnt -->
+<div class="col">
+  <h1>C. 1 toegewezen, 2 open, broadcast-keuze</h1>
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Nieuwe shift</h2>
+        <div class="sub">IzyCoffee · Korenmarkt · Afwas · wo 6/5 · 13:00 — 20:00</div>
+      </div>
+      <button class="icon-x" title="Sluiten">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <fieldset>
+        <legend>Hoeveel personen heb je nodig?</legend>
+        <div class="capacity-pills">
+          <button class="pill-btn">1</button>
+          <button class="pill-btn">2</button>
+          <button class="pill-btn active">3</button>
+          <button class="pill-btn">4</button>
+          <button class="pill-btn">5</button>
+          <button class="pill-btn">6</button>
+          <button class="pill-btn more">+</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie?</legend>
+        <div class="slot-list">
+          <div class="slot assigned">
+            <div class="num">1</div>
+            <div>
+              <div class="name">Anouk Staelens</div>
+              <div class="meta"><span>flexi</span><span>·</span><span class="dot">●</span><span>beschikbaar 12u — 22u</span></div>
+            </div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="slot open">
+            <div class="num">2</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="slot open">
+            <div class="num">3</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="broadcast">
+        <h4>2 open plaatsen, naar wie verstuur je dit?</h4>
+
+        <label class="radio-line checked">
+          <input type="radio" name="bc" checked>
+          <div class="label">
+            <strong>De volledige pool</strong>
+            <span class="sub">27 medewerkers in IzyCoffee-pool</span>
+          </div>
+        </label>
+
+        <label class="radio-line">
+          <input type="radio" name="bc">
+          <div class="label">
+            <strong>Specifieke namen</strong>
+            <span class="sub">kies hieronder wie je wil bereiken</span>
+          </div>
+        </label>
+
+        <label class="radio-line">
+          <input type="radio" name="bc">
+          <div class="label">
+            <strong>Niet versturen</strong>
+            <span class="sub">ik vul de open plaatsen later in</span>
+          </div>
+        </label>
+
+        <div class="deadline-row">
+          <label>Deadline:</label>
+          <input type="text" class="date-input" value="04/05/2026">
+          <input type="text" class="time-input" value="18u00">
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost">Annuleer</button>
+      <button class="btn primary">Verstuur shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- D: Specifieke namen geselecteerd, deels verzonden -->
+<div class="col">
+  <h1>D. Specifieke namen, deels verzonden</h1>
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Nieuwe shift</h2>
+        <div class="sub">IzyCoffee · Korenmarkt · Afwas · wo 6/5 · 13:00 — 20:00</div>
+      </div>
+      <button class="icon-x" title="Sluiten">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <fieldset>
+        <legend>Hoeveel personen heb je nodig?</legend>
+        <div class="capacity-pills">
+          <button class="pill-btn">1</button>
+          <button class="pill-btn">2</button>
+          <button class="pill-btn active">3</button>
+          <button class="pill-btn">4</button>
+          <button class="pill-btn">5</button>
+          <button class="pill-btn">6</button>
+          <button class="pill-btn more">+</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wie?</legend>
+        <div class="slot-list">
+          <div class="slot assigned">
+            <div class="num">1</div>
+            <div>
+              <div class="name">Anouk Staelens</div>
+              <div class="meta"><span>flexi</span></div>
+            </div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="slot open">
+            <div class="num">2</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="slot open">
+            <div class="num">3</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="broadcast">
+        <h4>2 open plaatsen, naar wie verstuur je dit?</h4>
+
+        <label class="radio-line">
+          <input type="radio" name="bc-d">
+          <div class="label">
+            <strong>De volledige pool</strong>
+            <span class="sub">27 medewerkers in IzyCoffee-pool</span>
+          </div>
+        </label>
+
+        <label class="radio-line checked">
+          <input type="radio" name="bc-d" checked>
+          <div class="label">
+            <strong>Specifieke namen</strong>
+            <span class="sub">4 toegevoegd, 2 verzonden</span>
+          </div>
+        </label>
+
+        <div class="specific-names">
+          <div class="name-row">
+            <div class="name-info">
+              <strong>Andries Decoster</strong><span class="stat">flexi</span>
+            </div>
+            <button class="wa-send">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Verstuur
+            </button>
+          </div>
+          <div class="name-row">
+            <div class="name-info">
+              <strong>Anniek Vermeulen</strong><span class="stat">flexi</span>
+            </div>
+            <span class="wa-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Verzonden 14:32
+            </span>
+          </div>
+          <div class="name-row">
+            <div class="name-info">
+              <strong>Bart De Smet</strong><span class="stat">flexi</span>
+            </div>
+            <span class="wa-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Verzonden 14:32
+            </span>
+          </div>
+          <div class="name-row">
+            <div class="name-info">
+              <strong>Charlotte Dewulf</strong><span class="stat">bediende</span>
+            </div>
+            <button class="wa-send">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Verstuur
+            </button>
+          </div>
+        </div>
+
+        <button class="add-name">+ Nog iemand toevoegen</button>
+
+        <label class="radio-line">
+          <input type="radio" name="bc-d">
+          <div class="label">
+            <strong>Niet versturen</strong>
+            <span class="sub">ik vul de open plaatsen later in</span>
+          </div>
+        </label>
+
+        <div class="deadline-row">
+          <label>Deadline:</label>
+          <input type="text" class="date-input" value="04/05/2026">
+          <input type="text" class="time-input" value="18u00">
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost">Annuleer</button>
+      <button class="btn primary">Verstuur 2 nog niet verzonden</button>
+    </div>
+  </div>
+</div>
+
+<!-- E: Popup van bestaande shift, na deadline, kandidaten zichtbaar -->
+<div class="col">
+  <h1>E. Bestaande shift na deadline (popup heropenen)</h1>
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Open shift, status</h2>
+        <div class="sub">IzyCoffee · Korenmarkt · Afwas · wo 6/5 · 13:00 — 20:00</div>
+      </div>
+      <button class="icon-x" title="Sluiten">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <div class="status-bar">
+        <div class="row1">Deadline <strong>04/05/2026 18u00</strong> verstreken</div>
+        <div class="row2">Capaciteit 3 · 1 toegewezen, 2 open · 4 kandidaten reageerden</div>
+      </div>
+
+      <fieldset>
+        <legend>Plaatsen</legend>
+        <div class="slot-list">
+
+          <div class="slot assigned">
+            <div class="num">1</div>
+            <div>
+              <div class="name">Anouk Staelens</div>
+              <div class="meta"><span>flexi</span><span>·</span><span>contract aangemaakt</span></div>
+            </div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="slot open">
+            <div class="num">2</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="slot open">
+            <div class="num">3</div>
+            <div class="name">Open plaats</div>
+            <button class="undo" title="Verwijder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+        </div>
+      </fieldset>
+
+      <div class="cand-section">
+        <h4>
+          <span>Kandidaten voor de 2 open plaatsen</span>
+        </h4>
+        <div class="cand">
+          <div class="info">
+            <div class="name">Joke Carton</div>
+            <div class="stat">flexi</div>
+          </div>
+          <span class="check-mark">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            bevestigd 04/05 19u12
+          </span>
+          <button class="btn-kies">Kies</button>
+        </div>
+        <div class="cand">
+          <div class="info">
+            <div class="name">Pieter Devos</div>
+            <div class="stat">student</div>
+          </div>
+          <span class="check-mark">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            bevestigd 05/05 08u47
+          </span>
+          <button class="btn-kies">Kies</button>
+        </div>
+        <div class="cand">
+          <div class="info">
+            <div class="name">Mehmet Yilmaz</div>
+            <div class="stat">flexi</div>
+          </div>
+          <span class="check-mark">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            bevestigd 05/05 11u20
+          </span>
+          <button class="btn-kies">Kies</button>
+        </div>
+        <div class="cand">
+          <div class="info">
+            <div class="name">Sara Vandenbroucke</div>
+            <div class="stat">flexi</div>
+          </div>
+          <span class="check-mark">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            bevestigd 04/05 22u05
+          </span>
+          <button class="btn-kies">Kies</button>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost">Annuleer shift</button>
+      <button class="btn">Verstuur opnieuw</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

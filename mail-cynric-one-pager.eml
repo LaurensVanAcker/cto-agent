@@ -1,0 +1,103 @@
+From: Laurens Van Acker <laurens.van.acker@boemm.eu>
+To:
+Subject: One-pager technische requirements successor
+X-Unsent: 1
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Dag Cynric
+
+Ik moet een one-pager maken met de technische requirements voor mijn successor. Ik heb voorlopig onderstaande. Wil jij daar ook eens door gaan?
+
+Denk jij nog aan zaken die belangrijk zijn?
+
+Voor mij is vooral de cultural fit en de soft skills belangrijk, maar die gaat Lieven toevoegen. Dus enkel technisch.
+
+1. Tech stack: wat gebruiken we vandaag
+
+  1.1 Backend
+    - Structuur: 27+ microservices, DDD.
+    - Taal: Java 17 en Java 25. Python in lambdas en data-jobs.
+    - Frameworks: Spring Boot 2.6 en 4.0, Spring Cloud, Spring Cloud AWS, Spring Security OAuth2.
+    - Databases: Aurora PostgreSQL (RDS), DynamoDB, Amazon Kinesis, S3, Glue + Iceberg.
+    - Messaging: AWS SQS, SNS, EventBridge (Pipes), Step Functions, AppFlow (HubSpot).
+    - API's: REST/JSON, SpringDoc OpenAPI, geversioneerde rest-client libs.
+    - CI/CD: GitHub Actions met OIDC, blue/green, reusable composite actions.
+    - Testing: JUnit 5, REST-Assured, WireMock, Testcontainers, LocalStack, Rainforest AI.
+
+  1.2 Frontend
+    - Core: Angular 17 tot 21, TypeScript 5.x, RxJS.
+    - UI-kits: Angular Material, Ionic met Capacitor, PrimeNG + PrimeFlex, Bryntum Scheduler.
+    - State: NgXs, NgRx Signals, ngx-translate, @ngneat/until-destroy.
+    - Feature flags: LaunchDarkly. Error tracking: Rollbar. Embedded Power BI in Eagle.
+
+  1.3 Infra dev
+    - Cloud: AWS, 3 environments (dev, qa, prod), eu-central-1 + eu-west-1.
+    - Compute: ECS/Fargate, Lambda's (Python, Java, Node).
+    - CI/CD: CloudFormation + SAM, GitHub Actions, blue/green deploys.
+    - Gateway: eigen API gateways (boemm, dps, falcon, jobfixers-applications).
+    - Data warehouse: Redshift + Iceberg tables (Glue catalog, S3 lake).
+    - BI: Power BI (embedded + standalone), HubSpot dashboards, BrightAnalytics.
+    - Koppelingen: Techwolf, VDAB, Itsme, Dimona, Twikey, WhatsApp, Google Maps, HubSpot, BrightStaffing, CreditSafe, e-signature.
+    - Authentication: OAuth 2.0 / OIDC, Amazon Cognito, MFA.
+    - Tools: Jira, Confluence, GetUnblocked, Slack, Sonar, GitHub.
+
+  1.4 Infra B.O.E.M.M. netwerk
+    - Identity: Microsoft AD op VM's in Azure + Microsoft Entra ID (hybrid, Azure AD Connect).
+    - Licenses en collab: O365 (Exchange, SharePoint, Teams, OneDrive).
+    - Endpoints: Intune (Windows, Android, iOS/iPadOS, macOS), Autopilot, Defender for Endpoint.
+    - Telefonie: Cisco CUCM, Proximus, FMU.
+    - Tickets: Freshdesk (dagelijkse triage).
+    - Scripting: PowerShell (infra-scripts: on/off-boarding, Brightstaffing, EXO, CUCM).
+    - Printing: on-prem print-server (uit te faseren).
+    - SaaS in beheer: HubSpot, BrightStaffing, BrightAnalytics, Power BI, Jira.
+
+2. CTO technische requirements
+
+  2.1 Hands-on software
+    - Backend-stack grondig kunnen lezen en debuggen (geen Java-expert).
+    - Frontend-stack grondig kunnen lezen en debuggen (geen Angular-expert).
+    - Stevige SQL-kennis (PostgreSQL, EXPLAIN ANALYZE).
+    - TypeScript-kennis om interne scripts te onderhouden.
+    - REST API-ontwerp, OpenAPI, event-driven patterns.
+    - Git, PR-reviews, branches, pipelines debuggen.
+
+  2.2 Cloud en DevOps
+    - AWS op architect-niveau: VPC, IAM, ECS/Fargate, RDS, SQS/SNS, CloudWatch, CloudFormation, finance.
+    - CI/CD-pipelines zelf aanpassen (GitHub Actions YAML, OIDC, reusable actions).
+    - Observability basics: logs trekken, metrics bouwen, incidenten triëren.
+    - Secrets-management, TLS, OWASP Top-10 op een review toepassen.
+
+  2.3 CIO-deel
+    - Grondige kennis van netwerken, firewalls, VLAN's en VPN's.
+    - Basisbeheer van Windows-systemen (client + server).
+    - Entra ID configureren en valideren (Conditional Access, groups, MFA, app registrations).
+    - Intune: device compliance policies, Autopilot-profielen, Defender for Endpoint.
+    - M365-admin (Exchange, SharePoint, Teams) op senior-niveau kunnen begeleiden.
+    - Basisbegrip van AD + hybrid, om uitfasering on-prem naar cloud native te sturen.
+
+  2.4 Architectuur
+    - C4-model, domain-driven design toepassen (belangrijk).
+    - ADR's schrijven en verdedigen tegenover CEO en investeerders.
+    - Legacy-refactoring plannen zonder big-bang rewrite (strangler, versioned APIs, feature flags).
+
+  2.5 Security en compliance
+    - Retentie, consent en immutable audit-trails ontwerpen.
+    - Dimona, sociale secretariaten, flexi-jobs, studentenarbeid.
+    - Dataflows documenteren voor auditor of DPO.
+
+  2.6 Leiderschap
+    - Remote en lokale teams aansturen, plus leveranciers (Techwolf, Rainforest, ConXioN, BrightStaffing, HubSpot).
+    - Performance-gesprekken voeren.
+    - Planning maken en bewaken.
+    - Contracten technisch reviewen en onderhandelen (scope, SLA, exit).
+    - Incidentmanagement coördineren (Freshdesk, Jira PRD Incident, Slack #technical-errors).
+    - Roadmap opmaken en verdedigen tegenover CEO en investeerders.
+
+Alvast bedankt
+Laurens Van Acker
+Freelance IT-softwarearchitect
+EPB & EPC-verslaggeving
++32 476 96 75 94
+Nempo BV

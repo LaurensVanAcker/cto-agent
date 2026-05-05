@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 6: Selectie-picker</title>
+<style>
+  :root {
+    --magenta: #E60063;
+    --magenta-soft: #FFE0EC;
+    --blue: #5B5BE6;
+    --blue-soft: #E8E8FE;
+    --amber: #F59E0B;
+    --amber-soft: #FEF3C7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --red: #DC2626;
+    --red-soft: #FEE2E2;
+    --gray-soft: #F1F5F9;
+    --bg: #F1F5F9;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: rgba(15, 23, 42, 0.55);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 24px;
+    display: flex; align-items: stretch; justify-content: center;
+  }
+
+  .modal {
+    background: white; border-radius: 14px;
+    width: 100%; max-width: 1100px; min-height: calc(100vh - 48px);
+    display: flex; flex-direction: column;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.30);
+    overflow: hidden;
+  }
+
+  /* Header */
+  .modal-header {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to right, #FFF5F8, white);
+  }
+  .modal-header h2 { margin: 0; font-size: 16px; }
+  .modal-header .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .modal-header .x {
+    width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+    display: grid; place-items: center; color: var(--muted); font-size: 18px;
+    border: 1px solid var(--border);
+  }
+
+  /* Filters */
+  .filters {
+    padding: 12px 22px; border-bottom: 1px solid var(--border);
+    background: #FAFBFC;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .filters input, .filters select {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; background: white;
+  }
+  .filters input.search { flex: 1; min-width: 180px; }
+  .filters .toggle {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 7px 12px; background: white; border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer;
+  }
+  .filters .toggle.active { background: var(--magenta); color: white; border-color: var(--magenta); }
+  .filters .toggle input { accent-color: var(--magenta); }
+
+  /* Bulk-acties */
+  .bulk {
+    padding: 10px 22px; border-bottom: 1px solid var(--border);
+    background: white;
+  }
+  .bulk-label {
+    font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: 0.4px; font-weight: 700; margin-bottom: 8px;
+  }
+  .bulk-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bulk-btn {
+    padding: 6px 12px; border: 1px dashed var(--magenta); background: white;
+    color: var(--magenta); border-radius: 16px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .bulk-btn:hover { background: var(--magenta-soft); }
+  .bulk-btn .num { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+  /* Selected chips */
+  .selected-bar {
+    padding: 10px 22px; border-bottom: 1px solid var(--border);
+    background: var(--green-soft);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .selected-label {
+    font-size: 12px; font-weight: 600; color: #065F46;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: white; border: 1px solid var(--green);
+    border-radius: 12px; font-size: 11px; font-weight: 500;
+  }
+  .chip .x { cursor: pointer; color: var(--muted); margin-left: 2px; }
+  .chip .x:hover { color: var(--red); }
+  .chip-more {
+    font-size: 11px; color: #065F46; font-weight: 600; cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* List */
+  .list-area { flex: 1; overflow-y: auto; }
+  .list-section-header {
+    padding: 10px 22px; background: #FAFBFC;
+    font-size: 11px; text-transform: uppercase; color: var(--muted);
+    letter-spacing: 0.4px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 28px 1fr 110px 200px 130px;
+    gap: 14px; align-items: center;
+    padding: 10px 22px; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .row:hover { background: #FAFBFC; }
+  .row.selected { background: var(--green-soft); }
+
+  .check {
+    width: 20px; height: 20px; border: 1.5px solid var(--border);
+    border-radius: 4px; display: grid; place-items: center;
+    background: white; color: white;
+  }
+  .row.selected .check {
+    background: var(--green); border-color: var(--green);
+  }
+  .row.selected .check::before { content: "✓"; }
+
+  .person .name { font-weight: 600; font-size: 13px; }
+  .person .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .person .meta span + span::before { content: " · "; }
+
+  .stat-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .stat-tag.flexi { background: #DDD6FE; color: #5B21B6; }
+  .stat-tag.student { background: #FED7AA; color: #9A3412; }
+  .stat-tag.bediende { background: #BFDBFE; color: #1E40AF; }
+  .stat-tag.arbeider { background: #BBF7D0; color: #166534; }
+
+  .groups { display: flex; gap: 4px; flex-wrap: wrap; }
+  .group-tag {
+    background: var(--gray-soft); color: var(--text); border-radius: 4px;
+    padding: 2px 6px; font-size: 10px;
+  }
+
+  .availability-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;
+  }
+  .availability-badge.match { background: var(--green-soft); color: #065F46; }
+  .availability-badge.match::before { content: "✓"; }
+  .availability-badge.partial { background: var(--amber-soft); color: #92400E; }
+  .availability-badge.partial::before { content: "~"; }
+  .availability-badge.none { background: var(--gray-soft); color: var(--muted); }
+  .availability-badge.none::before { content: "—"; }
+  .availability-badge.conflict { background: var(--red-soft); color: #991B1B; }
+  .availability-badge.conflict::before { content: "✕"; }
+
+  /* Footer */
+  .modal-footer {
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: white;
+  }
+  .footer-summary {
+    font-size: 13px;
+  }
+  .footer-summary strong { color: var(--magenta); }
+  .footer-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 9px 16px; border-radius: 6px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+    background: white; color: var(--text);
+  }
+  .btn.primary { background: var(--magenta); color: white; border-color: var(--magenta); }
+  .btn.primary:hover { background: #C5004F; }
+
+  .legend {
+    margin-top: 4px; padding: 8px 22px; background: white;
+    font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+  .legend span { display: inline-block; margin-right: 14px; }
+  .legend .availability-badge {
+    padding: 2px 6px; font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="modal">
+
+  <div class="modal-header">
+    <div>
+      <h2>Selecteer medewerkers voor uitnodiging</h2>
+      <div class="sub">Open plaatsen: 2 · Afwas Korenmarkt, wo 6/5 13:00 - 20:00</div>
+    </div>
+    <div class="x">×</div>
+  </div>
+
+  <div class="filters">
+    <input class="search" placeholder="Zoek op naam, e-mail of telefoon">
+    <select>
+      <option>Alle statuten</option>
+      <option>Flexi</option>
+      <option>Student</option>
+      <option>Bediende</option>
+      <option>Arbeider</option>
+    </select>
+    <select>
+      <option>Alle groepen</option>
+      <option>Bar</option>
+      <option>Afwas</option>
+      <option>Service</option>
+      <option>Flexi's</option>
+      <option>Jobstudent</option>
+    </select>
+    <label class="toggle active"><input type="checkbox" checked> Beschikbaar deze week</label>
+    <label class="toggle"><input type="checkbox"> Recent gewerkt op Afwas</label>
+    <select style="margin-left:auto;">
+      <option>Sorteer op naam</option>
+      <option>Sorteer op laatste shift</option>
+      <option>Sorteer op statuut</option>
+    </select>
+  </div>
+
+  <div class="legend">
+    <strong>Beschikbaarheid voor deze shift:</strong>
+    <span><span class="availability-badge match">past</span> volledige overlap met shifturen</span>
+    <span><span class="availability-badge partial">past deels</span> deels overlap</span>
+    <span><span class="availability-badge none">geen</span> niets doorgegeven</span>
+    <span><span class="availability-badge conflict">conflict</span> ander contract op die uren</span>
+  </div>
+
+  <div class="bulk">
+    <div class="bulk-label">Snelle selectie, bovenop wat al geselecteerd is</div>
+    <div class="bulk-buttons">
+      <div class="bulk-btn">+ Beschikbaar deze week <span class="num">(23)</span></div>
+      <div class="bulk-btn">+ Alle flexi's <span class="num">(45)</span></div>
+      <div class="bulk-btn">+ Groep "Bar" <span class="num">(38)</span></div>
+      <div class="bulk-btn">+ Groep "Afwas" <span class="num">(19)</span></div>
+      <div class="bulk-btn">+ Recent gewerkt op Afwas <span class="num">(67)</span></div>
+      <div class="bulk-btn">+ Volledige pool <span class="num">(287)</span></div>
+    </div>
+  </div>
+
+  <div class="selected-bar">
+    <span class="selected-label">12 geselecteerd</span>
+    <span class="chip">Anouk Staelens <span class="x">×</span></span>
+    <span class="chip">Jeff Callebaut <span class="x">×</span></span>
+    <span class="chip">Joke Carton <span class="x">×</span></span>
+    <span class="chip">Lieven Bonamie <span class="x">×</span></span>
+    <span class="chip">Leslie Nikolov <span class="x">×</span></span>
+    <span class="chip-more">+ 7 anderen tonen ▾</span>
+    <span style="margin-left:auto;font-size:11px;color:#065F46;cursor:pointer;text-decoration:underline;">Alle selecties wissen</span>
+  </div>
+
+  <div class="list-area">
+    <div class="list-section-header">Pool van Korenmarkt · 287 medewerkers</div>
+
+    <div class="row selected">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Anouk Staelens</div>
+        <div class="meta"><span>flexi</span><span>laatste shift 24/04</span><span>tel +32 470 12 34 56</span></div>
+      </div>
+      <div><span class="stat-tag flexi">flexi</span></div>
+      <div class="groups">
+        <span class="group-tag">Bar</span>
+        <span class="group-tag">Afwas</span>
+        <span class="group-tag">Flexi's</span>
+      </div>
+      <div><span class="availability-badge match">wo 12-22</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Pieter Devos</div>
+        <div class="meta"><span>student</span><span>laatste shift 02/03</span></div>
+      </div>
+      <div><span class="stat-tag student">student</span></div>
+      <div class="groups">
+        <span class="group-tag">Service</span>
+        <span class="group-tag">Jobstudent</span>
+      </div>
+      <div><span class="availability-badge partial">wo 17-22</span></div>
+    </div>
+
+    <div class="row selected">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Jeff Callebaut</div>
+        <div class="meta"><span>student</span><span>laatste shift 28/04</span></div>
+      </div>
+      <div><span class="stat-tag student">student</span></div>
+      <div class="groups">
+        <span class="group-tag">Bar</span>
+        <span class="group-tag">Afwas</span>
+        <span class="group-tag">Jobstudent</span>
+      </div>
+      <div><span class="availability-badge match">wo 10-15, do 11-18</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Marie Vandenberghe</div>
+        <div class="meta"><span>bediende</span><span>laatste shift 30/04</span></div>
+      </div>
+      <div><span class="stat-tag bediende">bediende</span></div>
+      <div class="groups">
+        <span class="group-tag">Service</span>
+      </div>
+      <div><span class="availability-badge none">geen</span></div>
+    </div>
+
+    <div class="row selected">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Joke Carton</div>
+        <div class="meta"><span>flexi</span><span>laatste shift 03/05</span></div>
+      </div>
+      <div><span class="stat-tag flexi">flexi</span></div>
+      <div class="groups">
+        <span class="group-tag">Service</span>
+        <span class="group-tag">Bar</span>
+      </div>
+      <div><span class="availability-badge match">wo 14-20</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Tom Geeraerts</div>
+        <div class="meta"><span>arbeider</span><span>laatste shift 22/04</span></div>
+      </div>
+      <div><span class="stat-tag arbeider">arbeider</span></div>
+      <div class="groups">
+        <span class="group-tag">Afwas</span>
+      </div>
+      <div><span class="availability-badge conflict">contract elders</span></div>
+    </div>
+
+    <div class="row selected">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Lieven Bonamie</div>
+        <div class="meta"><span>student</span><span>laatste shift 17/04</span></div>
+      </div>
+      <div><span class="stat-tag student">student</span></div>
+      <div class="groups">
+        <span class="group-tag">Afwas</span>
+      </div>
+      <div><span class="availability-badge none">geen</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Sara Vandenbroucke</div>
+        <div class="meta"><span>flexi</span><span>laatste shift 01/05</span></div>
+      </div>
+      <div><span class="stat-tag flexi">flexi</span></div>
+      <div class="groups">
+        <span class="group-tag">Bar</span>
+        <span class="group-tag">Service</span>
+      </div>
+      <div><span class="availability-badge match">wo 13-21</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Karim El Mansouri</div>
+        <div class="meta"><span>student</span><span>nooit gewerkt</span></div>
+      </div>
+      <div><span class="stat-tag student">student</span></div>
+      <div class="groups">
+        <span class="group-tag">Bar</span>
+      </div>
+      <div><span class="availability-badge none">geen</span></div>
+    </div>
+
+    <div class="row">
+      <div class="check"></div>
+      <div class="person">
+        <div class="name">Eline Verhoeven</div>
+        <div class="meta"><span>flexi</span><span>laatste shift 27/04</span></div>
+      </div>
+      <div><span class="stat-tag flexi">flexi</span></div>
+      <div class="groups">
+        <span class="group-tag">Afwas</span>
+        <span class="group-tag">Bar</span>
+      </div>
+      <div><span class="availability-badge partial">wo 18-22</span></div>
+    </div>
+
+    <div style="padding: 18px 22px; text-align: center; color: var(--muted); font-size: 12px;">
+      ↓ 277 medewerkers verborgen door je filter, scroll of pas filter aan
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <div class="footer-summary">
+      <strong>12 geselecteerd</strong> · Open plaatsen: 2 · Verstuur via WhatsApp en mail
+    </div>
+    <div class="footer-actions">
+      <button class="btn">Annuleer</button>
+      <button class="btn primary">Klaar, terug naar shift</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

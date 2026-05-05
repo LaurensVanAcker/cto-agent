@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 8 v2: planscherm pixel-perfect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Live geëxtraheerde tokens uit Staffler-DOM */
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.20);
+    --primary-soft-light: rgba(60, 81, 240, 0.08);
+    --brand: #FC074F;
+    --brand-soft: rgba(252, 7, 79, 0.08);
+    --brand-bg-today: rgba(252, 7, 79, 0.06);
+    /* Block-kleur, zachter dan het navy uit huidige tool */
+    --block-text: #312E81;
+    --block-time: #4F46E5;
+    --block-bg: #EEF2FF;
+    --block-border: #A5B4FC;
+
+    --surface: #FFFFFF;
+    --surface-50: #F8FAFC;
+    --surface-100: #F1F5F9;
+    --surface-200: #E2E8F0;
+    --surface-300: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    line-height: normal;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    text-rendering: auto;
+  }
+
+  /* App shell */
+  .app {
+    display: grid;
+    grid-template-columns: 89px 1fr;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--surface-200);
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 6px;
+  }
+  .brand-logo {
+    width: 40px; height: 40px;
+    margin-bottom: 8px;
+    color: var(--brand);
+  }
+  .brand-logo svg { width: 100%; height: 100%; }
+  .nav-link {
+    width: 56px; height: 56px;
+    border-radius: 6px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text);
+    display: grid; place-items: center;
+    text-decoration: none;
+    transition: background 0.12s;
+  }
+  .nav-link:hover { background: var(--surface-100); }
+  .nav-link.active {
+    background: var(--primary); color: white;
+  }
+  .nav-link svg { width: 22px; height: 22px; }
+  .nav-spacer { flex: 1; }
+  .sidebar-collapse {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--surface-200);
+    background: white;
+    color: var(--muted);
+    display: grid; place-items: center; cursor: pointer;
+    position: absolute; left: 73px; top: 96px;
+  }
+  .sidebar-collapse svg { width: 12px; height: 12px; }
+
+  /* Main */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* Top bar */
+  .topbar {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--surface-200);
+    display: flex; align-items: center; gap: 16px;
+    background: white;
+  }
+  @media (min-width: 768px) {
+    .topbar { padding: 12px; }
+  }
+  .crumb {
+    color: var(--brand);
+    font-size: 18.72px;
+    font-weight: 400;
+    margin: 0;
+    padding: 0 12px;
+  }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--primary);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .planning-pill svg { width: 18px; height: 18px; }
+  .planning-pill .label {
+    font-size: 18.72px;
+    font-weight: 400;
+    margin: 0;
+  }
+  .topbar .lang {
+    margin-left: auto;
+    width: 32px; height: 32px;
+    color: var(--muted); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .topbar .lang svg { width: 18px; height: 18px; }
+
+  /* Content area */
+  .content { padding: 16px; flex: 1; }
+
+  /* Toolbar */
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) minmax(240px, 1fr) auto auto;
+    align-items: center; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .input {
+    position: relative;
+    background: white;
+    border: 1px solid var(--surface-200);
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text);
+    font-size: 14px;
+    height: 44px;
+  }
+  .input input, .input .dropdown-label {
+    border: none; outline: none; background: transparent;
+    flex: 1; font-family: inherit; font-size: 14px; color: var(--text);
+  }
+  .input .left-icon { color: var(--soft); }
+  .input .left-icon svg { width: 16px; height: 16px; display: block; }
+  .input .right-icon { color: var(--muted); margin-left: auto; }
+  .input .right-icon svg { width: 12px; height: 12px; display: block; }
+  .input .placeholder { color: var(--soft); }
+
+  .new-shift-btn {
+    background: var(--brand); color: white;
+    border: none; border-radius: 6px;
+    padding: 10px 16px; cursor: pointer;
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 44px;
+  }
+  .new-shift-btn:hover { filter: brightness(0.95); }
+  .new-shift-btn svg { width: 14px; height: 14px; }
+
+  .toon-twee {
+    color: var(--text);
+    font-size: 14px;
+    background: transparent; border: none; cursor: pointer; font-family: inherit;
+    padding: 10px 12px;
+  }
+
+  .week-nav {
+    display: inline-flex; gap: 4px;
+    background: white; border: 1px solid var(--surface-200);
+    border-radius: 6px; padding: 4px;
+  }
+  .week-arrow {
+    width: 32px; height: 32px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--muted);
+    display: grid; place-items: center;
+    border-radius: 4px;
+  }
+  .week-arrow:hover { background: var(--surface-100); color: var(--text); }
+  .week-arrow svg { width: 14px; height: 14px; }
+
+  /* Info banner */
+  .banner {
+    background: var(--primary-soft);
+    border-radius: 6px 6px 0 0;
+    padding: 16px;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .banner-icon {
+    width: 56px; height: 56px;
+    background: var(--primary);
+    border-radius: 6px;
+    display: grid; place-items: center;
+    color: white;
+    flex-shrink: 0;
+  }
+  .banner-icon svg { width: 24px; height: 24px; }
+  .banner-text .title {
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .banner-text .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  /* Grid */
+  .grid {
+    background: white;
+    border: 1px solid var(--surface-200);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .grid-header {
+    display: grid;
+    grid-template-columns: 220px 50px repeat(7, 1fr);
+    border-bottom: 1px solid var(--surface-200);
+    background: white;
+    position: relative;
+  }
+  .gh-cell {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    border-right: 1px solid var(--surface-200);
+  }
+  .gh-cell:last-child { border-right: none; }
+  .gh-cell.label {
+    text-align: left; justify-content: space-between; padding: 14px 18px;
+    color: var(--text); font-weight: 500;
+  }
+  .gh-cell.label .sort svg { width: 12px; height: 12px; color: var(--soft); }
+  .gh-cell.today {
+    background: var(--brand);
+    color: white;
+    font-weight: 600;
+    text-transform: none;
+    border-right: 1px solid var(--brand);
+  }
+  .gh-cell.weekend { color: var(--soft); background: var(--surface-50); }
+
+  .vestiging-head {
+    padding: 10px 18px;
+    background: linear-gradient(to right, var(--brand-soft), transparent 70%);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--brand);
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .vestiging-head .chev { color: var(--muted); font-size: 11px; }
+  .vestiging-head .stats {
+    margin-left: auto; color: var(--muted);
+    font-weight: 400; font-size: 12px;
+  }
+
+  .functie-row {
+    display: grid;
+    grid-template-columns: 220px 50px repeat(7, 1fr);
+    min-height: 80px;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .functie-row:last-child { border-bottom: none; }
+  .functie-label {
+    padding: 16px 18px 16px 32px;
+    border-right: 1px solid var(--surface-200);
+    display: flex; align-items: center;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .gutter { border-right: 1px solid var(--surface-200); }
+  .day-cell {
+    border-right: 1px solid var(--surface-200);
+    padding: 8px;
+    position: relative;
+  }
+  .day-cell:last-child { border-right: none; }
+  .day-cell.today { background: var(--brand-bg-today); }
+  .day-cell.weekend { background: var(--surface-50); }
+
+  .add-functie {
+    grid-column: 1 / -1;
+    padding: 10px 18px 10px 32px;
+    color: var(--brand); font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    background: white;
+    border-top: 1px dashed var(--surface-200);
+  }
+  .add-functie:hover { background: var(--brand-soft); }
+  .add-vestiging {
+    padding: 12px 18px;
+    color: var(--brand); font-weight: 500; font-size: 14px;
+    cursor: pointer;
+    background: var(--surface-50);
+    border-top: 1px dashed var(--surface-200);
+  }
+  .add-vestiging:hover { background: var(--brand-soft); }
+
+  /* Block: Bryntum-style hollow event */
+  .block {
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .block.contract {
+    background: var(--block-bg);
+    border: 1.5px solid var(--block-border);
+    color: var(--block-text);
+  }
+  .block.contract .name { font-weight: 500; color: var(--block-text); }
+  .block.contract .time {
+    font-size: 13px;
+    color: var(--block-time);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Partial-filled */
+  .block.partial {
+    background: white;
+    border: 1.5px solid var(--block-border);
+    padding: 6px;
+  }
+  .block.partial .head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 4px 6px 4px;
+    font-size: 12px;
+    color: var(--block-text);
+    font-weight: 600;
+    border-bottom: 1px solid var(--block-border);
+    margin-bottom: 4px;
+  }
+  .block.partial .head .count {
+    background: var(--brand-soft); color: var(--brand);
+    padding: 1px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+  }
+  .b-slot {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 5px; border-radius: 4px;
+    font-size: 11px; line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .b-slot.ok {
+    background: var(--block-bg);
+    color: var(--block-text);
+    font-weight: 500;
+  }
+  .b-slot.ok::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--block-time); display: inline-block;
+  }
+  .b-slot.open {
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-weight: 500;
+  }
+  .b-slot.open::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    border: 1.5px solid var(--brand); display: inline-block;
+  }
+  .b-slot.open .cand { margin-left: auto; font-weight: 700; font-size: 10px; }
+
+  /* Open shift */
+  .block.open {
+    background: var(--brand-soft);
+    border: 2px dashed var(--brand);
+    color: var(--brand);
+    position: relative;
+  }
+  .block.open .name { font-weight: 600; }
+  .block.open .time {
+    font-size: 13px; opacity: 0.85; margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .block.open .badge {
+    position: absolute; top: -8px; right: -8px;
+    width: 22px; height: 22px;
+    background: var(--brand); color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  }
+  .block.open.zero {
+    background: rgba(220, 38, 38, 0.10);
+    border-color: #DC2626;
+    color: #DC2626;
+  }
+  .block.open.zero .badge { background: #DC2626; }
+
+  /* Availability strip */
+  .availability {
+    margin-top: 24px;
+    background: white;
+    border: 1px solid var(--surface-200);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .availability-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--surface-200);
+    background: var(--surface-50);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .availability-head h3 {
+    margin: 0; font-size: 14px;
+    color: var(--text); font-weight: 600;
+  }
+  .availability-head .count {
+    background: var(--surface-100); color: var(--muted);
+    padding: 2px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  .a-row {
+    display: grid;
+    grid-template-columns: 220px 50px repeat(7, 1fr);
+    align-items: center;
+    border-top: 1px solid var(--surface-200);
+  }
+  .a-row .who {
+    padding: 10px 18px;
+    border-right: 1px solid var(--surface-200);
+    font-weight: 500; font-size: 14px;
+  }
+  .a-row .who .stat { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .a-cell {
+    padding: 6px;
+    border-right: 1px solid var(--surface-200);
+    min-height: 40px;
+  }
+  .a-cell:last-child { border-right: none; }
+  .a-cell.weekend { background: var(--surface-50); }
+  .a-pill {
+    display: block;
+    background: rgba(16, 185, 129, 0.10);
+    color: #047857;
+    border: 1px solid #34D399;
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-size: 12px; font-weight: 500;
+    text-align: center;
+    cursor: grab;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex; justify-content: center; align-items: center; gap: 12px;
+    margin-top: 16px;
+    color: var(--muted); font-size: 14px;
+  }
+  .pag-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--surface-200); background: white;
+    border-radius: 6px; cursor: pointer; color: var(--muted);
+    display: grid; place-items: center; font-family: inherit;
+    font-size: 13px;
+  }
+  .pag-btn:hover { background: var(--surface-100); color: var(--text); }
+  .pag-page {
+    background: rgba(252, 7, 79, 0.10);
+    color: var(--brand);
+    border-color: rgba(252, 7, 79, 0.20);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand-logo" title="Staffler">
+      <!-- Stylised S logo -->
+      <svg viewBox="0 0 40 40" fill="none">
+        <path d="M30 10 C30 6, 26 4, 21 4 C15 4, 10 7, 10 12 C10 17, 14 19, 21 21 C28 23, 32 25, 32 30 C32 35, 27 38, 21 38 C15 38, 10 35, 10 30" stroke="currentColor" stroke-width="4" stroke-linecap="square" fill="none"/>
+      </svg>
+    </div>
+    <a class="nav-link" href="#" title="Bedrijfsprofiel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Gebruikersaccounts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><line x1="10.85" y1="12.15" x2="19" y2="4"/><line x1="18" y1="5" x2="20" y2="7"/><line x1="15" y1="8" x2="17" y2="10"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Groepen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Nieuwe medewerkers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+    </a>
+    <a class="nav-link active" href="#" title="Planning">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Prestaties">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Prikklok">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 1h6"/></svg>
+    </a>
+    <a class="nav-link" href="#" title="Bedrijf zoeken">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <div class="nav-spacer"></div>
+    <a class="nav-link" href="#" title="Uitloggen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </a>
+  </aside>
+
+  <div class="main">
+    <button class="sidebar-collapse" title="Sidebar inklappen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <h3 class="crumb">IzyCoffee</h3>
+      <div class="planning-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="label">Planning</span>
+      </div>
+      <div class="lang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="input">
+          <span class="left-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" placeholder="Zoek vestiging, functie of medewerker">
+        </div>
+        <div class="input">
+          <span class="dropdown-label placeholder">Filter op vestiging</span>
+          <span class="right-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </div>
+        <div class="input">
+          <span class="dropdown-label placeholder">Filter op functie</span>
+          <span class="right-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </div>
+        <button class="toon-twee">Toon twee weken</button>
+        <div class="week-nav">
+          <button class="week-arrow" title="Vorige week">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="week-arrow" title="Volgende week">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Info banner -->
+      <div class="banner">
+        <div class="banner-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="banner-text">
+          <h4 class="title">Planning - plan jouw medewerkers in</h4>
+          <div class="subtitle">Op deze pagina kan je een weekplanning opmaken en beheren voor jouw zaak.</div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="grid">
+        <div class="grid-header">
+          <div class="gh-cell label">
+            <span>Locatie + functie</span>
+            <span class="sort">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </span>
+          </div>
+          <div class="gh-cell"></div>
+          <div class="gh-cell today">Vandaag</div>
+          <div class="gh-cell">di 5</div>
+          <div class="gh-cell">wo 6</div>
+          <div class="gh-cell">do 7</div>
+          <div class="gh-cell">vr 8</div>
+          <div class="gh-cell weekend">za 9</div>
+          <div class="gh-cell weekend">zo 10</div>
+        </div>
+
+        <!-- KORENMARKT -->
+        <div class="vestiging-head">
+          <span class="chev">▾</span> Korenmarkt
+          <span class="stats">2 functies · 1 contract · 1 partial · 1 open</span>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Bar</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell">
+            <div class="block contract">
+              <div class="name">Anouk Staelens</div>
+              <div class="time">10:00 &gt; 18:00</div>
+            </div>
+          </div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell weekend"></div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Afwas</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell">
+            <div class="block partial">
+              <div class="head">
+                <span>13:00 &gt; 20:00</span>
+                <span class="count">2/3</span>
+              </div>
+              <div class="b-slot ok">Anouk Staelens</div>
+              <div class="b-slot ok">Jeff Callebaut</div>
+              <div class="b-slot open">Open<span class="cand">1 kand.</span></div>
+            </div>
+          </div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell weekend"></div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="add-functie">+ Nieuwe functie in Korenmarkt</div>
+
+        <!-- SINT-PIETERS -->
+        <div class="vestiging-head">
+          <span class="chev">▾</span> Sint-Pieters
+          <span class="stats">2 functies · 0 contracten · 1 open shift</span>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Bar</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell">
+            <div class="block open">
+              <span class="badge">1</span>
+              <div class="name">Open shift</div>
+              <div class="time">17:00 &gt; 23:00 · deadline di 12u</div>
+            </div>
+          </div>
+          <div class="day-cell weekend"></div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Service</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell weekend"></div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="add-functie">+ Nieuwe functie in Sint-Pieters</div>
+
+        <!-- SLUIZEKEN -->
+        <div class="vestiging-head">
+          <span class="chev">▾</span> Sluizeken
+          <span class="stats">2 functies · 1 contract · 1 open shift zonder kandidaten</span>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Bar</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell weekend">
+            <div class="block open zero">
+              <span class="badge">0</span>
+              <div class="name">Open shift</div>
+              <div class="time">11:00 &gt; 18:00 · deadline verstreken</div>
+            </div>
+          </div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="functie-row">
+          <div class="functie-label">Service</div>
+          <div class="gutter"></div>
+          <div class="day-cell today"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell"></div>
+          <div class="day-cell">
+            <div class="block contract">
+              <div class="name">Joke Carton</div>
+              <div class="time">10:00 &gt; 18:00</div>
+            </div>
+          </div>
+          <div class="day-cell"></div>
+          <div class="day-cell weekend"></div>
+          <div class="day-cell weekend"></div>
+        </div>
+        <div class="add-functie">+ Nieuwe functie in Sluizeken</div>
+
+        <div class="add-vestiging">+ Nieuwe vestiging</div>
+      </div>
+
+      <!-- Beschikbaarheidsstrip (zonder filter) -->
+      <div class="availability">
+        <div class="availability-head">
+          <h3>Beschikbaarheden uit de pool</h3>
+          <span class="count">9 deze week</span>
+        </div>
+        <div class="a-row">
+          <div class="who">Anouk Staelens<div class="stat">flexi</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">14u00 — 20u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">12u00 — 22u00</div></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Jeff Callebaut<div class="stat">student</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">10u00 — 15u00</div></div>
+          <div class="a-cell"><div class="a-pill">11u00 — 18u00</div></div>
+          <div class="a-cell"><div class="a-pill">17u00 — 22u00</div></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Sara Vandenbroucke<div class="stat">flexi</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">11u00 — 19u00</div></div>
+          <div class="a-cell"><div class="a-pill">13u00 — 21u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell weekend"><div class="a-pill">10u00 — 18u00</div></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Mehmet Yilmaz<div class="stat">flexi</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">14u00 — 23u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">17u00 — 23u00</div></div>
+          <div class="a-cell weekend"><div class="a-pill">12u00 — 22u00</div></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Pieter Devos<div class="stat">student</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">17u00 — 22u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"><div class="a-pill">9u00 — 14u00</div></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Eline Verhoeven<div class="stat">flexi</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">18u00 — 22u00</div></div>
+          <div class="a-cell"><div class="a-pill">18u00 — 22u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Andries Decoster<div class="stat">student</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">12u00 — 18u00</div></div>
+          <div class="a-cell"><div class="a-pill">12u00 — 22u00</div></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Lieven Bonamie<div class="stat">student</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell weekend"><div class="a-pill">9u00 — 17u00</div></div>
+          <div class="a-cell weekend"></div>
+        </div>
+        <div class="a-row">
+          <div class="who">Bart De Smet<div class="stat">flexi</div></div>
+          <div class="gutter"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"><div class="a-pill">9u00 — 14u00</div></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell"></div>
+          <div class="a-cell weekend"></div>
+          <div class="a-cell weekend"><div class="a-pill">10u00 — 16u00</div></div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        Functies 1 - 6 / 6
+        <button class="pag-btn">«</button>
+        <button class="pag-btn">‹</button>
+        <button class="pag-btn pag-page">1</button>
+        <button class="pag-btn">›</button>
+        <button class="pag-btn">»</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
