@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 12: batch-share dialog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --magenta: #FC074F;
+    --magenta-hover: #D70643;
+    --magenta-soft: #FFE9F0;
+    --magenta-soft-2: #FFD3DF;
+
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.08);
+    --indigo-soft: #EEF2FF;
+    --indigo-text: #312E81;
+    --indigo-border: #A5B4FC;
+
+    --teal: #115E59;
+    --teal-soft: #F0FDFA;
+    --teal-border: #5EEAD4;
+
+    --green: #047857;
+    --green-soft: #D1FAE5;
+
+    --amber: #92400E;
+    --amber-soft: #FEF3C7;
+    --amber-border: #FCD34D;
+
+    --bg: #F4F4F8;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+    --radius: 6px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(252, 7, 79, 0.10), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(60, 81, 240, 0.10), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    text-rendering: auto;
+    min-height: 100vh; padding: 32px;
+    display: flex; align-items: flex-start;
+    gap: 28px; flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .col {
+    display: flex; flex-direction: column; gap: 16px;
+    width: 460px; flex-shrink: 0;
+  }
+  .col h1 {
+    color: rgba(255, 255, 255, 0.92); margin: 0; font-size: 13px;
+    font-weight: 600; letter-spacing: 0.04em; padding-left: 4px;
+    text-transform: uppercase;
+  }
+  .col h1 .small {
+    color: rgba(255, 255, 255, 0.55); font-weight: 400;
+    text-transform: none; letter-spacing: 0.5px;
+    margin-left: 6px; font-size: 12px;
+  }
+
+  .modal {
+    background: var(--surface); border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.40);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .modal-header h2 {
+    margin: 0; font-size: 16px; font-weight: 600; color: var(--text-strong);
+  }
+  .modal-header .sub {
+    color: var(--muted); font-size: 12px; margin-top: 4px;
+  }
+  .modal-header .sub strong { color: var(--magenta); font-weight: 700; }
+  .icon-x {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--muted); border: none; background: transparent;
+  }
+  .icon-x:hover { background: var(--bg); }
+
+  .modal-body { padding: 16px 20px; }
+
+  .field-label {
+    display: block; font-size: 11px; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.06em; font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .deadline-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+  }
+  .deadline-row input {
+    padding: 9px 12px; border: 1px solid var(--border-strong);
+    border-radius: var(--radius); font-size: 13px;
+    background: white; font-family: inherit; font-weight: 500;
+    color: var(--text-strong); letter-spacing: 0.5px;
+  }
+  .deadline-row .date-input { width: 130px; }
+  .deadline-row .time-input { width: 80px; }
+  .deadline-row .arrow { color: var(--muted); }
+
+  .deadline-info {
+    margin-top: -10px; margin-bottom: 18px;
+    padding: 10px 12px;
+    background: var(--primary-soft);
+    border-left: 3px solid var(--primary);
+    border-radius: 4px;
+    font-size: 12px; color: var(--text);
+  }
+  .deadline-info strong { color: var(--text-strong); font-weight: 600; }
+
+  .radio-line {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: white;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .radio-line.checked {
+    border-color: var(--magenta);
+    box-shadow: 0 0 0 3px rgba(252, 7, 79, 0.10);
+    background: var(--magenta-soft);
+  }
+  .radio-line input[type=radio] {
+    margin: 0; accent-color: var(--magenta);
+    width: 16px; height: 16px;
+  }
+  .radio-line .label-block { flex: 1; }
+  .radio-line .label-block strong { font-size: 14px; font-weight: 600; color: var(--text-strong); }
+  .radio-line .label-block .sub {
+    color: var(--muted); font-size: 12px; display: block; margin-top: 2px;
+  }
+  .radio-line .label-block .sub strong { color: var(--text-strong); }
+
+  /* Pool stats */
+  .pool-summary {
+    margin-top: 8px; padding: 12px 14px;
+    background: var(--indigo-soft);
+    border: 1px solid var(--indigo-border);
+    border-radius: var(--radius);
+    font-size: 12px; color: var(--indigo-text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .pool-summary svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .pool-summary strong { font-weight: 700; font-size: 13px; }
+
+  /* Specifieke namen lijst */
+  .name-picker {
+    margin-top: 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .picker-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: #FAFAFC;
+  }
+  .picker-search svg { width: 14px; height: 14px; color: var(--soft); }
+  .picker-search input {
+    border: none; outline: none; background: transparent;
+    font-size: 13px; flex: 1; font-weight: 500;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+  .picker-search .selected-count {
+    background: var(--magenta-soft); color: var(--magenta);
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+
+  .picker-actions {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px;
+    background: white;
+  }
+  .picker-actions button {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--magenta); font-size: 12px; font-weight: 600;
+    font-family: inherit; padding: 0; letter-spacing: 0.5px;
+  }
+  .picker-actions button:hover { text-decoration: underline; }
+
+  .picker-list { max-height: 280px; overflow-y: auto; }
+  .picker-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; cursor: pointer;
+  }
+  .picker-row + .picker-row { border-top: 1px solid var(--border); }
+  .picker-row:hover { background: #FAFAFC; }
+  .picker-row input[type=checkbox] {
+    accent-color: var(--magenta);
+    width: 16px; height: 16px;
+  }
+  .picker-row .name-info { flex: 1; min-width: 0; }
+  .picker-row .name-info strong { font-size: 13px; font-weight: 600; color: var(--text-strong); }
+  .picker-row .name-info .stat { font-size: 11px; color: var(--muted); }
+  .picker-row.checked { background: var(--magenta-soft); }
+  .picker-row.fixed .icon {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal-soft); color: var(--teal);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .picker-row.fixed .icon svg { width: 12px; height: 12px; }
+
+  .modal-footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: #FAFAFC;
+  }
+  .footer-info {
+    font-size: 12px; color: var(--muted);
+  }
+  .footer-info strong { color: var(--text-strong); font-weight: 600; }
+  .btn-cancel {
+    padding: 9px 16px; background: transparent;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--text); font-family: inherit; letter-spacing: 0.5px;
+  }
+  .btn-confirm {
+    padding: 9px 18px; background: var(--magenta); color: white;
+    border: none; border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+  .btn-confirm:hover { background: var(--magenta-hover); }
+  .btn-row { display: flex; gap: 8px; }
+
+  .legend-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .legend-card h3 {
+    margin: 0 0 12px 0; font-size: 11px; font-weight: 700;
+    color: white; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .legend-card h3 + h3 { margin-top: 22px; }
+  .legend-card ul { margin: 0; padding-left: 18px; }
+  .legend-card li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<!-- VARIANT A: Volledige pool -->
+<div class="col">
+  <h1>Variant A <span class="small">Volledige pool geselecteerd</span></h1>
+
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Open shifts delen</h2>
+        <div class="sub"><strong>8 open shifts</strong> in week 19 (4 mei - 10 mei 2026)</div>
+      </div>
+      <button class="icon-x">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field-label">Deadline reactie</label>
+      <div class="deadline-row">
+        <input class="date-input" value="06-05-2026">
+        <span class="arrow">›</span>
+        <input class="time-input" value="18:00">
+      </div>
+      <div class="deadline-info">
+        <strong>Deze deadline overschrijft de huidige deadline op alle 8 open shifts.</strong>
+        Ook expired deadlines worden naar voren geduwd.
+      </div>
+
+      <label class="field-label">Naar wie versturen</label>
+      <label class="radio-line checked">
+        <input type="radio" name="batch-target" checked>
+        <div class="label-block">
+          <strong>Volledige pool</strong>
+          <span class="sub">Alle <strong>28 medewerkers</strong> in de pool van IzyCoffee zien deze shifts</span>
+        </div>
+      </label>
+      <label class="radio-line">
+        <input type="radio" name="batch-target">
+        <div class="label-block">
+          <strong>Specifieke namen</strong>
+          <span class="sub">Selecteer wie deze shifts te zien krijgt</span>
+        </div>
+      </label>
+
+      <div class="pool-summary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span>Vaste werknemers krijgen géén bericht. Enkel pool-medewerkers met een MyStaffler-account.</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="footer-info"><strong>28</strong> medewerkers</span>
+      <div class="btn-row">
+        <button class="btn-cancel">Annuleren</button>
+        <button class="btn-confirm">Verstuur naar selectie</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VARIANT B: Specifieke namen -->
+<div class="col">
+  <h1>Variant B <span class="small">Specifieke namen, 4 aangevinkt</span></h1>
+
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Open shifts delen</h2>
+        <div class="sub"><strong>8 open shifts</strong> in week 19 (4 mei - 10 mei 2026)</div>
+      </div>
+      <button class="icon-x">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field-label">Deadline reactie</label>
+      <div class="deadline-row">
+        <input class="date-input" value="06-05-2026">
+        <span class="arrow">›</span>
+        <input class="time-input" value="18:00">
+      </div>
+      <div class="deadline-info">
+        <strong>Deze deadline overschrijft de huidige deadline op alle 8 open shifts.</strong>
+        Ook expired deadlines worden naar voren geduwd.
+      </div>
+
+      <label class="field-label">Naar wie versturen</label>
+      <label class="radio-line">
+        <input type="radio" name="batch-target-b">
+        <div class="label-block">
+          <strong>Volledige pool</strong>
+          <span class="sub">Alle <strong>28 medewerkers</strong> in de pool van IzyCoffee zien deze shifts</span>
+        </div>
+      </label>
+      <label class="radio-line checked">
+        <input type="radio" name="batch-target-b" checked>
+        <div class="label-block">
+          <strong>Specifieke namen</strong>
+          <span class="sub"><strong>4 van 28</strong> medewerkers geselecteerd</span>
+        </div>
+      </label>
+
+      <div class="name-picker">
+        <div class="picker-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input placeholder="Zoek op naam">
+          <span class="selected-count">4</span>
+        </div>
+        <div class="picker-actions">
+          <button>Alle selecteren</button>
+          <button>Selectie wissen</button>
+        </div>
+
+        <div class="picker-list">
+          <label class="picker-row checked">
+            <input type="checkbox" checked>
+            <div class="name-info">
+              <strong>Anouk Staelens</strong>
+              <span class="stat">Flexijob bediende</span>
+            </div>
+          </label>
+          <label class="picker-row checked">
+            <input type="checkbox" checked>
+            <div class="name-info">
+              <strong>Bart Verhaegen</strong>
+              <span class="stat">Arbeider</span>
+            </div>
+          </label>
+          <label class="picker-row">
+            <input type="checkbox">
+            <div class="name-info">
+              <strong>Jeff Callebaut</strong>
+              <span class="stat">Arbeider</span>
+            </div>
+          </label>
+          <label class="picker-row checked">
+            <input type="checkbox" checked>
+            <div class="name-info">
+              <strong>Joke Carton</strong>
+              <span class="stat">Flexijob bediende</span>
+            </div>
+          </label>
+          <label class="picker-row">
+            <input type="checkbox">
+            <div class="name-info">
+              <strong>Laurens Van Acker</strong>
+              <span class="stat">Student</span>
+            </div>
+          </label>
+          <label class="picker-row">
+            <input type="checkbox">
+            <div class="name-info">
+              <strong>Leslie Nikolov</strong>
+              <span class="stat">Extra</span>
+            </div>
+          </label>
+          <label class="picker-row">
+            <input type="checkbox">
+            <div class="name-info">
+              <strong>Lieven Bonamie</strong>
+              <span class="stat">Flexijob arbeider</span>
+            </div>
+          </label>
+          <label class="picker-row checked">
+            <input type="checkbox" checked>
+            <div class="name-info">
+              <strong>Muriel Hermina W De Boel</strong>
+              <span class="stat">Bediende</span>
+            </div>
+          </label>
+          <label class="picker-row">
+            <input type="checkbox">
+            <div class="name-info">
+              <strong>Philippe Norman</strong>
+              <span class="stat">Arbeider</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="footer-info"><strong>4</strong> van 28 medewerkers</span>
+      <div class="btn-row">
+        <button class="btn-cancel">Annuleren</button>
+        <button class="btn-confirm">Verstuur naar selectie</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEGENDE -->
+<div class="col">
+  <h1>Wat doet de batch-knop</h1>
+
+  <div class="legend-card">
+    <h3>Trigger</h3>
+    <ul>
+      <li>Klik op "Open shifts delen (N)" in de toolbar van het V+SL-planscherm</li>
+      <li>Knop is alleen zichtbaar in week-view en disabled bij 0 open shifts</li>
+    </ul>
+
+    <h3>Wat de dialog doet</h3>
+    <ul>
+      <li>Eén centrale deadline kiezen die op ALLE open shifts in de week wordt overschreven</li>
+      <li>Expired deadlines worden zo automatisch naar voren geduwd, geen aparte exception-flow</li>
+      <li>Twee target-keuzes: Volledige pool (alle pool-medewerkers) of Specifieke namen (vrije selectie)</li>
+      <li>Eén "Verstuur naar selectie"-knop, geen per-persoon WhatsApp-knop meer</li>
+    </ul>
+
+    <h3>Naar wie</h3>
+    <ul>
+      <li>Enkel pool-medewerkers met een actief MyStaffler-account zien de shifts</li>
+      <li>Vaste werknemers krijgen niets (geen MyStaffler-account)</li>
+      <li>Communicatie via MyStaffler-app, niet via WhatsApp meer</li>
+    </ul>
+
+    <h3>Wat de medewerker ziet</h3>
+    <ul>
+      <li>Open shifts met enkel uren en plaats</li>
+      <li>Geen loonpakket-bedrag (dat wordt pas na kandidaat-keuze gezet)</li>
+      <li>Detail-implementatie in MyStaffler later afgesproken</li>
+    </ul>
+
+    <h3>Wat NIET in de dialog zit</h3>
+    <ul>
+      <li>Geen "Niet versturen"-optie. Wie niet wil delen, klikt simpelweg de knop niet</li>
+      <li>Geen "Laatst verzonden"-indicator. Dat is voorlopig weggelaten</li>
+      <li>Geen per-persoon stuur/verzonden-status. Eén knop voor alles</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

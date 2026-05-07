@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 11 v2: V+SL-view met batch-knop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.20);
+    --primary-soft-light: rgba(60, 81, 240, 0.08);
+    --brand: #FC074F;
+    --brand-soft: rgba(252, 7, 79, 0.06);
+    --brand-bg-today: rgba(252, 7, 79, 0.06);
+
+    /* Block colors live-extracted */
+    --block-bg: rgba(30, 24, 100, 0.10);
+    --block-border: #1E1864;
+    --block-text: #1E1864;
+
+    /* Open shift (amber, dashed) */
+    --open-bg: #FEF3C7;
+    --open-border: #B45309;
+    --open-text: #92400E;
+
+    /* Fixed (teal) */
+    --fixed-bg: #F0FDFA;
+    --fixed-border: #115E59;
+    --fixed-text: #115E59;
+
+    --surface: #FFFFFF;
+    --surface-50: #F8FAFC;
+    --surface-100: #F1F5F9;
+    --surface-200: #E2E8F0;
+    --surface-300: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    line-height: normal;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    text-rendering: auto;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  .app { display: grid; grid-template-columns: 89px 1fr; min-height: 100vh; }
+
+  /* Sidebar — pixel-match Staffler */
+  .sidebar {
+    background: var(--surface-50);
+    border-right: 1px solid var(--surface-200);
+    border-radius: 0 16px 16px 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    position: relative;
+  }
+  .brand-logo {
+    width: 48px; height: 48px;
+    margin-bottom: 16px;
+    color: var(--brand);
+    display: grid; place-items: center;
+  }
+  .brand-logo svg { width: 38px; height: 38px; }
+  .nav-link {
+    width: 56px; height: 56px;
+    border-radius: 8px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-strong);
+    display: grid; place-items: center;
+    margin-bottom: 8px; padding: 0;
+    position: relative;
+  }
+  .nav-link:hover { background: var(--surface-200); }
+  .nav-link.active { background: var(--primary); color: white; }
+  .nav-link .material-icons { font-size: 24px; }
+  .nav-badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand); color: white;
+    font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .sidebar-spacer { flex: 1; }
+  .sidebar-collapse {
+    position: absolute; right: -14px; top: 92px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--surface-200);
+    background: white;
+    color: var(--muted);
+    display: grid; place-items: center;
+    cursor: pointer;
+  }
+  .sidebar-collapse .material-icons { font-size: 16px; }
+
+  /* Main */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* Topbar */
+  .topbar {
+    padding: 12px;
+    display: flex; align-items: center; gap: 16px;
+    background: white;
+    flex-wrap: wrap;
+  }
+  .crumb {
+    color: var(--brand);
+    font-size: 18.72px;
+    font-weight: 400;
+    margin: 0; padding: 0 12px;
+  }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--primary); color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .planning-pill .material-icons { font-size: 18px; }
+  .topbar-spacer { flex: 1; }
+
+  .seg-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 8px; gap: 2px;
+  }
+  .seg-toggle button {
+    padding: 7px 14px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 5px; white-space: nowrap;
+  }
+  .seg-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .lang-globe {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; color: var(--muted); cursor: pointer;
+  }
+  .lang-globe .material-icons { font-size: 16px; }
+
+  /* Filters bar */
+  .filterbar {
+    padding: 0 24px 12px 24px;
+    display: grid;
+    grid-template-columns: 220px 180px 180px 1fr auto auto auto auto;
+    gap: 10px; align-items: center;
+    background: white;
+  }
+  .filter-input {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--surface-200); border-radius: 6px;
+    background: white; padding: 8px 12px;
+    font-size: 14px; color: var(--text); height: 40px;
+  }
+  .filter-input .material-icons { font-size: 16px; color: var(--soft); }
+  .filter-input input {
+    border: none; outline: none; flex: 1; font-size: 14px;
+    background: transparent; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .filter-input.dd::after {
+    content: ""; width: 0; height: 0; margin-left: auto;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--soft);
+  }
+
+  .sub-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 6px; gap: 2px;
+  }
+  .sub-toggle button {
+    padding: 6px 12px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 4px;
+  }
+  .sub-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  .nav-arrow {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; cursor: pointer; color: var(--text);
+  }
+  .nav-arrow .material-icons { font-size: 18px; }
+
+  .batch-btn {
+    background: var(--primary); color: white;
+    border: none; padding: 8px 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit; letter-spacing: 0.5px;
+    height: 40px;
+  }
+  .batch-btn:hover { background: #2C3FBF; }
+  .batch-btn .material-icons { font-size: 18px; }
+  .batch-btn .counter {
+    background: rgba(255,255,255,0.25); padding: 2px 8px;
+    border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+
+  /* Banner */
+  .banner {
+    margin: 12px 24px 0 24px;
+    background: var(--primary-soft);
+    border-radius: 6px 6px 0 0;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .banner .icon-square {
+    width: 56px; height: 56px; background: var(--primary);
+    border-radius: 8px; display: grid; place-items: center;
+    color: white;
+  }
+  .banner .icon-square .material-icons { font-size: 28px; }
+  .banner h3 {
+    margin: 0 0 2px 0; color: var(--primary);
+    font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .banner p { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: 0.5px; }
+
+  /* Grid */
+  .grid-wrap { margin: 0 24px; border: 1px solid var(--surface-200); border-top: none; }
+
+  .grid-header {
+    display: grid;
+    grid-template-columns: 240px repeat(7, 1fr);
+    background: white;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .grid-header > div {
+    padding: 14px 12px;
+    font-size: 14px; font-weight: 500; color: var(--text);
+    border-right: 1px solid var(--surface-200);
+    letter-spacing: 0.5px;
+  }
+  .grid-header > div:last-child { border-right: none; }
+  .grid-header .day-cell { display: flex; flex-direction: column; gap: 2px; }
+  .grid-header .day-cell .day-name { color: var(--text); font-size: 14px; font-weight: 500; }
+  .grid-header .day-cell.today { background: var(--brand); color: white; padding: 14px 12px; }
+  .grid-header .day-cell.today .day-name { color: white; font-weight: 600; }
+  .grid-header .day-cell.weekend { background: var(--brand-soft); }
+
+  .week-band {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    background: white;
+  }
+  .week-band > div { padding: 8px 12px; }
+  .week-band .week-label {
+    text-align: right; color: var(--text-strong);
+    font-size: 14px; font-weight: 500;
+  }
+
+  /* Vestiging-band */
+  .vest-band {
+    display: grid;
+    grid-template-columns: 240px repeat(7, 1fr);
+    background: var(--brand-soft);
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .vest-band > .name {
+    grid-column: 1 / 9;
+    padding: 8px 14px;
+    color: var(--brand);
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .vest-band .material-icons { font-size: 16px; }
+
+  /* Row */
+  .grid-row {
+    display: grid;
+    grid-template-columns: 240px repeat(7, 1fr);
+    border-bottom: 1px solid var(--surface-200);
+    min-height: 88px;
+    position: relative;
+  }
+  .grid-row:last-child { border-bottom: none; }
+  .grid-row > .name-cell {
+    padding: 12px;
+    font-size: 14px; color: var(--text-strong); font-weight: 500;
+    border-right: 1px solid var(--surface-200);
+    background: white; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .grid-row > .name-cell .sl-icon {
+    width: 24px; height: 24px;
+    color: var(--muted);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .grid-row > .day-cell {
+    border-right: 1px solid var(--surface-200);
+    background: white;
+    position: relative;
+    padding: 6px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .grid-row > .day-cell.today { background: var(--brand-bg-today); }
+  .grid-row > .day-cell.weekend { background: var(--surface-50); }
+  .grid-row > .day-cell:last-child { border-right: none; }
+
+  /* Multi-day block — spans grid columns */
+  .md-block {
+    /* grid-column set inline based on day span */
+    grid-row: 1;
+    align-self: stretch;
+    margin: 6px 2px;
+    background: var(--block-bg);
+    border: 2px solid var(--block-border);
+    border-radius: 8px;
+    color: var(--block-text);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    display: grid; grid-template-rows: auto 1fr;
+    overflow: visible;
+    position: relative;
+    z-index: 2;
+  }
+  .md-block .title, .md-block .times { overflow: hidden; }
+  .md-block .title {
+    padding: 6px 12px 0 12px;
+    font-weight: 700; font-size: 14px;
+  }
+  .md-block .times {
+    display: flex;
+    padding: 4px 0 8px 0;
+  }
+  .md-block .times span {
+    flex: 1; text-align: center;
+    font-size: 14px; font-weight: 500;
+    color: var(--block-text);
+  }
+  .md-block .times .arr { margin: 0 4px; opacity: 0.6; }
+
+  /* Open-shift variant */
+  .md-block.open-shift {
+    background: var(--open-bg);
+    border-color: var(--open-border);
+    border-style: dashed;
+    color: var(--open-text);
+  }
+  .md-block.open-shift .opted-badge {
+    position: absolute; top: -9px; right: -9px;
+    width: 24px; height: 24px;
+    background: var(--primary); color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: 2px solid white;
+    z-index: 3;
+  }
+
+  /* Fixed-employee variant */
+  .md-block.fixed {
+    background: var(--fixed-bg);
+    border-color: var(--fixed-border);
+    color: var(--fixed-text);
+  }
+  .md-block.fixed .title::before {
+    content: "Vast"; display: inline-block;
+    background: var(--fixed-text); color: white;
+    font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; margin-right: 6px; vertical-align: middle;
+    letter-spacing: 0.04em;
+  }
+
+  /* Stacking: when 2 blocks share same grid columns (option B - row taller) */
+  .md-block.lane-2 { grid-row: 2; }
+  .grid-row.has-lane-2 { min-height: 168px; }
+
+  /* Pagination */
+  .pagination {
+    margin: 16px 24px; padding: 12px 0;
+    display: flex; justify-content: center; align-items: center;
+    gap: 12px; color: var(--text); font-size: 14px;
+  }
+  .pagination .pill-active {
+    background: var(--primary); color: white;
+    padding: 4px 12px; border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .notes {
+    margin: 0 24px 24px 24px; padding: 16px;
+    background: var(--surface-50); border: 1px dashed var(--surface-200);
+    border-radius: 6px; font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .notes strong { color: var(--text-strong); font-weight: 600; }
+  .notes ul { margin: 8px 0 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand-logo">
+      <!-- Stylized S logo, geel-magenta brand -->
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <path d="M28 10 H14 a4 4 0 0 0 -4 4 v2 a4 4 0 0 0 4 4 h11 a4 4 0 0 1 4 4 v2 a4 4 0 0 1 -4 4 H8" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="square"/>
+        <rect x="10" y="10" width="18" height="2.5"/>
+        <rect x="22" y="14" width="6" height="2.5"/>
+        <rect x="10" y="20" width="18" height="2.5"/>
+        <rect x="10" y="24" width="6" height="2.5"/>
+        <rect x="10" y="28" width="18" height="2.5"/>
+      </svg>
+    </div>
+    <button class="nav-link"><span class="material-icons">apartment</span></button>
+    <button class="nav-link"><span class="material-icons">vpn_key</span></button>
+    <button class="nav-link"><span class="material-icons">groups</span></button>
+    <button class="nav-link"><span class="material-icons">person_add</span></button>
+    <button class="nav-link active"><span class="material-icons">event_note</span></button>
+    <button class="nav-link"><span class="material-icons">euro</span><span class="nav-badge">1</span></button>
+    <button class="nav-link"><span class="material-icons">timer</span></button>
+    <button class="nav-link"><span class="material-icons">search</span></button>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-link"><span class="material-icons">logout</span></button>
+    <div class="sidebar-collapse"><span class="material-icons">chevron_right</span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <h1 class="crumb">IzyCoffee</h1>
+      <span class="planning-pill">
+        <span class="material-icons">event_note</span>
+        Planning
+      </span>
+      <div class="topbar-spacer"></div>
+      <button class="lang-globe"><span class="material-icons">language</span></button>
+    </div>
+
+    <div class="filterbar">
+      <div class="filter-input">
+        <span class="material-icons">search</span>
+        <input placeholder="Zoek op medewerker">
+      </div>
+      <div class="filter-input dd"><span style="color: var(--muted);">Filter op vestiging</span></div>
+      <div class="filter-input dd"><span style="color: var(--muted);">Filter op service location</span></div>
+      <div></div>
+      <div class="seg-toggle">
+        <button>Namen</button>
+        <button class="active">Locaties</button>
+      </div>
+      <div class="sub-toggle">
+        <button>Dag</button>
+        <button class="active">Week</button>
+        <button>2 weken</button>
+      </div>
+      <button class="batch-btn">
+        <span class="material-icons">send</span>
+        Open shifts delen
+        <span class="counter">4</span>
+      </button>
+      <div style="display:flex; gap:8px;">
+        <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+        <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+      </div>
+    </div>
+
+    <div class="banner">
+      <div class="icon-square"><span class="material-icons">event_note</span></div>
+      <div>
+        <h3>Planning - plan jouw medewerkers in</h3>
+        <p>Klik op een cel om een shift te maken. Sleep blokken verticaal naar een andere service location.</p>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+
+      <div class="grid-header">
+        <div>Vestiging — Service location</div>
+        <div class="day-cell"><span class="day-name">ma 4</span></div>
+        <div class="day-cell today"><span class="day-name">Vandaag</span></div>
+        <div class="day-cell"><span class="day-name">wo 6</span></div>
+        <div class="day-cell"><span class="day-name">do 7</span></div>
+        <div class="day-cell"><span class="day-name">vr 8</span></div>
+        <div class="day-cell weekend"><span class="day-name">za 9</span></div>
+        <div class="day-cell weekend"><span class="day-name">zo 10</span></div>
+      </div>
+
+      <div class="week-band">
+        <div></div>
+        <div class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</div>
+      </div>
+
+      <!-- Vestiging Gent -->
+      <div class="vest-band">
+        <div class="name">
+          <span class="material-icons">apartment</span>
+          Gent Dok Noord
+        </div>
+      </div>
+
+      <!-- Toog Gent: Anouk multi-day di-wo + open shifts di-wo (lane 2) -->
+      <div class="grid-row has-lane-2">
+        <div class="name-cell">Toog</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <!-- Anouk multi-day di-wo (kolom 3-5 in 8-col grid: 240px-name + 7 day cols) -->
+        <div class="md-block" style="grid-column: 3 / 5;">
+          <div class="title">Anouk Staelens</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 17:00</span><span>9:00 <span class="arr">›</span> 17:00</span></div>
+        </div>
+
+        <!-- Open shift di-wo, 2 slots, 5 opted-in (lane 2) -->
+        <div class="md-block open-shift lane-2" style="grid-column: 3 / 5;">
+          <div class="title">2 open shifts</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 17:00</span><span>9:00 <span class="arr">›</span> 17:00</span></div>
+          <div class="opted-badge">5</div>
+        </div>
+
+        <!-- Bart do single-day -->
+        <div class="md-block" style="grid-column: 5 / 6;">
+          <div class="title">Bart Verhaegen</div>
+          <div class="times"><span>10:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+
+        <!-- Open shift weekend vr-za, 3 slots, 7 opted-in -->
+        <div class="md-block open-shift" style="grid-column: 6 / 8;">
+          <div class="title">3 open shifts</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 22:00</span><span>9:00 <span class="arr">›</span> 22:00</span></div>
+          <div class="opted-badge">7</div>
+        </div>
+      </div>
+
+      <!-- Kassa Gent: Joke multi-day di-wo -->
+      <div class="grid-row">
+        <div class="name-cell">Kassa</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block" style="grid-column: 3 / 5;">
+          <div class="title">Joke Carton</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 17:00</span><span>9:00 <span class="arr">›</span> 17:00</span></div>
+        </div>
+
+        <div class="md-block open-shift" style="grid-column: 6 / 8;">
+          <div class="title">1 open shift</div>
+          <div class="times"><span>10:00 <span class="arr">›</span> 19:00</span><span>10:00 <span class="arr">›</span> 19:00</span></div>
+          <div class="opted-badge">2</div>
+        </div>
+      </div>
+
+      <!-- Terras Gent: Sarah multi-day di-vr (fixed, 4 dagen) -->
+      <div class="grid-row">
+        <div class="name-cell">Terras</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block fixed" style="grid-column: 3 / 7;">
+          <div class="title">Sarah Dubois</div>
+          <div class="times"><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 13:00</span></div>
+        </div>
+      </div>
+
+      <!-- Vestiging Antwerpen -->
+      <div class="vest-band">
+        <div class="name">
+          <span class="material-icons">apartment</span>
+          Antwerpen Eilandje
+        </div>
+      </div>
+
+      <!-- Toog Antwerpen: Thomas fixed multi-day di-do + open shift wo-vr lane 2 -->
+      <div class="grid-row has-lane-2">
+        <div class="name-cell">Toog</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block fixed" style="grid-column: 3 / 6;">
+          <div class="title">Thomas Janssens</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+
+        <!-- Jeff vr -->
+        <div class="md-block" style="grid-column: 6 / 7;">
+          <div class="title">Jeff Callebaut</div>
+          <div class="times"><span>10:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+
+        <!-- Open shift wo-vr lane 2 -->
+        <div class="md-block open-shift lane-2" style="grid-column: 4 / 7;">
+          <div class="title">1 open shift</div>
+          <div class="times"><span>14:00 <span class="arr">›</span> 22:00</span><span>14:00 <span class="arr">›</span> 22:00</span><span>14:00 <span class="arr">›</span> 22:00</span></div>
+          <div class="opted-badge">3</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pagination">
+      <span class="pill-active">1</span>
+      <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+    </div>
+
+    <div class="notes">
+      <strong>V+SL-view (mockup 11 v2)</strong>
+      <ul>
+        <li>Sub-toggle volgorde Dag / Week / 2 weken (klein → groot)</li>
+        <li>Multi-day blokken zijn nu één lang blok dat over meerdere kolommen loopt, met titel links bovenaan en tijden herhaald per dag (zoals huidige Staffler "Verhuizer" of "Conciërge")</li>
+        <li>Drie blok-types: contract (lavender met navy border, exact zoals live), open shift (amber dashed met opted-in badge), vaste werknemer (teal met "Vast"-pre-badge)</li>
+        <li>Pixel-match: Material Icons sidebar (apartment, vpn_key, groups, person_add, event_note, euro met badge, timer, search), magenta brand voor logo en Vandaag-header, primary indigo voor active sidebar-icoon en banner</li>
+        <li>Stacking (option B): rijen met lane-2 blokken zijn hoger zodat naam-blok en open-shift-blok onder elkaar passen (zie Toog Gent en Toog Antwerpen)</li>
+      </ul>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>

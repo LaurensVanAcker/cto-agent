@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler — Namen Week</title>
+<base href=".">
+<link rel="icon" type="image/x-icon" href="./Planning_files/logo-icon.svg">
+<link rel="stylesheet" href="./Planning_files/styles-HIB33LJI.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  .mock-page { display:flex !important; min-height:100vh; font-family:Inter; letter-spacing:0.5px; -webkit-font-smoothing:auto; }
+  .mock-main { flex:1; min-width:0; display:flex; flex-direction:column; background:white; padding: 0 16px 16px 16px; }
+  /* Force flex/sidebar */
+  .mock-page > dps-main-menu { display:flex !important; }
+
+  /* Grid container */
+  .mock-grid { border:1px solid #E2E8F0 !important; border-top:0 !important; font-family:Inter; }
+  .mock-grid-header,
+  .mock-grid-row { display:grid !important; grid-template-columns:240px repeat(7, 1fr) !important; }
+  .mock-grid-header { background:white; border-bottom:1px solid #E2E8F0; }
+  .mock-grid-header > div { padding:14px 12px; font-size:14px; color:#334155; border-right:1px solid #E2E8F0; font-weight:500; box-sizing:border-box; }
+  .mock-grid-header > div:last-child { border-right:none; }
+  .mock-day-name { color:#334155; font-weight:500; }
+  .mock-grid-header .mock-day-cell.today { background:#FC074F !important; padding:14px 12px; }
+  .mock-grid-header .mock-day-cell.today .mock-day-name { color:white; font-weight:600; }
+  .mock-grid-header .mock-day-cell.weekend { background:rgba(252, 7, 79, 0.06); }
+
+  .mock-week-band { display:grid !important; grid-template-columns:240px 1fr; background:white; border-bottom:1px solid #E2E8F0; }
+  .mock-week-band > div { padding:8px 12px; }
+  .mock-week-label { text-align:right !important; color:#0F172A; font-size:14px; font-weight:500; }
+
+  .mock-vest-band { background:rgba(252, 7, 79, 0.06); padding:8px 14px; color:#FC074F; font-size:14px; font-weight:700; letter-spacing:0.5px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #E2E8F0; }
+
+  .mock-grid-row { border-bottom:1px solid #E2E8F0; min-height:96px; align-items:stretch; }
+  .mock-grid-row:last-child { border-bottom:none; }
+  .mock-grid-row > .mock-name-cell {
+    grid-column:1 !important; grid-row:1 !important;
+    padding:12px; font-size:14px; color:#0F172A; font-weight:500; border-right:1px solid #E2E8F0; background:white; display:flex; align-items:center; box-sizing:border-box;
+  }
+  .mock-grid-row > .mock-day {
+    grid-row:1 !important;
+    border-right:1px solid #E2E8F0; background:white; position:relative; padding:6px; display:flex !important; flex-direction:column; gap:4px; box-sizing:border-box;
+  }
+  .mock-grid-row > .mock-day.today { background:rgba(252, 7, 79, 0.06) !important; }
+  .mock-grid-row > .mock-day.weekend { background:#F8FAFC !important; }
+  .mock-grid-row > .mock-day:last-child { border-right:none; }
+
+  /* MULTI-DAY BLOCK — explicitly grid-row:1 with z-index */
+  .mock-block {
+    grid-row:1 !important;
+    align-self:stretch;
+    margin:8px 4px;
+    background:rgba(30, 24, 100, 0.10);
+    border:2px solid #1E1864;
+    border-radius:8px;
+    color:#1E1864;
+    font-size:14px; font-weight:500;
+    cursor:pointer;
+    display:grid !important; grid-template-rows:auto 1fr;
+    overflow:visible;
+    position:relative;
+    z-index:5;
+    box-sizing:border-box;
+  }
+  .mock-block .mock-title { padding:6px 10px 0 10px; font-weight:700; overflow:hidden; }
+  .mock-block .mock-times { display:flex !important; padding:4px 4px 8px 4px; overflow:hidden; }
+  .mock-block .mock-times span { flex:1; text-align:center; font-size:13px; font-weight:500; color:#1E1864; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 4px; }
+
+  .mock-block.open { background:#FEF3C7; border-color:#B45309; border-style:dashed; color:#92400E; }
+  .mock-block.open .mock-times span { color:#92400E; }
+  .mock-block.open .mock-badge { position:absolute; top:-9px; right:-9px; width:24px; height:24px; background:#3C51F0; color:white; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.18); border:2px solid white; z-index:6; }
+
+  .mock-block.fixed { background:#F0FDFA; border-color:#115E59; color:#115E59; }
+  .mock-block.fixed .mock-times span { color:#115E59; }
+  /* fixed-block has no inline label, identical structure as contract */
+
+  .mock-block.lane2 { grid-row:2 !important; }
+  .mock-grid-row.has-lane2 { min-height:184px; grid-template-rows:88px 88px !important; }
+
+  .mock-avail { align-self:flex-start; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:0.5px; background:#ECFDF5; color:#047857; display:inline-flex; align-items:center; gap:4px; }
+  .mock-avail::before { content:""; width:5px; height:5px; border-radius:50%; background:#047857; }
+
+  /* DAG VIEW */
+  .mock-dag-wrap { border:1px solid #E2E8F0; position:relative; }
+  .mock-dag-scroll { overflow-x:auto; overflow-y:hidden; scroll-behavior:smooth; }
+  .mock-dag-grid {
+    --hw:64px; --nw:200px; --hours:18;
+    display:grid !important;
+    grid-template-columns:var(--nw) repeat(var(--hours), var(--hw));
+    min-width:calc(var(--nw) + var(--hours) * var(--hw));
+  }
+  .mock-dag-head > div {
+    background:white; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0;
+    padding:12px 0; font-size:13px; font-weight:500; color:#334155; text-align:center; box-sizing:border-box;
+  }
+  .mock-dag-head > div.mock-dag-name { text-align:left; padding:12px 14px; border-right:2px solid #E2E8F0; font-weight:500; }
+  .mock-dag-head > div.now { background:#FC074F !important; color:white !important; font-weight:700; }
+  .mock-dag-vest { grid-column:1/-1; background:rgba(252, 7, 79, 0.06); padding:8px 14px; color:#FC074F; font-size:14px; font-weight:700; border-bottom:1px solid #E2E8F0; display:flex; align-items:center; gap:8px; }
+  .mock-dag-row > .mock-dag-namecell {
+    grid-column:1/2 !important; grid-row:1;
+    border-right:2px solid #E2E8F0; border-bottom:1px solid #E2E8F0;
+    padding:14px 14px; background:white; font-size:14px; font-weight:500; color:#0F172A;
+    display:flex; align-items:center; position:sticky; left:0; z-index:3; box-sizing:border-box;
+  }
+  .mock-dag-row > .mock-dag-track {
+    grid-column:2/-1 !important; grid-row:1;
+    border-bottom:1px solid #E2E8F0;
+    background:repeating-linear-gradient(to right, white 0, white calc(var(--hw) - 1px), #F1F5F9 calc(var(--hw) - 1px), #F1F5F9 var(--hw));
+    position:relative; min-height:96px;
+    display:grid !important; grid-template-columns:repeat(var(--hours), var(--hw)); align-content:start;
+    padding:8px 0; gap:4px 0;
+  }
+  .mock-dag-block {
+    background:rgba(30, 24, 100, 0.10);
+    border:2px solid #1E1864;
+    border-radius:8px;
+    padding:8px 12px; color:#1E1864;
+    font-size:14px; font-weight:500;
+    margin:0 3px; height:36px;
+    display:flex !important; align-items:center; gap:10px;
+    overflow:visible; position:relative; z-index:2;
+  }
+  .mock-dag-block .n { flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mock-dag-block .ti { font-size:13px; opacity:0.85; white-space:nowrap; }
+  .mock-dag-block.open { background:#FEF3C7; border-color:#B45309; border-style:dashed; color:#92400E; }
+  .mock-dag-block.open .badge { position:absolute; top:-9px; right:-9px; width:24px; height:24px; background:#3C51F0; color:white; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,0.18); border:2px solid white; z-index:3; }
+  .mock-dag-block.fixed { background:#F0FDFA; border-color:#115E59; color:#115E59; }
+  /* fixed dag-block has no inline label */
+  .mock-dag-lane2 { margin-top:8px; }
+  .mock-dag-now { position:absolute; top:0; bottom:0; width:2px; background:#FC074F; z-index:1; box-shadow:0 0 6px rgba(252, 7, 79, 0.4); }
+  .mock-dag-now::after { content:""; position:absolute; top:0; left:-4px; width:10px; height:10px; background:#FC074F; border-radius:50%; }
+
+  .mock-dag-scrollbtn {
+    position:absolute; top:calc(50% - 18px); width:36px; height:36px; border-radius:50%;
+    background:white; border:1px solid #E2E8F0; box-shadow:0 2px 8px rgba(0,0,0,0.12);
+    display:grid; place-items:center; cursor:pointer; color:#334155; z-index:5;
+  }
+  .mock-dag-scrollbtn:hover { background:#F1F5F9; }
+  .mock-dag-scrollbtn.left { left:8px; }
+  .mock-dag-scrollbtn.right { right:8px; }
+</style>
+</head>
+<body>
+<div class="mock-page">
+  <dps-main-menu class="flex flex-column relative border-right-1 border-round-right-2xl surface-50 border-200 transition-duration-300 p-3 z-2 h-full" style="width:89px; flex-shrink:0;">
+  <img src="./Planning_files/logo-icon.svg" alt="logo-icon" class="w-2rem align-self-center mt-3 mb-8">
+  <div class="flex flex-column gap-2 flex-auto overflow-y-auto overflow-x-hidden">
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-building"></span><span class="link-text">Bedrijfsprofiel</span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-key"></span><span class="link-text">Gebruikersaccounts</span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-groups"></span><span class="link-text">Groepen</span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-person_add"></span><span class="link-text">Nieuwe medewerkers</span></a>
+    <a class="border-round hover:surface-200 p-3 planning-link bg-primary hover:bg-primary active" href="#"><span class="dps-icon dps-icon-event-note"></span><span class="link-text"> Planning </span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-euro"></span><span class="link-text flex-1"> Prestaties </span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-timer"></span><span class="link-text"> Prikklok </span></a>
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-search"></span><span class="link-text">Bedrijf zoeken</span></a>
+  </div>
+  <div class="flex align-items-center">
+    <a class="border-round hover:surface-200 p-3" href="#"><span class="dps-icon dps-icon-logout rotate-180"></span><span class="link-text">Uitloggen</span></a>
+  </div>
+</dps-main-menu>
+  <main class="mock-main">
+    <dps-page-header class="flex px-3 py-2 md:py-3 border-bottom-1 border-200 z-1" style="background:white;">
+  <div class="flex align-items-center">
+    <h3 class="hidden md:inline-block text-primary m-0 font-normal" style="margin:0; padding:0 12px;">Demobedrijf</h3>
+    <p-divider layout="vertical" class="hidden md:inline-block p-divider p-component p-divider-vertical p-divider-solid p-divider-center" style="height:24px;"><div class="p-divider-content"></div></p-divider>
+    <div class="flex align-items-center gap-2 bg-primary border-round-sm px-3 py-2 title-wrapper">
+      <span class="dps-icon dps-icon-event-note"></span>
+      <h3 class="m-0 font-normal text-center" style="color:white; margin:0;">Planning</h3>
+    </div>
+  </div>
+</dps-page-header>
+    <div style="background:rgba(60, 81, 240, 0.20); border-radius:6px 6px 0 0; padding:14px 18px; display:flex; align-items:center; gap:14px; margin: 0;">
+  <div style="width:56px; height:56px; background:#3C51F0; border-radius:8px; display:grid; place-items:center; color:white;">
+    <span class="dps-icon dps-icon-event-note" style="font-size:28px;"></span>
+  </div>
+  <div>
+    <h3 style="margin:0 0 2px 0; color:#3C51F0; font-size:14px; font-weight:600; letter-spacing:0.5px;">Planning - plan jouw medewerkers in</h3>
+    <p style="margin:0; color:#64748B; font-size:12px; letter-spacing:0.5px;">Op deze pagina kan je een weekplanning opmaken en beheren voor jouw zaak.</p>
+  </div>
+</div>
+    <div class="mock-filterbar" style="padding:14px 0; display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+  <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid #E2E8F0; border-radius:6px; background:white; height:40px; min-width:240px;">
+    <span class="dps-icon dps-icon-search" style="color:#94A3B8;"></span>
+    <input placeholder="Zoek op medewerker" style="border:none; outline:none; flex:1; font-size:14px; background:transparent; font-family:Inter; letter-spacing:0.5px;">
+  </div>
+  <div style="padding:0 12px; border:1px solid #E2E8F0; border-radius:6px; background:white; height:40px; display:flex; align-items:center; gap:8px; min-width:200px; color:#64748B; font-size:14px;">Ingepland op<span style="margin-left:auto;">▾</span></div>
+  <div style="padding:0 12px; border:1px solid #E2E8F0; border-radius:6px; background:white; height:40px; display:flex; align-items:center; gap:8px; min-width:200px; color:#64748B; font-size:14px;">Filter op groep<span style="margin-left:auto;">▾</span></div>
+  <div style="flex:1;"></div>
+  <div style="display:inline-flex; background:#F1F5F9; padding:3px; border-radius:8px; gap:2px;">
+      <button type="button" style="padding:7px 14px; border:none; background:white; font-size:13px; font-weight:600; color:#0F172A; font-family:Inter; letter-spacing:0.5px; border-radius:5px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.08); white-space:nowrap;">Namen</button>
+      <button type="button" style="padding:7px 14px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; font-family:Inter; letter-spacing:0.5px; border-radius:5px; cursor:pointer; box-shadow:none; white-space:nowrap;">Locaties</button>
+    </div>
+  <div style="display:inline-flex; background:#F1F5F9; padding:3px; border-radius:6px; gap:2px;">
+      <button type="button" style="padding:6px 12px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; font-family:Inter; letter-spacing:0.5px; border-radius:4px; cursor:pointer; box-shadow:none; white-space:nowrap;">Dag</button>
+      <button type="button" style="padding:6px 12px; border:none; background:white; font-size:13px; font-weight:600; color:#0F172A; font-family:Inter; letter-spacing:0.5px; border-radius:4px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.08); white-space:nowrap;">Week</button>
+      <button type="button" style="padding:6px 12px; border:none; background:transparent; font-size:13px; font-weight:600; color:#64748B; font-family:Inter; letter-spacing:0.5px; border-radius:4px; cursor:pointer; box-shadow:none; white-space:nowrap;">2 weken</button>
+    </div>
+  
+  <div style="display:flex; gap:8px;"><button type="button" style="width:36px; height:36px; border-radius:6px; border:1px solid #E2E8F0; background:white; display:grid; place-items:center; cursor:pointer; color:#334155;"><span class="dps-icon dps-icon-chevron" style="transform:rotate(90deg); display:inline-block;"></span></button>
+        <button type="button" style="width:36px; height:36px; border-radius:6px; border:1px solid #E2E8F0; background:white; display:grid; place-items:center; cursor:pointer; color:#334155;"><span class="dps-icon dps-icon-chevron" style="transform:rotate(-90deg); display:inline-block;"></span></button></div>
+</div>
+    <div class="mock-grid">
+  <div class="mock-grid-header">
+    <div>Medewerker</div>
+    <div class="mock-day-cell"><span class="mock-day-name">ma 4</span></div>
+    <div class="mock-day-cell today"><span class="mock-day-name">Vandaag</span></div>
+    <div class="mock-day-cell"><span class="mock-day-name">wo 6</span></div>
+    <div class="mock-day-cell"><span class="mock-day-name">do 7</span></div>
+    <div class="mock-day-cell"><span class="mock-day-name">vr 8</span></div>
+    <div class="mock-day-cell weekend"><span class="mock-day-name">za 9</span></div>
+    <div class="mock-day-cell weekend"><span class="mock-day-name">zo 10</span></div>
+  </div>
+  <div class="mock-week-band">
+    <div></div>
+    <div class="mock-week-label">4 mei 2026 - 10 mei 2026 (Week 19)</div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Anouk Staelens</div>
+    <div class="mock-day"></div><div class="mock-day today"></div><div class="mock-day"></div>
+    <div class="mock-day"><span class="mock-avail">8u-19u</span></div>
+    <div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+    <div class="mock-block" style="grid-column:3/5;"><div class="mock-title">Anouk</div><div class="mock-times"><span>9:00 › 17:00</span><span>9:00 › 17:00</span></div></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Bart Verhaegen</div>
+    <div class="mock-day"></div>
+    <div class="mock-day today"><span class="mock-avail">8u-19u</span></div>
+    <div class="mock-day"><span class="mock-avail">8u-19u</span></div>
+    <div class="mock-day"></div><div class="mock-day"></div>
+    <div class="mock-day weekend"><span class="mock-avail">9u-22u</span></div>
+    <div class="mock-day weekend"><span class="mock-avail">9u-22u</span></div>
+    <div class="mock-block" style="grid-column:5/6;"><div class="mock-title">Bart</div><div class="mock-times"><span>10:00 › 18:00</span></div></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Jeff Callebaut</div>
+    <div class="mock-day"></div><div class="mock-day today"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+    <div class="mock-block" style="grid-column:3/4;"><div class="mock-title">Jeff</div><div class="mock-times"><span>10:00 › 18:00</span></div></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Joke Carton</div>
+    <div class="mock-day"></div>
+    <div class="mock-day today"><span class="mock-avail">9u-22u</span></div>
+    <div class="mock-day"><span class="mock-avail">9u-22u</span></div>
+    <div class="mock-day"></div><div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Laurens Van Acker</div>
+    <div class="mock-day"></div>
+    <div class="mock-day today"><span class="mock-avail">14u-18u</span></div>
+    <div class="mock-day"><span class="mock-avail">14u-18u</span></div>
+    <div class="mock-day"><span class="mock-avail">14u-18u</span></div>
+    <div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Sarah Dubois</div>
+    <div class="mock-day"></div><div class="mock-day today"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+    <div class="mock-block fixed" style="grid-column:3/7;"><div class="mock-title">Sarah</div><div class="mock-times"><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 13:00</span></div></div>
+  </div>
+
+  <div class="mock-grid-row">
+    <div class="mock-name-cell">Thomas Janssens</div>
+    <div class="mock-day"></div><div class="mock-day today"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day"></div><div class="mock-day weekend"></div><div class="mock-day weekend"></div>
+    <div class="mock-block fixed" style="grid-column:3/8;"><div class="mock-title">Thomas</div><div class="mock-times"><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span></div></div>
+  </div>
+</div>
+  </main>
+</div>
+</body>
+</html>

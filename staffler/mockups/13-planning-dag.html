@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 13 v2: dag-view met giant chart timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.20);
+    --brand: #FC074F;
+    --brand-soft: rgba(252, 7, 79, 0.06);
+    --brand-bg-today: rgba(252, 7, 79, 0.06);
+
+    --block-bg: rgba(30, 24, 100, 0.10);
+    --block-border: #1E1864;
+    --block-text: #1E1864;
+
+    --open-bg: #FEF3C7;
+    --open-border: #B45309;
+    --open-text: #92400E;
+
+    --fixed-bg: #F0FDFA;
+    --fixed-border: #115E59;
+    --fixed-text: #115E59;
+
+    --surface: #FFFFFF;
+    --surface-50: #F8FAFC;
+    --surface-100: #F1F5F9;
+    --surface-200: #E2E8F0;
+    --surface-300: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+
+    --hour-w: 48px;
+    --name-w: 220px;
+    --hours: 24;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  .app { display: grid; grid-template-columns: 89px 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface-50);
+    border-right: 1px solid var(--surface-200);
+    border-radius: 0 16px 16px 0;
+    display: flex; flex-direction: column;
+    align-items: center; padding: 16px 0; position: relative;
+  }
+  .brand-logo {
+    width: 48px; height: 48px; margin-bottom: 16px;
+    color: var(--brand); display: grid; place-items: center;
+  }
+  .brand-logo svg { width: 38px; height: 38px; }
+  .nav-link {
+    width: 56px; height: 56px; border-radius: 8px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-strong); display: grid; place-items: center;
+    margin-bottom: 8px; padding: 0; position: relative;
+  }
+  .nav-link:hover { background: var(--surface-200); }
+  .nav-link.active { background: var(--primary); color: white; }
+  .nav-link .material-icons { font-size: 24px; }
+  .nav-badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand); color: white;
+    font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .sidebar-spacer { flex: 1; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* Topbar */
+  .topbar {
+    padding: 12px;
+    display: flex; align-items: center; gap: 16px;
+    background: white; flex-wrap: wrap;
+  }
+  .crumb {
+    color: var(--brand); font-size: 18.72px; font-weight: 400;
+    margin: 0; padding: 0 12px;
+  }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--primary); color: white;
+    padding: 8px 16px; border-radius: 4px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .planning-pill .material-icons { font-size: 18px; }
+  .topbar-spacer { flex: 1; }
+
+  .seg-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 8px; gap: 2px;
+  }
+  .seg-toggle button {
+    padding: 7px 14px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 5px; white-space: nowrap;
+  }
+  .seg-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .lang-globe {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; color: var(--muted);
+  }
+  .lang-globe .material-icons { font-size: 16px; }
+
+  /* Day-nav */
+  .day-nav {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px 14px 24px; background: white;
+  }
+  .day-title { font-size: 18px; font-weight: 700; color: var(--text-strong); letter-spacing: 0.5px; }
+  .day-title.today { color: var(--brand); }
+  .vandaag-btn {
+    background: white; border: 1px solid var(--surface-200);
+    padding: 7px 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    color: var(--text); font-family: inherit; letter-spacing: 0.5px;
+  }
+  .vandaag-btn:hover { background: var(--surface-50); }
+
+  .day-nav-spacer { flex: 1; }
+  .nav-arrow {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; cursor: pointer; color: var(--text);
+  }
+  .nav-arrow .material-icons { font-size: 18px; }
+
+  .sub-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 6px; gap: 2px;
+  }
+  .sub-toggle button {
+    padding: 6px 12px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 4px;
+  }
+  .sub-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  .batch-btn {
+    background: var(--primary); color: white;
+    border: none; padding: 8px 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit; letter-spacing: 0.5px;
+    height: 40px;
+  }
+  .batch-btn .material-icons { font-size: 18px; }
+  .batch-btn .counter {
+    background: rgba(255,255,255,0.25); padding: 2px 8px;
+    border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+
+  /* Timeline */
+  .timeline-wrap {
+    margin: 0 24px 16px 24px;
+    border: 1px solid var(--surface-200);
+    overflow-x: auto;
+  }
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: var(--name-w) repeat(var(--hours), var(--hour-w));
+    min-width: calc(var(--name-w) + var(--hours) * var(--hour-w));
+  }
+
+  .tl-head { display: contents; }
+  .tl-head > .head-cell {
+    background: white;
+    border-right: 1px solid var(--surface-200);
+    border-bottom: 1px solid var(--surface-200);
+    padding: 12px 0;
+    font-size: 13px; font-weight: 500; color: var(--text);
+    text-align: center; letter-spacing: 0.5px;
+  }
+  .tl-head > .head-cell.name-head {
+    text-align: left; padding: 12px 14px;
+    border-right: 2px solid var(--surface-200);
+    font-weight: 500;
+  }
+  .tl-head > .head-cell.now {
+    background: var(--brand); color: white; font-weight: 700;
+  }
+  .tl-head > .head-cell:last-child { border-right: none; }
+
+  .vest-band {
+    grid-column: 1 / -1;
+    background: var(--brand-soft);
+    padding: 8px 14px;
+    color: var(--brand);
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--surface-200);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .vest-band .material-icons { font-size: 16px; }
+
+  .tl-row { display: contents; }
+  .tl-row > .name-cell {
+    grid-column: 1 / 2;
+    border-right: 2px solid var(--surface-200);
+    border-bottom: 1px solid var(--surface-200);
+    padding: 14px 14px;
+    background: white;
+    font-size: 14px; font-weight: 500; color: var(--text-strong);
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    position: sticky; left: 0; z-index: 2;
+  }
+  .tl-row > .name-cell .sl-icon {
+    width: 24px; height: 24px;
+    color: var(--muted); display: grid; place-items: center; flex-shrink: 0;
+  }
+  .tl-row > .name-cell .sl-icon .material-icons { font-size: 18px; }
+
+  .tl-row > .track {
+    grid-column: 2 / -1;
+    border-bottom: 1px solid var(--surface-200);
+    background:
+      repeating-linear-gradient(
+        to right,
+        white 0,
+        white calc(var(--hour-w) - 1px),
+        var(--surface-100) calc(var(--hour-w) - 1px),
+        var(--surface-100) var(--hour-w)
+      );
+    position: relative;
+    min-height: 96px;
+    display: grid;
+    grid-template-columns: repeat(var(--hours), var(--hour-w));
+    align-content: start;
+    padding: 8px 0;
+    gap: 4px 0;
+  }
+
+  .tl-block {
+    background: var(--block-bg);
+    border: 2px solid var(--block-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--block-text);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    margin: 0 2px;
+    overflow: visible;
+    position: relative;
+    height: 36px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tl-block .name, .tl-block .time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl-block .name { flex: 1; font-weight: 700; }
+  .tl-block .time { color: var(--block-text); opacity: 0.85; font-size: 13px; }
+
+  .tl-block.open-shift {
+    background: var(--open-bg);
+    border-color: var(--open-border);
+    border-style: dashed;
+    color: var(--open-text);
+    position: relative;
+  }
+  .tl-block.open-shift .time { color: var(--open-text); }
+  .tl-block.open-shift .opted-badge {
+    position: absolute; top: -9px; right: -9px;
+    width: 24px; height: 24px;
+    background: var(--primary); color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: 2px solid white;
+  }
+
+  .tl-block.fixed {
+    background: var(--fixed-bg);
+    border-color: var(--fixed-border);
+    color: var(--fixed-text);
+  }
+  .tl-block.fixed .time { color: var(--fixed-text); }
+  .tl-block.fixed::before {
+    content: "Vast"; display: inline-block;
+    background: var(--fixed-text); color: white;
+    font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; margin-right: 0; letter-spacing: 0.04em;
+  }
+
+  .lane-2 { margin-top: 6px; }
+
+  .now-line {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: var(--brand); z-index: 1;
+    box-shadow: 0 0 6px rgba(252, 7, 79, 0.4);
+  }
+  .now-line::after {
+    content: ""; position: absolute; top: 0; left: -4px;
+    width: 10px; height: 10px;
+    background: var(--brand); border-radius: 50%;
+  }
+
+  .notes {
+    margin: 0 24px 24px 24px; padding: 16px;
+    background: var(--surface-50); border: 1px dashed var(--surface-200);
+    border-radius: 6px; font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .notes strong { color: var(--text-strong); font-weight: 600; }
+  .notes ul { margin: 8px 0 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand-logo">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <rect x="10" y="10" width="18" height="2.5"/>
+        <rect x="22" y="14" width="6" height="2.5"/>
+        <rect x="10" y="20" width="18" height="2.5"/>
+        <rect x="10" y="24" width="6" height="2.5"/>
+        <rect x="10" y="28" width="18" height="2.5"/>
+      </svg>
+    </div>
+    <button class="nav-link"><span class="material-icons">apartment</span></button>
+    <button class="nav-link"><span class="material-icons">vpn_key</span></button>
+    <button class="nav-link"><span class="material-icons">groups</span></button>
+    <button class="nav-link"><span class="material-icons">person_add</span></button>
+    <button class="nav-link active"><span class="material-icons">event_note</span></button>
+    <button class="nav-link"><span class="material-icons">euro</span><span class="nav-badge">1</span></button>
+    <button class="nav-link"><span class="material-icons">timer</span></button>
+    <button class="nav-link"><span class="material-icons">search</span></button>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-link"><span class="material-icons">logout</span></button>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <h1 class="crumb">IzyCoffee</h1>
+      <span class="planning-pill">
+        <span class="material-icons">event_note</span>
+        Planning
+      </span>
+      <div class="topbar-spacer"></div>
+      <button class="lang-globe"><span class="material-icons">language</span></button>
+    </div>
+
+    <div class="day-nav">
+      <button class="vandaag-btn">Vandaag</button>
+      <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+      <span class="day-title today">dinsdag 5 mei 2026</span>
+      <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+
+      <div class="day-nav-spacer"></div>
+
+      <div class="seg-toggle">
+        <button>Namen</button>
+        <button class="active">Locaties</button>
+      </div>
+
+      <div class="sub-toggle">
+        <button class="active">Dag</button>
+        <button>Week</button>
+        <button>2 weken</button>
+      </div>
+
+      <button class="batch-btn">
+        <span class="material-icons">send</span>
+        Open shifts delen
+        <span class="counter">2</span>
+      </button>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline-grid">
+
+        <div class="tl-head">
+          <div class="head-cell name-head">Locatie</div>
+          <div class="head-cell">4u</div>
+          <div class="head-cell">5u</div>
+          <div class="head-cell">6u</div>
+          <div class="head-cell">7u</div>
+          <div class="head-cell">8u</div>
+          <div class="head-cell">9u</div>
+          <div class="head-cell">10u</div>
+          <div class="head-cell">11u</div>
+          <div class="head-cell">12u</div>
+          <div class="head-cell">13u</div>
+          <div class="head-cell now">14u</div>
+          <div class="head-cell">15u</div>
+          <div class="head-cell">16u</div>
+          <div class="head-cell">17u</div>
+          <div class="head-cell">18u</div>
+          <div class="head-cell">19u</div>
+          <div class="head-cell">20u</div>
+          <div class="head-cell">21u</div>
+          <div class="head-cell">22u</div>
+          <div class="head-cell">23u</div>
+          <div class="head-cell">0u</div>
+          <div class="head-cell">1u</div>
+          <div class="head-cell">2u</div>
+          <div class="head-cell">3u</div>
+        </div>
+
+        <div class="vest-band">
+          <span class="material-icons">apartment</span>
+          Gent Dok Noord
+        </div>
+
+        <!-- Toog -->
+        <div class="tl-row">
+          <div class="name-cell">Toog</div>
+          <div class="track">
+            <div class="now-line" style="left: calc(10 * var(--hour-w));"></div>
+            <div class="tl-block" style="grid-column: 6 / 14;">
+              <span class="name">Anouk Staelens</span>
+              <span class="time">9:00 › 17:00</span>
+            </div>
+            <div class="tl-block open-shift lane-2" style="grid-column: 6 / 14;">
+              <span class="name">2 open shifts</span>
+              <span class="time">9:00 › 17:00</span>
+              <span class="opted-badge">5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kassa -->
+        <div class="tl-row">
+          <div class="name-cell">Kassa</div>
+          <div class="track">
+            <div class="now-line" style="left: calc(10 * var(--hour-w));"></div>
+            <div class="tl-block" style="grid-column: 6 / 14;">
+              <span class="name">Joke Carton</span>
+              <span class="time">9:00 › 17:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terras -->
+        <div class="tl-row">
+          <div class="name-cell">Terras</div>
+          <div class="track">
+            <div class="now-line" style="left: calc(10 * var(--hour-w));"></div>
+            <div class="tl-block fixed" style="grid-column: 5 / 14;">
+              <span class="name">Sarah Dubois</span>
+              <span class="time">8:00 › 17:00</span>
+            </div>
+            <div class="tl-block" style="grid-column: 14 / 19;">
+              <span class="name">Bart Verhaegen</span>
+              <span class="time">17:00 › 22:00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vest-band">
+          <span class="material-icons">apartment</span>
+          Antwerpen Eilandje
+        </div>
+
+        <div class="tl-row">
+          <div class="name-cell">Toog</div>
+          <div class="track">
+            <div class="now-line" style="left: calc(10 * var(--hour-w));"></div>
+            <div class="tl-block fixed" style="grid-column: 6 / 15;">
+              <span class="name">Thomas Janssens</span>
+              <span class="time">9:00 › 18:00</span>
+            </div>
+            <div class="tl-block open-shift lane-2" style="grid-column: 11 / 19;">
+              <span class="name">1 open shift</span>
+              <span class="time">14:00 › 22:00</span>
+              <span class="opted-badge">3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <div class="name-cell">Bediening</div>
+          <div class="track">
+            <div class="now-line" style="left: calc(10 * var(--hour-w));"></div>
+            <div class="tl-block" style="grid-column: 7 / 15;">
+              <span class="name">Jeff Callebaut</span>
+              <span class="time">10:00 › 18:00</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="notes">
+      <strong>Day-view (mockup 13 v2)</strong>
+      <ul>
+        <li>Sub-toggle volgorde Dag / Week / 2 weken (klein → groot, deze view is in dag-modus)</li>
+        <li>Y-as = Locaties, gegroepeerd per Vestiging met magenta band</li>
+        <li>X-as = uren-timeline 6u-22u, 1u-kolommen, magenta now-line op 14u</li>
+        <li>Drie blok-types op timeline: contract (lavender met navy border), open shift (amber dashed met opted-in badge), fixed (teal met "Vast"-badge)</li>
+        <li>Stacking in lanes wanneer blokken overlappen: rij wordt hoger en blokken stacken verticaal (zie Toog Gent met Anouk + open shifts, en Toog Antwerpen met Thomas + open shift)</li>
+        <li>Pixel-match: Material Icons sidebar, magenta brand voor logo en Vandaag-cell, Inter-font</li>
+      </ul>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>

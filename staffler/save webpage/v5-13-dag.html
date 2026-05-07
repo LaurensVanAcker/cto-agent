@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler — Dag</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    color: #334155;
+    background: white;
+  }
+  .material-icons { font-feature-settings: 'liga'; vertical-align: middle; }
+
+  /* App layout */
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 89px; flex-shrink: 0;
+    background: #F8FAFC;
+    border-right: 1px solid #E2E8F0;
+    border-radius: 0 16px 16px 0;
+    padding: 16px 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .sidebar .logo {
+    width: 32px; height: 32px;
+    color: #FC074F;
+    margin-bottom: 24px;
+  }
+  .sidebar .logo img { width: 100%; height: 100%; }
+  .sidebar nav {
+    flex: 1; display: flex; flex-direction: column; gap: 6px;
+    width: 100%; padding: 0 12px;
+  }
+  .sidebar .navlink {
+    width: 56px; height: 56px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    color: #0F172A;
+    cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .sidebar .navlink:hover { background: #E2E8F0; }
+  .sidebar .navlink.active { background: #3C51F0; color: white; }
+  .sidebar .navlink .material-icons { font-size: 24px; }
+  .sidebar .navlink .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #FC074F; color: white;
+    font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .sidebar .footer { width: 100%; padding: 0 12px; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* Topbar */
+  .topbar {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 16px;
+    background: white;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .crumb { color: #FC074F; font-size: 19px; font-weight: 400; margin: 0; }
+  .vdiv { width: 1px; height: 24px; background: #E2E8F0; }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #3C51F0; color: white;
+    padding: 8px 16px; border-radius: 4px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .planning-pill .material-icons { font-size: 18px; }
+  .topbar-spacer { flex: 1; }
+  .lang-globe {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center; color: #64748B; cursor: pointer;
+  }
+  .lang-globe .material-icons { font-size: 16px; }
+
+  /* Banner */
+  .banner {
+    margin: 16px 16px 0 16px;
+    background: rgba(60, 81, 240, 0.20);
+    border-radius: 6px 6px 0 0;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .banner .icon-square {
+    width: 56px; height: 56px; background: #3C51F0;
+    border-radius: 8px; display: grid; place-items: center; color: white;
+  }
+  .banner .icon-square .material-icons { font-size: 28px; }
+  .banner h3 { margin: 0 0 2px 0; color: #3C51F0; font-size: 14px; font-weight: 600; }
+  .banner p { margin: 0; color: #64748B; font-size: 12px; }
+
+  /* Filterbar */
+  .filterbar {
+    padding: 14px 16px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    background: white;
+  }
+  .filter-input {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid #E2E8F0; border-radius: 6px;
+    background: white; padding: 0 12px; height: 40px;
+    font-size: 14px; color: #64748B;
+  }
+  .filter-input.search { width: 240px; }
+  .filter-input.dd { min-width: 200px; cursor: pointer; }
+  .filter-input.dd::after { content: "▾"; margin-left: auto; color: #94A3B8; }
+  .filter-input .material-icons { font-size: 16px; color: #94A3B8; }
+  .filter-input input {
+    border: none; outline: none; flex: 1; font-size: 14px;
+    background: transparent; font-family: inherit; letter-spacing: 0.5px; color: #334155;
+  }
+  .seg-toggle, .sub-toggle {
+    display: inline-flex; background: #F1F5F9;
+    padding: 3px; border-radius: 8px; gap: 2px;
+  }
+  .seg-toggle button, .sub-toggle button {
+    border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: #64748B; font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .seg-toggle button { padding: 7px 14px; }
+  .sub-toggle button { padding: 6px 12px; border-radius: 4px; }
+  .seg-toggle button.active, .sub-toggle button.active {
+    background: white; color: #0F172A;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .nav-arrow {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center; cursor: pointer; color: #334155;
+  }
+  .nav-arrow .material-icons { font-size: 18px; }
+  .batch-btn {
+    background: #3C51F0; color: white;
+    border: none; padding: 0 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .batch-btn:hover { background: #2C3FBF; }
+  .batch-btn .material-icons { font-size: 18px; }
+  .batch-btn .counter {
+    background: rgba(255,255,255,0.25); padding: 2px 8px;
+    border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+
+  /* GRID */
+  .grid-wrap { margin: 0 16px 16px 16px; border: 1px solid #E2E8F0; border-top: none; }
+  .grid-header,
+  .grid-row { display: grid; grid-template-columns: 200px repeat(7, 1fr); }
+  .grid-header { background: white; border-bottom: 1px solid #E2E8F0; }
+  .grid-header > div { padding: 14px 12px; font-size: 14px; color: #334155; border-right: 1px solid #E2E8F0; font-weight: 500; }
+  .grid-header > div:last-child { border-right: none; }
+  .grid-header .day-cell.today { background: #FC074F; color: white; padding: 14px 12px; font-weight: 600; }
+  .grid-header .day-cell.weekend { background: rgba(252, 7, 79, 0.06); }
+
+  .week-band { display: grid; grid-template-columns: 200px 1fr; background: white; border-bottom: 1px solid #E2E8F0; }
+  .week-band > div { padding: 8px 12px; }
+  .week-label { text-align: right; color: #0F172A; font-size: 14px; font-weight: 500; }
+
+  .vest-band {
+    background: rgba(252, 7, 79, 0.06); padding: 8px 14px;
+    color: #FC074F; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .vest-band .material-icons { font-size: 16px; }
+
+  .grid-row { border-bottom: 1px solid #E2E8F0; min-height: 96px; }
+  .grid-row:last-child { border-bottom: none; }
+  .grid-row > .name-cell {
+    grid-column: 1; grid-row: 1;
+    padding: 12px;
+    font-size: 14px; color: #0F172A; font-weight: 500;
+    border-right: 1px solid #E2E8F0;
+    background: white;
+    display: flex; align-items: center;
+    letter-spacing: 0.5px;
+  }
+  .grid-row > .day {
+    grid-row: 1;
+    border-right: 1px solid #E2E8F0;
+    background: white;
+    position: relative;
+    padding: 6px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .grid-row > .day.today { background: rgba(252, 7, 79, 0.06); }
+  .grid-row > .day.weekend { background: #F8FAFC; }
+  .grid-row > .day:last-child { border-right: none; }
+
+  /* Block - the SAME for all 3 types, only colors differ */
+  .block {
+    grid-row: 1;
+    align-self: stretch;
+    margin: 8px 4px;
+    background: rgba(30, 24, 100, 0.10);
+    border: 2px solid #1E1864;
+    border-radius: 8px;
+    color: #1E1864;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    display: grid; grid-template-rows: auto 1fr;
+    overflow: visible;
+    position: relative;
+    z-index: 5;
+  }
+  .block .title { padding: 6px 10px 0 10px; font-weight: 700; overflow: hidden; }
+  .block .times { display: flex; padding: 4px 4px 8px 4px; overflow: hidden; }
+  .block .times span {
+    flex: 1; text-align: center;
+    font-size: 13px; font-weight: 500;
+    color: inherit;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 0 4px;
+  }
+
+  .block.open {
+    background: #FEF3C7;
+    border-color: #B45309;
+    border-style: dashed;
+    color: #92400E;
+  }
+  .block.open .badge {
+    position: absolute; top: -9px; right: -9px;
+    width: 24px; height: 24px;
+    background: #3C51F0; color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: 2px solid white;
+    z-index: 6;
+  }
+
+  .block.fixed {
+    background: #F0FDFA;
+    border-color: #115E59;
+    color: #115E59;
+  }
+
+  /* Lane2 stacking */
+  .block.lane2 { grid-row: 2; }
+  .grid-row.has-lane2 { min-height: 192px; grid-template-rows: 96px 96px; }
+
+  /* Beschikbaarheid washed-out label */
+  .avail {
+    align-self: flex-start;
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    background: #ECFDF5; color: #047857;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .avail::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #047857; }
+
+  
+  /* DAG VIEW */
+  .dag-wrap { margin: 0 16px 16px 16px; border: 1px solid #E2E8F0; position: relative; background: white; }
+  .dag-scroll { overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; }
+  .dag-inner {
+    --hw: 80px; --nw: 200px; --hours: 18;
+    min-width: calc(var(--nw) + var(--hours) * var(--hw));
+  }
+  
+  /* Header row */
+  .dag-headrow {
+    display: grid;
+    grid-template-columns: var(--nw) repeat(var(--hours), var(--hw));
+    background: white;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .dag-headcell {
+    padding: 12px 0; font-size: 13px; font-weight: 500; color: #334155;
+    text-align: center;
+    border-right: 1px solid #E2E8F0;
+  }
+  .dag-headcell.now { background: #FC074F; color: white; font-weight: 700; }
+  .dag-name.dag-headcell { text-align: left; padding: 12px 14px; border-right: 2px solid #E2E8F0; font-weight: 500; }
+  
+  /* Vestiging band */
+  .dag-vest {
+    background: rgba(252, 7, 79, 0.06);
+    padding: 8px 14px;
+    color: #FC074F; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .dag-vest .material-icons { font-size: 16px; }
+  
+  /* Each row */
+  .dag-row {
+    display: grid;
+    grid-template-columns: var(--nw) 1fr;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .dag-namecell {
+    padding: 14px 14px; background: white;
+    font-size: 14px; font-weight: 500; color: #0F172A;
+    display: flex; align-items: center;
+    border-right: 2px solid #E2E8F0;
+    position: sticky; left: 0; z-index: 3;
+  }
+  .dag-track {
+    background: repeating-linear-gradient(
+      to right,
+      white 0, white calc(var(--hw) - 1px),
+      #F1F5F9 calc(var(--hw) - 1px), #F1F5F9 var(--hw)
+    );
+    position: relative;
+    min-height: 96px;
+    display: grid;
+    grid-template-columns: repeat(var(--hours), var(--hw));
+    align-content: start;
+    padding: 8px 0;
+    gap: 4px 0;
+  }
+  
+  .dag-block {
+    background: rgba(30, 24, 100, 0.10);
+    border: 2px solid #1E1864;
+    border-radius: 8px;
+    padding: 8px 12px; color: #1E1864;
+    font-size: 14px; font-weight: 500;
+    margin: 0 3px; height: 36px;
+    display: flex; align-items: center; gap: 10px;
+    position: relative; z-index: 2;
+    overflow: hidden;
+    grid-row: 1;
+  }
+  .dag-block .n { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dag-block .ti { font-size: 13px; opacity: 0.85; white-space: nowrap; }
+  .dag-block.open { background: #FEF3C7; border-color: #B45309; border-style: dashed; color: #92400E; overflow: visible; }
+  .dag-block.open .badge {
+    position: absolute; top: -9px; right: -9px; width: 24px; height: 24px;
+    background: #3C51F0; color: white; border-radius: 50%;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18); border: 2px solid white;
+  }
+  .dag-block.fixed { background: #F0FDFA; border-color: #115E59; color: #115E59; }
+  .dag-block.fixed::before {
+    content: "Vast";
+    display: inline-block;
+    background: #115E59; color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 0;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .dag-lane2 { grid-row: 2; margin-top: 8px; }
+  
+  .dag-now {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: #FC074F; z-index: 4;
+    box-shadow: 0 0 6px rgba(252, 7, 79, 0.4);
+  }
+  .dag-now::after {
+    content: ""; position: absolute; top: 0; left: -4px;
+    width: 10px; height: 10px; background: #FC074F; border-radius: 50%;
+  }
+  
+  .dag-scrollbtn {
+    position: absolute; top: calc(50% - 18px); width: 36px; height: 36px;
+    border-radius: 50%; background: white; border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: grid; place-items: center; cursor: pointer; color: #334155;
+    z-index: 5;
+  }
+  .dag-scrollbtn:hover { background: #F1F5F9; }
+  .dag-scrollbtn.left { left: 8px; }
+  .dag-scrollbtn.right { right: 8px; }
+  .dag-scrollbtn .material-icons { font-size: 18px; }
+
+</style>
+
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><img src="./Planning_files/logo-icon.svg" alt="Staffler"></div>
+  <nav>
+    <a class="navlink" href="#" title="Bedrijfsprofiel"><span class="material-icons">apartment</span></a>
+    <a class="navlink" href="#" title="Gebruikersaccounts"><span class="material-icons">vpn_key</span></a>
+    <a class="navlink" href="#" title="Groepen"><span class="material-icons">groups</span></a>
+    <a class="navlink" href="#" title="Nieuwe medewerkers"><span class="material-icons">person_add</span></a>
+    <a class="navlink active" href="#" title="Planning"><span class="material-icons">event_note</span></a>
+    <a class="navlink" href="#" title="Prestaties"><span class="material-icons">euro</span><span class="badge">1</span></a>
+    <a class="navlink" href="#" title="Prikklok"><span class="material-icons">timer</span></a>
+    <a class="navlink" href="#" title="Bedrijf zoeken"><span class="material-icons">search</span></a>
+  </nav>
+  <div class="footer">
+    <a class="navlink" href="#" title="Uitloggen"><span class="material-icons">logout</span></a>
+  </div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <h1 class="crumb">IzyCoffee</h1>
+  <div class="vdiv"></div>
+  <span class="planning-pill"><span class="material-icons">event_note</span>Planning</span>
+  <div class="topbar-spacer"></div>
+  <button class="lang-globe"><span class="material-icons">language</span></button>
+</header>
+<div class="banner">
+  <div class="icon-square"><span class="material-icons">event_note</span></div>
+  <div>
+    <h3>Planning - plan jouw medewerkers in</h3>
+    <p>Dagweergave met uren-timeline. Scroll horizontaal of gebruik de pijltjes naast de grid.</p>
+  </div>
+</div>
+<div class="filterbar">
+  <div class="filter-input search">
+    <span class="material-icons">search</span>
+    <input placeholder="Zoek op medewerker">
+  </div>
+  <div class="filter-input dd">Ingepland op</div>
+  <div class="filter-input dd">Filter op groep</div>
+  <div style="flex:1;"></div>
+  <div class="seg-toggle">
+      <button class="">Namen</button>
+      <button class="active">Locaties</button>
+    </div>
+  <div class="sub-toggle">
+      <button class="active">Dag</button>
+      <button class="">Week</button>
+      <button class="">2 weken</button>
+    </div>
+  <button class="batch-btn">
+        <span class="material-icons">send</span>
+        Open shifts delen
+        <span class="counter">2</span>
+      </button>
+  <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+  <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+</div>
+<div class="dag-wrap">
+  <button class="dag-scrollbtn left" onclick="document.querySelector('.dag-scroll').scrollBy({left:-300, behavior:'smooth'})">
+    <span class="material-icons">chevron_left</span>
+  </button>
+  <button class="dag-scrollbtn right" onclick="document.querySelector('.dag-scroll').scrollBy({left:300, behavior:'smooth'})">
+    <span class="material-icons">chevron_right</span>
+  </button>
+  <div class="dag-scroll">
+    <div class="dag-inner">
+      <!-- Header row -->
+      <div class="dag-headrow">
+        <div class="dag-name dag-headcell">Locatie</div>
+        <div class="dag-headcell">6u</div>
+        <div class="dag-headcell">7u</div>
+        <div class="dag-headcell">8u</div>
+        <div class="dag-headcell">9u</div>
+        <div class="dag-headcell">10u</div>
+        <div class="dag-headcell">11u</div>
+        <div class="dag-headcell">12u</div>
+        <div class="dag-headcell">13u</div>
+        <div class="dag-headcell now">14u</div>
+        <div class="dag-headcell">15u</div>
+        <div class="dag-headcell">16u</div>
+        <div class="dag-headcell">17u</div>
+        <div class="dag-headcell">18u</div>
+        <div class="dag-headcell">19u</div>
+        <div class="dag-headcell">20u</div>
+        <div class="dag-headcell">21u</div>
+        <div class="dag-headcell">22u</div>
+        <div class="dag-headcell">23u</div>
+      </div>
+      
+      <!-- Vestiging Gent -->
+      <div class="dag-vest"><span class="material-icons">apartment</span>Gent Dok Noord</div>
+      
+      <!-- Toog Gent -->
+      <div class="dag-row">
+        <div class="dag-namecell">Toog</div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:4/12;"><span class="n">Anouk Staelens</span><span class="ti">9:00 › 17:00</span></div>
+          <div class="dag-block open dag-lane2" style="grid-column:4/12;"><span class="n">2 open shifts</span><span class="ti">9:00 › 17:00</span><span class="badge">5</span></div>
+        </div>
+      </div>
+      
+      <!-- Kassa Gent -->
+      <div class="dag-row">
+        <div class="dag-namecell">Kassa</div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:4/12;"><span class="n">Joke Carton</span><span class="ti">9:00 › 17:00</span></div>
+        </div>
+      </div>
+      
+      <!-- Terras Gent -->
+      <div class="dag-row">
+        <div class="dag-namecell">Terras</div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
+          <div class="dag-block fixed" style="grid-column:3/12;"><span class="n">Sarah Dubois</span><span class="ti">8:00 › 17:00</span></div>
+          <div class="dag-block" style="grid-column:12/17;"><span class="n">Bart Verhaegen</span><span class="ti">17:00 › 22:00</span></div>
+        </div>
+      </div>
+      
+      <!-- Vestiging Antwerpen -->
+      <div class="dag-vest"><span class="material-icons">apartment</span>Antwerpen Eilandje</div>
+      
+      <!-- Toog Antwerpen -->
+      <div class="dag-row">
+        <div class="dag-namecell">Toog</div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
+          <div class="dag-block fixed" style="grid-column:4/13;"><span class="n">Thomas Janssens</span><span class="ti">9:00 › 18:00</span></div>
+          <div class="dag-block open dag-lane2" style="grid-column:9/17;"><span class="n">1 open shift</span><span class="ti">14:00 › 22:00</span><span class="badge">3</span></div>
+        </div>
+      </div>
+      
+      <!-- Bediening Antwerpen -->
+      <div class="dag-row">
+        <div class="dag-namecell">Bediening</div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:5/13;"><span class="n">Jeff Callebaut</span><span class="ti">10:00 › 18:00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+<script>
+(function() {
+  var s = document.querySelector('.dag-scroll');
+  if (!s) return;
+  s.addEventListener('wheel', function(e) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      s.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+})();
+</script>
+</body>
+</html>

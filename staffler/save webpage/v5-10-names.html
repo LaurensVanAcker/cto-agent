@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Staffler — Namen Week</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    color: #334155;
+    background: white;
+  }
+  .material-icons { font-feature-settings: 'liga'; vertical-align: middle; }
+
+  /* App layout */
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 89px; flex-shrink: 0;
+    background: #F8FAFC;
+    border-right: 1px solid #E2E8F0;
+    border-radius: 0 16px 16px 0;
+    padding: 16px 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .sidebar .logo {
+    width: 32px; height: 32px;
+    color: #FC074F;
+    margin-bottom: 24px;
+  }
+  .sidebar .logo img { width: 100%; height: 100%; }
+  .sidebar nav {
+    flex: 1; display: flex; flex-direction: column; gap: 6px;
+    width: 100%; padding: 0 12px;
+  }
+  .sidebar .navlink {
+    width: 56px; height: 56px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    color: #0F172A;
+    cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .sidebar .navlink:hover { background: #E2E8F0; }
+  .sidebar .navlink.active { background: #3C51F0; color: white; }
+  .sidebar .navlink .material-icons { font-size: 24px; }
+  .sidebar .navlink .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #FC074F; color: white;
+    font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .sidebar .footer { width: 100%; padding: 0 12px; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* Topbar */
+  .topbar {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 16px;
+    background: white;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .crumb { color: #FC074F; font-size: 19px; font-weight: 400; margin: 0; }
+  .vdiv { width: 1px; height: 24px; background: #E2E8F0; }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #3C51F0; color: white;
+    padding: 8px 16px; border-radius: 4px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .planning-pill .material-icons { font-size: 18px; }
+  .topbar-spacer { flex: 1; }
+  .lang-globe {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center; color: #64748B; cursor: pointer;
+  }
+  .lang-globe .material-icons { font-size: 16px; }
+
+  /* Banner */
+  .banner {
+    margin: 16px 16px 0 16px;
+    background: rgba(60, 81, 240, 0.20);
+    border-radius: 6px 6px 0 0;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .banner .icon-square {
+    width: 56px; height: 56px; background: #3C51F0;
+    border-radius: 8px; display: grid; place-items: center; color: white;
+  }
+  .banner .icon-square .material-icons { font-size: 28px; }
+  .banner h3 { margin: 0 0 2px 0; color: #3C51F0; font-size: 14px; font-weight: 600; }
+  .banner p { margin: 0; color: #64748B; font-size: 12px; }
+
+  /* Filterbar */
+  .filterbar {
+    padding: 14px 16px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    background: white;
+  }
+  .filter-input {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid #E2E8F0; border-radius: 6px;
+    background: white; padding: 0 12px; height: 40px;
+    font-size: 14px; color: #64748B;
+  }
+  .filter-input.search { width: 240px; }
+  .filter-input.dd { min-width: 200px; cursor: pointer; }
+  .filter-input.dd::after { content: "▾"; margin-left: auto; color: #94A3B8; }
+  .filter-input .material-icons { font-size: 16px; color: #94A3B8; }
+  .filter-input input {
+    border: none; outline: none; flex: 1; font-size: 14px;
+    background: transparent; font-family: inherit; letter-spacing: 0.5px; color: #334155;
+  }
+  .seg-toggle, .sub-toggle {
+    display: inline-flex; background: #F1F5F9;
+    padding: 3px; border-radius: 8px; gap: 2px;
+  }
+  .seg-toggle button, .sub-toggle button {
+    border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: #64748B; font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .seg-toggle button { padding: 7px 14px; }
+  .sub-toggle button { padding: 6px 12px; border-radius: 4px; }
+  .seg-toggle button.active, .sub-toggle button.active {
+    background: white; color: #0F172A;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .nav-arrow {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center; cursor: pointer; color: #334155;
+  }
+  .nav-arrow .material-icons { font-size: 18px; }
+  .batch-btn {
+    background: #3C51F0; color: white;
+    border: none; padding: 0 14px; border-radius: 6px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .batch-btn:hover { background: #2C3FBF; }
+  .batch-btn .material-icons { font-size: 18px; }
+  .batch-btn .counter {
+    background: rgba(255,255,255,0.25); padding: 2px 8px;
+    border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+
+  /* GRID */
+  .grid-wrap { margin: 0 16px 16px 16px; border: 1px solid #E2E8F0; border-top: none; }
+  .grid-header,
+  .grid-row { display: grid; grid-template-columns: 200px repeat(7, minmax(0, 1fr)); }
+  .grid-header { background: white; border-bottom: 1px solid #E2E8F0; }
+  .grid-header > div {
+    min-width: 0; padding: 14px 12px; font-size: 14px; color: #334155; border-right: 1px solid #E2E8F0; font-weight: 500; }
+  .grid-header > div:last-child { border-right: none; }
+  .grid-header .day-cell.today { background: #FC074F; color: white; padding: 14px 12px; font-weight: 600; }
+  .grid-header .day-cell.weekend { background: rgba(252, 7, 79, 0.06); }
+
+  .week-band { display: grid; grid-template-columns: 200px minmax(0, 1fr); background: white; border-bottom: 1px solid #E2E8F0; }
+  .week-band > div { padding: 8px 12px; }
+  .week-label { text-align: right; color: #0F172A; font-size: 14px; font-weight: 500; }
+
+  .vest-band {
+    background: rgba(252, 7, 79, 0.06); padding: 8px 14px;
+    color: #FC074F; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .vest-band .material-icons { font-size: 16px; }
+
+  .grid-row { border-bottom: 1px solid #E2E8F0; min-height: 96px; }
+  .grid-row:last-child { border-bottom: none; }
+  .grid-row > .name-cell {
+    grid-column: 1; grid-row: 1;
+    padding: 12px;
+    font-size: 14px; color: #0F172A; font-weight: 500;
+    border-right: 1px solid #E2E8F0;
+    background: white;
+    display: flex; align-items: center;
+    letter-spacing: 0.5px;
+  }
+  .grid-row > .day {
+    grid-row: 1;
+    border-right: 1px solid #E2E8F0;
+    background: white;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    padding: 6px;
+    min-width: 0; overflow: hidden;
+  }
+  .grid-row > .day.today { background: rgba(252, 7, 79, 0.06); }
+  .grid-row > .day.weekend { background: #F8FAFC; }
+  .grid-row > .day:last-child { border-right: none; }
+  
+
+  
+  .grid-row { position: relative; }
+
+  /* Block: absolutely positioned, decoupled from grid column sizing */
+  .block {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: calc(200px + (var(--col-start) - 1) * ((100% - 200px) / 7) + 4px);
+    width: calc(var(--col-span) * ((100% - 200px) / 7) - 8px);
+    background: rgba(30, 24, 100, 0.10);
+    border: 2px solid #1E1864;
+    border-radius: 8px;
+    color: #1E1864;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    display: grid; grid-template-rows: auto 1fr;
+    overflow: visible;
+    z-index: 5;
+    box-sizing: border-box;
+  }
+  .block .title { padding: 6px 10px 0 10px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .block .times { display: flex; padding: 4px 0 8px 0; overflow: hidden; min-width: 0; align-items: center; justify-content: center; }
+  .block .times span {
+    flex: 1 1 0; min-width: 0;
+    text-align: center;
+    font-size: 13px; font-weight: 500;
+    color: inherit;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 0 4px;
+  }
+
+  .block.open {
+    background: #FEF3C7;
+    border-color: #B45309;
+    border-style: dashed;
+    color: #92400E;
+  }
+  .block.open .badge {
+    position: absolute; top: -9px; right: -9px;
+    width: 24px; height: 24px;
+    background: #3C51F0; color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: 2px solid white;
+    z-index: 6;
+  }
+
+  .block.fixed {
+    background: #F0FDFA;
+    border-color: #115E59;
+    color: #115E59;
+  }
+  .block.fixed .title::before {
+    content: "Vast";
+    display: inline-block;
+    background: #115E59; color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+  }
+
+
+  /* Lane1/Lane2 stacking in has-lane2 rows */
+  .grid-row.has-lane2 { min-height: 192px; }
+  .grid-row.has-lane2 .block:not(.lane2) {
+    bottom: auto;
+    height: calc(50% - 12px);
+  }
+  .grid-row.has-lane2 .block.lane2 {
+    top: calc(50% + 4px);
+    bottom: 8px;
+    height: auto;
+  }
+
+  /* Beschikbaarheid washed-out label */
+.avail {
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    background: #ECFDF5; color: #047857;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .avail::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #047857; }
+
+
+  /* DAG VIEW */
+  .dag-wrap { margin: 0 16px 16px 16px; border: 1px solid #E2E8F0; position: relative; }
+  .dag-scroll { overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; }
+  .dag-grid {
+    --hw: 80px; --nw: 200px; --hours: 18;
+    display: grid;
+    grid-template-columns: var(--nw) repeat(var(--hours), var(--hw));
+    min-width: calc(var(--nw) + var(--hours) * var(--hw));
+  }
+  .dag-head > div, .dag-grid > .dag-vest { background: white; }
+  .dag-head > div {
+    border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;
+    padding: 12px 0; font-size: 13px; font-weight: 500; color: #334155; text-align: center;
+  }
+  .dag-head > div.dag-name { text-align: left; padding: 12px 14px; border-right: 2px solid #E2E8F0; }
+  .dag-head > div.now { background: #FC074F; color: white; font-weight: 700; }
+
+  .dag-vest {
+    grid-column: 1 / -1;
+    background: rgba(252, 7, 79, 0.06) !important;
+    padding: 8px 14px;
+    color: #FC074F; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .dag-vest .material-icons { font-size: 16px; }
+
+  .dag-row > .dag-namecell {
+    grid-column: 1 / 2; grid-row: 1;
+    border-right: 2px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;
+    padding: 14px 14px; background: white;
+    font-size: 14px; font-weight: 500; color: #0F172A;
+    display: flex; align-items: center;
+    position: sticky; left: 0; z-index: 3;
+  }
+  .dag-row > .dag-track {
+    grid-column: 2 / -1; grid-row: 1;
+    border-bottom: 1px solid #E2E8F0;
+    background: repeating-linear-gradient(to right, white 0, white calc(var(--hw) - 1px), #F1F5F9 calc(var(--hw) - 1px), #F1F5F9 var(--hw));
+    position: relative;
+    min-height: 96px;
+    display: grid;
+    grid-template-columns: repeat(var(--hours), var(--hw));
+    align-content: start;
+    padding: 8px 0;
+    gap: 4px 0;
+  }
+
+  .dag-block {
+    background: rgba(30, 24, 100, 0.10);
+    border: 2px solid #1E1864;
+    border-radius: 8px;
+    padding: 8px 12px; color: #1E1864;
+    font-size: 14px; font-weight: 500;
+    margin: 0 3px; height: 36px;
+    display: flex; align-items: center; gap: 10px;
+    position: relative; z-index: 2;
+    overflow: hidden;
+  }
+  .dag-block .n { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dag-block .ti { font-size: 13px; opacity: 0.85; white-space: nowrap; }
+  .dag-block.open {
+    background: #FEF3C7; border-color: #B45309; border-style: dashed; color: #92400E;
+    overflow: visible;
+  }
+  .dag-block.open .badge {
+    position: absolute; top: -9px; right: -9px; width: 24px; height: 24px;
+    background: #3C51F0; color: white; border-radius: 50%;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18); border: 2px solid white;
+  }
+  .dag-block.fixed { background: #F0FDFA; border-color: #115E59; color: #115E59; }
+  .dag-lane2 { margin-top: 8px; }
+  .dag-now {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: #FC074F; z-index: 1;
+    box-shadow: 0 0 6px rgba(252, 7, 79, 0.4);
+  }
+  .dag-now::after {
+    content: ""; position: absolute; top: 0; left: -4px;
+    width: 10px; height: 10px; background: #FC074F; border-radius: 50%;
+  }
+  .dag-scrollbtn {
+    position: absolute; top: calc(50% - 18px); width: 36px; height: 36px;
+    border-radius: 50%; background: white; border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: grid; place-items: center; cursor: pointer; color: #334155;
+    z-index: 5;
+  }
+  .dag-scrollbtn:hover { background: #F1F5F9; }
+  .dag-scrollbtn.left { left: 8px; }
+  .dag-scrollbtn.right { right: 8px; }
+  .dag-scrollbtn .material-icons { font-size: 18px; }
+</style>
+
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><img src="./Planning_files/logo-icon.svg" alt="Staffler"></div>
+  <nav>
+    <a class="navlink" href="#" title="Bedrijfsprofiel"><span class="material-icons">apartment</span></a>
+    <a class="navlink" href="#" title="Gebruikersaccounts"><span class="material-icons">vpn_key</span></a>
+    <a class="navlink" href="#" title="Groepen"><span class="material-icons">groups</span></a>
+    <a class="navlink" href="#" title="Nieuwe medewerkers"><span class="material-icons">person_add</span></a>
+    <a class="navlink active" href="#" title="Planning"><span class="material-icons">event_note</span></a>
+    <a class="navlink" href="#" title="Prestaties"><span class="material-icons">euro</span><span class="badge">1</span></a>
+    <a class="navlink" href="#" title="Prikklok"><span class="material-icons">timer</span></a>
+    <a class="navlink" href="#" title="Bedrijf zoeken"><span class="material-icons">search</span></a>
+  </nav>
+  <div class="footer">
+    <a class="navlink" href="#" title="Uitloggen"><span class="material-icons">logout</span></a>
+  </div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <h1 class="crumb">Demobedrijf</h1>
+  <div class="vdiv"></div>
+  <span class="planning-pill"><span class="material-icons">event_note</span>Planning</span>
+  <div class="topbar-spacer"></div>
+  <button class="lang-globe"><span class="material-icons">language</span></button>
+</header>
+<div class="banner">
+  <div class="icon-square"><span class="material-icons">event_note</span></div>
+  <div>
+    <h3>Planning - plan jouw medewerkers in</h3>
+    <p>Op deze pagina kan je een weekplanning opmaken en beheren voor jouw zaak.</p>
+  </div>
+</div>
+<div class="filterbar">
+  <div class="filter-input search">
+    <span class="material-icons">search</span>
+    <input placeholder="Zoek op medewerker">
+  </div>
+  <div class="filter-input dd">Ingepland op</div>
+  <div class="filter-input dd">Filter op groep</div>
+  <div style="flex:1;"></div>
+  <div class="seg-toggle">
+      <button class="active">Namen</button>
+      <button class="">Locaties</button>
+    </div>
+  <div class="sub-toggle">
+      <button class="active">Week</button>
+      <button class="">2 weken</button>
+    </div>
+  
+  <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+  <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+</div>
+<div class="grid-wrap">
+  <div class="grid-header">
+    <div>Medewerker</div>
+    <div class="day-cell">ma 4</div>
+    <div class="day-cell today">Vandaag</div>
+    <div class="day-cell">wo 6</div>
+    <div class="day-cell">do 7</div>
+    <div class="day-cell">vr 8</div>
+    <div class="day-cell weekend">za 9</div>
+    <div class="day-cell weekend">zo 10</div>
+  </div>
+  <div class="week-band">
+    <div></div>
+    <div class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Anouk Staelens</div>
+    <div class="day"></div><div class="day today"></div><div class="day"></div>
+    <div class="day"><span class="avail">8u-19u</span></div>
+    <div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+    <div class="block" style="--col-start:2; --col-span:2;"><div class="title">Anouk</div><div class="times"><span>9:00 › 17:00</span><span>9:00 › 17:00</span></div></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Bart Verhaegen</div>
+    <div class="day"></div>
+    <div class="day today"><span class="avail">8u-19u</span></div>
+    <div class="day"><span class="avail">8u-19u</span></div>
+    <div class="day"></div><div class="day"></div>
+    <div class="day weekend"><span class="avail">9u-22u</span></div>
+    <div class="day weekend"><span class="avail">9u-22u</span></div>
+    <div class="block" style="--col-start:4; --col-span:1;"><div class="title">Bart</div><div class="times"><span>10:00 › 18:00</span></div></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Jeff Callebaut</div>
+    <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+    <div class="block" style="--col-start:2; --col-span:1;"><div class="title">Jeff</div><div class="times"><span>10:00 › 18:00</span></div></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Joke Carton</div>
+    <div class="day"></div>
+    <div class="day today"><span class="avail">9u-22u</span></div>
+    <div class="day"><span class="avail">9u-22u</span></div>
+    <div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Laurens Van Acker</div>
+    <div class="day"></div>
+    <div class="day today"><span class="avail">14u-18u</span></div>
+    <div class="day"><span class="avail">14u-18u</span></div>
+    <div class="day"><span class="avail">14u-18u</span></div>
+    <div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Sarah Dubois</div>
+    <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+    <div class="block fixed" style="--col-start:2; --col-span:4;"><div class="title">Sarah</div><div class="times"><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 13:00</span></div></div>
+  </div>
+
+  <div class="grid-row">
+    <div class="name-cell">Thomas Janssens</div>
+    <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
+    <div class="block fixed" style="--col-start:2; --col-span:5;"><div class="title">Thomas</div><div class="times"><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span></div></div>
+  </div>
+</div>
+</main>
+</div>
+
+</body>
+</html>

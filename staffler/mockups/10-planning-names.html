@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 10 v2: Names-view (klassiek)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.20);
+    --brand: #FC074F;
+    --brand-soft: rgba(252, 7, 79, 0.06);
+    --brand-bg-today: rgba(252, 7, 79, 0.06);
+
+    --block-bg: rgba(30, 24, 100, 0.10);
+    --block-border: #1E1864;
+    --block-text: #1E1864;
+
+    --fixed-bg: #F0FDFA;
+    --fixed-border: #115E59;
+    --fixed-text: #115E59;
+
+    /* Beschikbaarheid washed-out */
+    --avail-green-bg: #ECFDF5;
+    --avail-green-fg: #047857;
+
+    --surface: #FFFFFF;
+    --surface-50: #F8FAFC;
+    --surface-100: #F1F5F9;
+    --surface-200: #E2E8F0;
+    --surface-300: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  .app { display: grid; grid-template-columns: 89px 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface-50);
+    border-right: 1px solid var(--surface-200);
+    border-radius: 0 16px 16px 0;
+    display: flex; flex-direction: column;
+    align-items: center; padding: 16px 0; position: relative;
+  }
+  .brand-logo {
+    width: 48px; height: 48px; margin-bottom: 16px;
+    color: var(--brand); display: grid; place-items: center;
+  }
+  .brand-logo svg { width: 38px; height: 38px; }
+  .nav-link {
+    width: 56px; height: 56px; border-radius: 8px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-strong); display: grid; place-items: center;
+    margin-bottom: 8px; padding: 0; position: relative;
+  }
+  .nav-link:hover { background: var(--surface-200); }
+  .nav-link.active { background: var(--primary); color: white; }
+  .nav-link .material-icons { font-size: 24px; }
+  .nav-badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand); color: white;
+    font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .sidebar-spacer { flex: 1; }
+  .sidebar-collapse {
+    position: absolute; right: -14px; top: 92px;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid var(--surface-200); background: white;
+    color: var(--muted); display: grid; place-items: center; cursor: pointer;
+  }
+  .sidebar-collapse .material-icons { font-size: 16px; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* Topbar */
+  .topbar {
+    padding: 12px;
+    display: flex; align-items: center; gap: 16px;
+    background: white;
+  }
+  .crumb {
+    color: var(--brand); font-size: 18.72px; font-weight: 400;
+    margin: 0; padding: 0 12px;
+  }
+  .planning-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--primary); color: white;
+    padding: 8px 16px; border-radius: 4px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .planning-pill .material-icons { font-size: 18px; }
+  .topbar-spacer { flex: 1; }
+
+  .seg-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 8px; gap: 2px;
+  }
+  .seg-toggle button {
+    padding: 7px 14px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 5px; white-space: nowrap;
+  }
+  .seg-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .lang-globe {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; color: var(--muted);
+  }
+  .lang-globe .material-icons { font-size: 16px; }
+
+  /* Filters */
+  .filterbar {
+    padding: 0 24px 12px 24px;
+    display: grid;
+    grid-template-columns: 240px 200px 200px 1fr auto auto auto;
+    gap: 12px; align-items: center; background: white;
+  }
+  .filter-input {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--surface-200); border-radius: 6px;
+    background: white; padding: 8px 12px;
+    font-size: 14px; color: var(--text); height: 40px;
+  }
+  .filter-input .material-icons { font-size: 16px; color: var(--soft); }
+  .filter-input input {
+    border: none; outline: none; flex: 1; font-size: 14px;
+    background: transparent; font-family: inherit; letter-spacing: 0.5px;
+  }
+  .filter-input.dd::after {
+    content: ""; width: 0; height: 0; margin-left: auto;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--soft);
+  }
+  .week-text {
+    font-size: 14px; color: var(--text); white-space: nowrap; font-weight: 500;
+  }
+  .sub-toggle {
+    display: inline-flex; background: var(--surface-100);
+    padding: 3px; border-radius: 6px; gap: 2px;
+  }
+  .sub-toggle button {
+    padding: 6px 12px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--muted); font-family: inherit; letter-spacing: 0.5px;
+    border-radius: 4px;
+  }
+  .sub-toggle button.active {
+    background: white; color: var(--text-strong);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .nav-arrow {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 1px solid var(--surface-200); background: white;
+    display: grid; place-items: center; cursor: pointer; color: var(--text);
+  }
+  .nav-arrow .material-icons { font-size: 18px; }
+
+  /* Banner */
+  .banner {
+    margin: 12px 24px 0 24px;
+    background: var(--primary-soft);
+    border-radius: 6px 6px 0 0;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .banner .icon-square {
+    width: 56px; height: 56px; background: var(--primary);
+    border-radius: 8px; display: grid; place-items: center; color: white;
+  }
+  .banner .icon-square .material-icons { font-size: 28px; }
+  .banner h3 {
+    margin: 0 0 2px 0; color: var(--primary);
+    font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .banner p { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: 0.5px; }
+
+  /* Grid */
+  .grid-wrap { margin: 0 24px; border: 1px solid var(--surface-200); border-top: none; }
+
+  .grid-header {
+    display: grid;
+    grid-template-columns: 240px repeat(7, 1fr);
+    background: white;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .grid-header > div {
+    padding: 14px 12px;
+    font-size: 14px; font-weight: 500; color: var(--text);
+    border-right: 1px solid var(--surface-200);
+    letter-spacing: 0.5px;
+  }
+  .grid-header > div:last-child { border-right: none; }
+  .grid-header .col-name { display: flex; align-items: center; gap: 6px; }
+  .grid-header .col-name .material-icons { font-size: 14px; color: var(--soft); }
+  .grid-header .day-cell { display: flex; flex-direction: column; gap: 2px; }
+  .grid-header .day-cell.today { background: var(--brand); color: white; }
+  .grid-header .day-cell.today .day-name { color: white; font-weight: 600; }
+  .grid-header .day-cell.weekend { background: var(--brand-soft); }
+
+  .week-band {
+    display: grid; grid-template-columns: 240px 1fr; background: white;
+  }
+  .week-band > div { padding: 8px 12px; }
+  .week-band .week-label {
+    text-align: right; color: var(--text-strong);
+    font-size: 14px; font-weight: 500;
+  }
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: 240px repeat(7, 1fr);
+    border-bottom: 1px solid var(--surface-200);
+    min-height: 88px;
+    position: relative;
+  }
+  .grid-row:last-child { border-bottom: none; }
+  .grid-row > .name-cell {
+    padding: 12px;
+    font-size: 14px; color: var(--text-strong); font-weight: 500;
+    border-right: 1px solid var(--surface-200);
+    background: white; letter-spacing: 0.5px;
+    display: flex; align-items: center;
+  }
+  .grid-row > .day-cell {
+    border-right: 1px solid var(--surface-200);
+    background: white;
+    position: relative;
+    padding: 6px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .grid-row > .day-cell.today { background: var(--brand-bg-today); }
+  .grid-row > .day-cell.weekend { background: var(--surface-50); }
+  .grid-row > .day-cell:last-child { border-right: none; }
+
+  /* Multi-day block */
+  .md-block {
+    grid-row: 1;
+    align-self: stretch;
+    margin: 6px 2px;
+    background: var(--block-bg);
+    border: 2px solid var(--block-border);
+    border-radius: 8px;
+    color: var(--block-text);
+    font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    display: grid; grid-template-rows: auto 1fr;
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+  }
+  .md-block .title { padding: 6px 12px 0 12px; font-weight: 700; }
+  .md-block .times { display: flex; padding: 4px 0 8px 0; }
+  .md-block .times span {
+    flex: 1; text-align: center;
+    font-size: 14px; font-weight: 500; color: var(--block-text);
+  }
+  .md-block .times .arr { margin: 0 4px; opacity: 0.6; }
+
+  .md-block.fixed {
+    background: var(--fixed-bg);
+    border-color: var(--fixed-border);
+    color: var(--fixed-text);
+  }
+  .md-block.fixed .title::before {
+    content: "Vast"; display: inline-block;
+    background: var(--fixed-text); color: white;
+    font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; margin-right: 6px; vertical-align: middle;
+  }
+
+  /* Beschikbaarheid washed-out label */
+  .avail {
+    align-self: flex-start;
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    background: var(--avail-green-bg); color: var(--avail-green-fg);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .avail::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--avail-green-fg);
+  }
+
+  /* Pagination */
+  .pagination {
+    margin: 16px 24px; padding: 12px 0;
+    display: flex; justify-content: center; align-items: center;
+    gap: 12px; color: var(--text); font-size: 14px;
+  }
+  .pagination .pill-active {
+    background: var(--primary); color: white;
+    padding: 4px 12px; border-radius: 4px; font-weight: 600;
+  }
+
+  .notes {
+    margin: 0 24px 24px 24px; padding: 16px;
+    background: var(--surface-50); border: 1px dashed var(--surface-200);
+    border-radius: 6px; font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .notes strong { color: var(--text-strong); font-weight: 600; }
+  .notes ul { margin: 8px 0 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand-logo">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <rect x="10" y="10" width="18" height="2.5"/>
+        <rect x="22" y="14" width="6" height="2.5"/>
+        <rect x="10" y="20" width="18" height="2.5"/>
+        <rect x="10" y="24" width="6" height="2.5"/>
+        <rect x="10" y="28" width="18" height="2.5"/>
+      </svg>
+    </div>
+    <button class="nav-link"><span class="material-icons">apartment</span></button>
+    <button class="nav-link"><span class="material-icons">vpn_key</span></button>
+    <button class="nav-link"><span class="material-icons">groups</span></button>
+    <button class="nav-link"><span class="material-icons">person_add</span></button>
+    <button class="nav-link active"><span class="material-icons">event_note</span></button>
+    <button class="nav-link"><span class="material-icons">euro</span><span class="nav-badge">1</span></button>
+    <button class="nav-link"><span class="material-icons">timer</span></button>
+    <button class="nav-link"><span class="material-icons">search</span></button>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-link"><span class="material-icons">logout</span></button>
+    <div class="sidebar-collapse"><span class="material-icons">chevron_right</span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+      <h1 class="crumb">Demobedrijf</h1>
+      <span class="planning-pill">
+        <span class="material-icons">event_note</span>
+        Planning
+      </span>
+      <div class="topbar-spacer"></div>
+      <button class="lang-globe"><span class="material-icons">language</span></button>
+    </div>
+
+    <div class="filterbar">
+      <div class="filter-input">
+        <span class="material-icons">search</span>
+        <input placeholder="Zoek op medewerker">
+      </div>
+      <div class="filter-input dd"><span style="color: var(--muted);">Ingepland op</span></div>
+      <div class="filter-input dd"><span style="color: var(--muted);">Filter op groep</span></div>
+      <div></div>
+      <div class="seg-toggle">
+        <button class="active">Namen</button>
+        <button>Locaties</button>
+      </div>
+      <div class="sub-toggle">
+        <button>Dag</button>
+        <button class="active">Week</button>
+        <button>2 weken</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+        <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+      </div>
+    </div>
+
+    <div class="banner">
+      <div class="icon-square"><span class="material-icons">event_note</span></div>
+      <div>
+        <h3>Planning - plan jouw medewerkers in</h3>
+        <p>Op deze pagina kan je een weekplanning opmaken en beheren voor jouw zaak.</p>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+
+      <div class="grid-header">
+        <div class="col-name">Medewer... <span class="material-icons">arrow_upward</span></div>
+        <div class="day-cell"><span class="day-name">ma 4</span></div>
+        <div class="day-cell today"><span class="day-name">Vandaag</span></div>
+        <div class="day-cell"><span class="day-name">wo 6</span></div>
+        <div class="day-cell"><span class="day-name">do 7</span></div>
+        <div class="day-cell"><span class="day-name">vr 8</span></div>
+        <div class="day-cell weekend"><span class="day-name">za 9</span></div>
+        <div class="day-cell weekend"><span class="day-name">zo 10</span></div>
+      </div>
+
+      <div class="week-band">
+        <div></div>
+        <div class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</div>
+      </div>
+
+      <!-- Anouk: contract di-wo, beschikbaar do (geen contract) -->
+      <div class="grid-row">
+        <div class="name-cell">Anouk Staelens</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"><span class="avail">8u-19u</span></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block" style="grid-column: 3 / 5;">
+          <div class="title">Anouk</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 17:00</span><span>9:00 <span class="arr">›</span> 17:00</span></div>
+        </div>
+      </div>
+
+      <!-- Bart: contract do, beschikbaar di-wo en za-zo (geen contract daar) -->
+      <div class="grid-row">
+        <div class="name-cell">Bart Verhaegen</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"><span class="avail">8u-19u</span></div>
+        <div class="day-cell"><span class="avail">8u-19u</span></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"><span class="avail">9u-22u</span></div>
+        <div class="day-cell weekend"><span class="avail">9u-22u</span></div>
+
+        <div class="md-block" style="grid-column: 5 / 6;">
+          <div class="title">Bart</div>
+          <div class="times"><span>10:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+      </div>
+
+      <!-- Jeff: contract di -->
+      <div class="grid-row">
+        <div class="name-cell">Jeff Callebaut</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block" style="grid-column: 3 / 4;">
+          <div class="title">Jeff</div>
+          <div class="times"><span>10:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+      </div>
+
+      <!-- Joke: enkel beschikbaarheid -->
+      <div class="grid-row">
+        <div class="name-cell">Joke Carton</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"><span class="avail">9u-22u</span></div>
+        <div class="day-cell"><span class="avail">9u-22u</span></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <!-- Laurens: enkel beschikbaarheid -->
+      <div class="grid-row">
+        <div class="name-cell">Laurens Van Acker</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"><span class="avail">14u-18u</span></div>
+        <div class="day-cell"><span class="avail">14u-18u</span></div>
+        <div class="day-cell"><span class="avail">14u-18u</span></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+      </div>
+
+      <!-- Sarah Dubois: vaste werknemer, multi-day di-vr -->
+      <div class="grid-row">
+        <div class="name-cell">Sarah Dubois</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block fixed" style="grid-column: 3 / 7;">
+          <div class="title">Sarah</div>
+          <div class="times"><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 17:00</span><span>8:00 <span class="arr">›</span> 13:00</span></div>
+        </div>
+      </div>
+
+      <!-- Thomas Janssens: vaste werknemer, multi-day di-za -->
+      <div class="grid-row">
+        <div class="name-cell">Thomas Janssens</div>
+        <div class="day-cell"></div>
+        <div class="day-cell today"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell weekend"></div>
+        <div class="day-cell weekend"></div>
+
+        <div class="md-block fixed" style="grid-column: 3 / 8;">
+          <div class="title">Thomas</div>
+          <div class="times"><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span><span>9:00 <span class="arr">›</span> 18:00</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pagination">
+      Medewerkers 1-7/11
+      <button class="nav-arrow"><span class="material-icons">first_page</span></button>
+      <button class="nav-arrow"><span class="material-icons">chevron_left</span></button>
+      <span class="pill-active">1</span>
+      <button class="nav-arrow"><span class="material-icons">chevron_right</span></button>
+      <button class="nav-arrow"><span class="material-icons">last_page</span></button>
+    </div>
+
+    <div class="notes">
+      <strong>Names-view (mockup 10 v2)</strong>
+      <ul>
+        <li>Beschikbaarheid getoond als kleine washed-out label (groen) met tijdframe, ENKEL in cellen waar nog GEEN contract staat. Cellen met een contract tonen geen beschikbaarheid meer want dat is irrelevant geworden</li>
+        <li>Alle beschikbaarheid-labels zijn groen want we weten in de Names-view niet wat de klant exact wil inplannen, dus geen onderscheid tussen "volledige dekking" en "gedeeltelijk"</li>
+        <li>Multi-day contracten tonen als één lang blok over meerdere kolommen (zoals huidige Staffler). Sarah multi-day di-vr (4 dagen), Thomas multi-day di-za (5 dagen). Geen aparte dag-blokken meer</li>
+        <li>Pixel-match aan live Staffler: Material Icons sidebar, magenta brand voor logo en Vandaag-pill, primary indigo voor active sidebar-icoon en banner</li>
+        <li>Geen open-shift-blokken in deze view (Niveau 2 is enkel zichtbaar in V+SL via de toggle bovenaan)</li>
+      </ul>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler mockup 14: locatie-eigenschappen scherm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --magenta: #FC074F;
+    --magenta-hover: #D70643;
+    --magenta-soft: #FFE9F0;
+    --primary: #3C51F0;
+    --primary-soft: rgba(60, 81, 240, 0.20);
+    --primary-soft-light: rgba(60, 81, 240, 0.08);
+
+    --bg: #F4F4F8;
+    --surface: #FFFFFF;
+    --surface-50: #F8FAFC;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+
+    --radius: 6px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(252, 7, 79, 0.10), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(60, 81, 240, 0.10), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: auto;
+    min-height: 100vh; padding: 32px;
+    display: flex; align-items: flex-start;
+    gap: 28px; flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  .col { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+  .col.modal-col { width: 480px; }
+  .col.context-col { width: 540px; }
+  .col.legend-col { width: 320px; }
+  .col h1 {
+    color: rgba(255, 255, 255, 0.92); margin: 0; font-size: 13px;
+    font-weight: 600; letter-spacing: 0.04em; padding-left: 4px;
+    text-transform: uppercase;
+  }
+  .col h1 .small {
+    color: rgba(255, 255, 255, 0.55); font-weight: 400;
+    text-transform: none; letter-spacing: 0.5px;
+    margin-left: 6px; font-size: 12px;
+  }
+
+  /* Modal */
+  .modal {
+    background: var(--surface); border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.40);
+    display: flex; flex-direction: column;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px;
+  }
+  .modal-header h2 {
+    margin: 0; font-size: 16px; font-weight: 600; color: var(--text-strong);
+  }
+  .modal-header h2 .pos { color: var(--magenta); font-weight: 600; }
+  .modal-header .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .icon-x {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--muted); border: none; background: transparent;
+  }
+  .icon-x .material-icons { font-size: 20px; }
+  .icon-x:hover { background: var(--bg); }
+
+  .modal-body { padding: 16px 20px; }
+
+  .field { margin-bottom: 14px; }
+  .field-label {
+    display: block; font-size: 11px; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.06em; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .field-help {
+    font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4;
+  }
+
+  .input-base {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius); font-size: 13px;
+    background: white; font-family: inherit;
+    color: var(--text-strong); font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .icon-picker {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;
+  }
+  .icon-picker button {
+    aspect-ratio: 1; background: white;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    display: grid; place-items: center; cursor: pointer; color: var(--muted);
+    font-family: inherit;
+  }
+  .icon-picker button .material-icons { font-size: 18px; }
+  .icon-picker button.active {
+    border-color: var(--primary); background: var(--primary-soft-light);
+    color: var(--primary);
+  }
+  .icon-picker button:hover:not(.active) { border-color: var(--border-strong); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .vest-select {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius); background: white;
+    font-size: 13px; font-weight: 500; color: var(--text-strong);
+    cursor: pointer;
+  }
+  .vest-select .material-icons { font-size: 16px; color: var(--muted); }
+
+  .danger-row {
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    background: var(--magenta-soft);
+    border: 1px solid #FFD3DF;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--text);
+  }
+  .danger-row .material-icons { color: var(--magenta); font-size: 18px; }
+  .btn-delete {
+    margin-left: auto;
+    padding: 6px 12px; background: white;
+    border: 1px solid var(--magenta); border-radius: var(--radius);
+    color: var(--magenta); font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+  .btn-delete:hover { background: var(--magenta); color: white; }
+
+  .modal-footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+    background: var(--surface-50);
+  }
+  .btn-cancel {
+    padding: 9px 16px; background: transparent;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--text); font-family: inherit; letter-spacing: 0.5px;
+  }
+  .btn-confirm {
+    padding: 9px 18px; background: var(--magenta); color: white;
+    border: none; border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+  .btn-confirm:hover { background: var(--magenta-hover); }
+
+  /* CONTEXT: planscherm rij snippet */
+  .context-card {
+    background: white; border-radius: var(--radius-lg);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.30);
+    padding: 0; overflow: hidden;
+  }
+  .context-card .ctx-title {
+    padding: 14px 18px; background: var(--surface-50);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 700; color: var(--text-strong);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .context-card .ctx-body { padding: 0; }
+
+  /* Mini grid om de service-location-rij te tonen */
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 240px 1fr 1fr 1fr;
+    background: white;
+  }
+  .mini-grid > .header {
+    padding: 12px;
+    background: var(--surface-50);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .mini-grid > .header:last-child { border-right: none; }
+  .vestband {
+    grid-column: 1 / 5;
+    background: rgba(252, 7, 79, 0.08);
+    padding: 8px 14px; color: var(--magenta);
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .vestband .material-icons { font-size: 16px; }
+
+  .mini-row {
+    display: grid;
+    grid-template-columns: 240px 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .mini-row:last-child { border-bottom: none; }
+  .mini-row > .name-cell {
+    padding: 14px;
+    border-right: 1px solid var(--border);
+    background: white;
+    font-size: 14px; font-weight: 500; color: var(--text-strong);
+    display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;
+  }
+  .mini-row > .day-cell {
+    border-right: 1px solid var(--border);
+    background: white; min-height: 70px;
+  }
+  .mini-row > .day-cell:last-child { border-right: none; }
+  .mini-row > .name-cell .sl-icon {
+    width: 24px; height: 24px;
+    display: grid; place-items: center; flex-shrink: 0;
+    color: var(--muted);
+  }
+  .mini-row > .name-cell .sl-icon .material-icons { font-size: 18px; }
+
+  .mini-row.highlight {
+    box-shadow: 0 0 0 3px rgba(60, 81, 240, 0.30);
+    position: relative; z-index: 2;
+  }
+  .mini-row.highlight > .name-cell {
+    background: var(--primary-soft-light);
+  }
+
+  .row-actions {
+    margin-left: auto;
+    display: flex; gap: 4px;
+    opacity: 1;
+  }
+  .row-actions button {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: white; border: 1px solid var(--border);
+    cursor: pointer; color: var(--muted);
+    display: grid; place-items: center;
+  }
+  .row-actions button.active {
+    border-color: var(--primary); color: var(--primary);
+    background: var(--primary-soft-light);
+  }
+  .row-actions button .material-icons { font-size: 14px; }
+
+  .ctx-arrow {
+    margin: 16px auto;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .ctx-arrow .material-icons { font-size: 28px; color: var(--magenta); }
+
+  /* LEGEND */
+  .legend-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px; line-height: 1.6;
+  }
+  .legend-card h3 {
+    margin: 0 0 12px 0; font-size: 11px; font-weight: 700;
+    color: white; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .legend-card h3 + h3 { margin-top: 22px; }
+  .legend-card ul { margin: 0; padding-left: 18px; }
+  .legend-card li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<!-- KOLOM 1: WAAR DE GEBRUIKER KLIKT IN HET PLANSCHERM -->
+<div class="col context-col">
+  <h1>Waar je deze instelt <span class="small">vanuit de V+SL planscherm-rij</span></h1>
+
+  <div class="context-card">
+    <div class="ctx-title">Stap 1 — Klik op het tandwiel-icoon naast de service location</div>
+    <div class="ctx-body">
+      <div class="vestband">
+        <span class="material-icons">apartment</span>
+        Gent Dok Noord
+      </div>
+      <div class="mini-row">
+        <div class="name-cell">
+          Toog
+          <div class="row-actions">
+            <button title="Bewerken"><span class="material-icons">settings</span></button>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+      </div>
+      <div class="mini-row highlight">
+        <div class="name-cell">
+          Kassa
+          <div class="row-actions">
+            <button class="active" title="Bewerken"><span class="material-icons">settings</span></button>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+      </div>
+      <div class="mini-row">
+        <div class="name-cell">
+          Terras
+          <div class="row-actions">
+            <button title="Bewerken"><span class="material-icons">settings</span></button>
+          </div>
+        </div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+        <div class="day-cell"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctx-arrow">
+    <span class="material-icons">arrow_downward</span>
+    De dialog rechts opent
+  </div>
+</div>
+
+<!-- KOLOM 2: EIGENSCHAPPEN-DIALOG -->
+<div class="col modal-col">
+  <h1>Eigenschappen — Service location <span class="small">opent vanuit tandwiel</span></h1>
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <div>
+        <h2>Service location <span class="pos">Kassa</span></h2>
+        <div class="sub">Gent Dok Noord</div>
+      </div>
+      <button class="icon-x"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Naam -->
+      <div class="field">
+        <label class="field-label">Naam service location</label>
+        <input class="input-base" value="Kassa">
+      </div>
+
+      <!-- Vestiging -->
+      <div class="field">
+        <label class="field-label">Vestiging</label>
+        <div class="vest-select">
+          <span>Gent Dok Noord</span>
+          <span class="material-icons">expand_more</span>
+        </div>
+        <div class="field-help">Verplaats deze service location naar een andere vestiging als nodig.</div>
+      </div>
+
+      <!-- Plaats tewerkstelling -->
+      <div class="field">
+        <label class="field-label">Plaats tewerkstelling</label>
+        <input class="input-base" value="Dok Noord 4F, 9000 Gent, België" style="margin-bottom: 6px;">
+        <input class="input-base" placeholder="Specifieke plek (bv. Bus, Verdieping, Zaal)" value="Bovenverdieping">
+        <div class="field-help">Dit adres wordt automatisch ingevuld op elk contract dat hier gepland wordt. Dimona pakt deze waarde mee.</div>
+      </div>
+
+      <!-- Verwijderen -->
+      <div class="danger-row">
+        <span class="material-icons">warning</span>
+        <span>Service location verwijderen verbreekt geen bestaande contracten, maar nieuwe shifts kunnen er niet meer geplaatst worden.</span>
+        <button class="btn-delete">Verwijderen</button>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel">Annuleren</button>
+      <button class="btn-confirm">Wijzigingen opslaan</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- KOLOM 3: NOTITIES -->
+<div class="col legend-col">
+  <h1>Wat doet dit scherm</h1>
+
+  <div class="legend-card">
+    <h3>Doel</h3>
+    <ul>
+      <li>Plaats tewerkstelling werd vroeger per contract gevraagd in de shift-dialog</li>
+      <li>Nu zit dit als eigenschap op de service location zelf, dus 1 keer instellen ipv telkens opnieuw</li>
+      <li>Bij contract-creatie wordt het adres automatisch overgenomen op basis van waar je het blok plaatst in de grid</li>
+    </ul>
+
+    <h3>Velden</h3>
+    <ul>
+      <li>Naam: korte label voor de rij in het planscherm (Toog, Kassa, Terras, ...)</li>
+      <li>Vestiging: koppeling aan een Vestiging. Verplaatsbaar als de service location verhuist</li>
+      <li>Plaats tewerkstelling: adres + specifieke plek (de "Bus" sub-tekst uit de live Staffler popup blijft, hier "Bovenverdieping")</li>
+    </ul>
+
+    <h3>Hoe je hier komt</h3>
+    <ul>
+      <li>Tandwiel-icoon naast elke service location-rij in het V+SL planscherm</li>
+      <li>Of via een algemeen "Vestigingen + Service locations beheren" scherm (out of scope voor deze mockup-set)</li>
+    </ul>
+
+    <h3>Verwijderen</h3>
+    <ul>
+      <li>Bestaande contracten op deze service location blijven gewoon staan</li>
+      <li>Nieuwe shifts kunnen niet meer aangemaakt worden op deze rij</li>
+      <li>Soft-delete dus, geen cascade naar contracten</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
