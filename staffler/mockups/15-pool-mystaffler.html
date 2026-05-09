@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Pool — Demobedrijf · Staffler DPS mockup (BCJ-19425)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+<style>
+  :root {
+    --primary: #fc074f;
+    --primary-hover: #e2003f;
+    --primary-soft: #ffe6ee;
+
+    --bg-page: #ffffff;
+    --bg-sidebar: #f8fafc;
+    --bg-thead: #f8fafc;
+    --bg-chip: #f1f5f9;
+
+    --bg-success-soft: #dcfce7;
+    --color-success: #166534;
+    --bg-warning-soft: #fef3c7;
+    --color-warning: #92400e;
+
+    --border: #e2e8f0;
+    --border-input: #cbd5e1;
+
+    --text-strong: #1e293b;
+    --text: #334155;
+    --text-muted: #64748b;
+    --radius-md: 6px;
+    --radius-chip: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    color: var(--text);
+    background: var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .material-icons-outlined { font-size: 22px; vertical-align: middle; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 89px;
+    background: var(--bg-sidebar);
+    padding: 16px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-right: 1px solid var(--border);
+  }
+  .sidebar .logo {
+    margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+  }
+  .sidebar .logo svg { width: 32px; height: 32px; }
+  .sidebar a {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    color: var(--text-muted);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: background .15s, color .15s;
+  }
+  .sidebar a:hover { background: #e2e8f0; color: var(--text-strong); }
+  .sidebar a.active { background: var(--primary); color: white; }
+  .sidebar .spacer { flex: 1; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: white;
+  }
+  .topbar .logo-mini { display: flex; align-items: center; }
+  .topbar .logo-mini svg { width: 28px; height: 28px; }
+  .topbar .crumb {
+    color: var(--primary);
+    font-weight: 500;
+    text-decoration: none;
+    margin-right: 4px;
+  }
+  .topbar .crumb:hover { text-decoration: underline; }
+  .topbar .pill {
+    background: var(--primary);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .topbar .pill .material-icons-outlined { font-size: 20px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .topbar .icon-btn:hover { background: #f1f5f9; }
+  .topbar .icon-btn .material-icons-outlined { font-size: 20px; }
+
+  /* Content */
+  .content { padding: 16px 24px; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-primary .material-icons-outlined { font-size: 20px; }
+
+  .btn-ghost {
+    background: white;
+    border: 1px solid var(--border-input);
+    color: var(--text);
+    font-size: 14px;
+    padding: 8px 14px;
+  }
+  .btn-ghost:hover { background: #f8fafc; }
+  .btn-ghost.active {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .btn-ghost .count {
+    background: #e2e8f0;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .btn-ghost.active .count { background: var(--primary); color: white; }
+
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  .search {
+    position: relative;
+    width: 260px;
+  }
+  .search input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-input);
+    font-family: inherit;
+    font-size: 16px;
+    background: white;
+  }
+  .search input:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+  .search .material-icons-outlined {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 20px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  thead { background: var(--bg-thead); }
+  th {
+    text-align: left;
+    padding: 16px 20px;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  th .lock {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+
+  td.col-employee a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  td.col-employee a:hover { color: var(--primary); text-decoration: underline; }
+
+  /* Vestiging chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-chip);
+    color: var(--text-strong);
+    padding: 8px 14px;
+    border-radius: var(--radius-chip);
+    font-size: 14px;
+  }
+  .chip .x {
+    color: var(--primary);
+    cursor: pointer;
+    display: inline-flex;
+  }
+  .chip .x .material-icons-outlined { font-size: 16px; }
+  .chip .x:hover { color: var(--primary-hover); }
+
+  .muted-italic { color: var(--text-muted); font-style: italic; }
+
+  /* MyStaffler account cell */
+  .ms-active {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-success-soft);
+    color: var(--color-success);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .ms-pending {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-warning-soft);
+    color: var(--color-warning);
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .ms-invite {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ms-invite:hover { background: var(--primary-soft); }
+  .ms-invite .material-icons-outlined { font-size: 16px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.green { background: #16a34a; }
+  .dot.amber { background: #d97706; }
+
+  .actions-btn {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .actions-btn:hover { background: #f1f5f9; }
+
+  .menu {
+    position: absolute;
+    right: 0; top: 100%;
+    margin-top: 6px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15,23,42,.12);
+    min-width: 220px;
+    padding: 6px;
+    z-index: 20;
+    text-align: left;
+  }
+  .menu button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .menu button:hover { background: #f1f5f9; color: var(--text-strong); }
+  .menu .material-icons-outlined { font-size: 18px; color: var(--text-muted); }
+
+  /* Pagination */
+  .pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px;
+    padding: 16px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .pagination .info { margin-right: 16px; color: var(--text-muted); }
+  .pagination button {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pagination button:hover { background: #f1f5f9; }
+  .pagination .page-num {
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .pagination .material-icons-outlined { font-size: 18px; }
+
+  .mock-banner {
+    background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+    color: #78350f;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .mock-banner code {
+    background: rgba(0,0,0,.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Reusable logo SVG -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="staffler-logo" viewBox="0 0 24 24" fill="#fc074f">
+    <rect x=".2" y="16.8" width="4.8" height="4.8" rx=".7" ry=".7" />
+    <rect x="19.1" y="2.4" width="4.8" height="4.8" rx=".7" ry=".7" />
+    <path d="M22.2,14.4h-2.8c-.7,0-1.3-.6-1.3-1.3v-2.8c0-.4-.3-.7-.7-.7H7.4c-.7,0-1.3-.6-1.3-1.3v-2.2c0-.7.6-1.3,1.3-1.3h10.4c.4,0,.7-.3.7-.7V.7c0-.4-.3-.7-.7-.7H6.8c-.4,0-.7.3-.7.7v2.8c0,.7-.6,1.3-1.3,1.3h-2.8c-.4,0-.7.3-.7.7v3.4c0,.4.3.7.7.7h2.8c.7,0,1.3.6,1.3,1.3v2.8c0,.4.3.7.7.7h10c.7,0,1.3.6,1.3,1.3v2.2c0,.7-.6,1.3-1.3,1.3H6.8c-.4,0-.7.3-.7.7v3.5c0,.4.3.7.7.7h10.6c.4,0,.7-.3.7-.7v-2.8c0-.7.6-1.3,1.3-1.3h2.8c.4,0,.7-.3.7-.7v-3.4c0-.4-.3-.7-.7-.7Z" />
+  </symbol>
+</svg>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <span class="logo"><svg><use href="#staffler-logo"/></svg></span>
+
+    <a href="#" title="Bedrijfsprofiel" aria-label="Bedrijfsprofiel"><span class="material-icons-outlined">apartment</span></a>
+    <a href="#" title="Gebruikersaccounts" aria-label="Gebruikersaccounts"><span class="material-icons-outlined">key</span></a>
+    <a href="#" class="active" title="Pool" aria-label="Pool"><span class="material-icons-outlined">groups</span></a>
+    <a href="#" title="Nieuwe medewerkers" aria-label="Nieuwe medewerkers"><span class="material-icons-outlined">person_add</span></a>
+    <a href="#" title="Planning" aria-label="Planning"><span class="material-icons-outlined">event_note</span></a>
+    <a href="#" title="Prestaties" aria-label="Prestaties"><span class="material-icons-outlined">euro</span></a>
+    <a href="#" title="Prikklok" aria-label="Prikklok"><span class="material-icons-outlined">timer</span></a>
+
+    <div class="spacer"></div>
+
+    <a href="#" title="Bedrijf zoeken" aria-label="Bedrijf zoeken"><span class="material-icons-outlined">search</span></a>
+    <a href="#" title="Uitloggen" aria-label="Uitloggen"><span class="material-icons-outlined">logout</span></a>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <span class="logo-mini"><svg><use href="#staffler-logo"/></svg></span>
+      <a href="#" class="crumb">Demobedrijf</a>
+      <span class="pill">
+        <span class="material-icons-outlined">groups</span>
+        Pool
+      </span>
+      <span class="spacer"></span>
+      <button class="icon-btn" title="Notificaties"><span class="material-icons-outlined">notifications</span></button>
+      <button class="icon-btn" title="Taal"><span class="material-icons-outlined">language</span></button>
+    </header>
+
+    <div class="content">
+      <div class="toolbar">
+        <button class="btn btn-primary">
+          <span class="material-icons-outlined">group_add</span>
+          Nieuwe vestiging maken
+        </button>
+
+        <div class="search">
+          <span class="material-icons-outlined">search</span>
+          <input type="text" placeholder="Zoek op medewerker">
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label">MyStaffler-status:</span>
+        <button class="btn btn-ghost active">Alle <span class="count">11</span></button>
+        <button class="btn btn-ghost">Inactief <span class="count">3</span></button>
+        <button class="btn btn-ghost">Actief <span class="count">6</span></button>
+        <button class="btn btn-ghost">Pending <span class="count">2</span></button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 220px;">Medewerker</th>
+            <th>
+              Toegewezen vestigingen
+              <span class="material-icons-outlined lock" title="Enkel zichtbaar voor admins met vestigingen-permissies">lock</span>
+            </th>
+            <th style="width: 200px;">MyStaffler account</th>
+            <th style="width: 180px;">Last login</th>
+            <th style="width: 60px; text-align: right;">
+              <button class="actions-btn"><span class="material-icons-outlined">more_vert</span></button>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+
+      <div class="pagination">
+        <span class="info">Medewerkers 1-11/11</span>
+        <button title="Eerste pagina"><span class="material-icons-outlined">first_page</span></button>
+        <button title="Vorige"><span class="material-icons-outlined">chevron_left</span></button>
+        <button class="page-num">1</button>
+        <button title="Volgende"><span class="material-icons-outlined">chevron_right</span></button>
+        <button title="Laatste"><span class="material-icons-outlined">last_page</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const rows = [
+    { name: "Anouk Staelens",          vest: ["Café Den Engel", "Bar Volo", "Brasserie Margaux", "'t Pakhuis"], status: "active",  login: "5/05/2026, 14:32" },
+    { name: "Jeff Callebaut",          vest: ["Café Den Engel", "Bar Volo", "Bistro Wilde Zwaan", "De Kroon"], status: "pending", login: null },
+    { name: "Joke Carton",             vest: ["Brasserie Margaux", "'t Pakhuis", "Eetcafé De Plek"], status: "active",  login: "7/05/2026, 09:14", showMenu: true },
+    { name: "Laurens Van Acker",       vest: ["Café Den Engel", "De Kroon", "Brasserie Margaux", "'t Pakhuis", "Bar Volo", "Bistro Wilde Zwaan"], status: "active",  login: "7/05/2026, 17:48" },
+    { name: "Leslie Nikolov",          vest: ["Café Den Engel", "Eetcafé De Plek"], status: "active",  login: "3/05/2026, 19:02" },
+    { name: "Lieven Bonamie",          vest: ["'t Pakhuis", "De Kroon"], status: "invite", login: null },
+    { name: "Muriel Hermina W De Boel", vest: [], status: "invite", login: null },
+    { name: "Philippe Norman",         vest: ["'t Pakhuis"], status: "pending", login: null },
+    { name: "Pieterjan Karel Viaene",  vest: ["Brasserie Margaux"], status: "active", login: "6/05/2026, 11:27" },
+    { name: "Stef Roegiest",           vest: [], status: "invite", login: null },
+    { name: "Wouter Toon Lybaert",     vest: ["Café Den Engel", "Bistro Wilde Zwaan"], status: "active", login: "2/05/2026, 22:11" }
+  ];
+
+  function chips(vest) {
+    if (!vest.length) return '<span class="muted-italic">Nog niet toegewezen aan een vestiging</span>';
+    return '<div class="chips">' + vest.map(v =>
+      `<span class="chip">${v}<span class="x"><span class="material-icons-outlined">close</span></span></span>`
+    ).join('') + '</div>';
+  }
+
+  function statusCell(s) {
+    if (s === "active")
+      return '<span class="ms-active"><span class="dot green"></span>Account actief</span>';
+    if (s === "pending")
+      return '<span class="ms-pending"><span class="dot amber"></span>Uitgenodigd</span>';
+    return '<button class="ms-invite"><span class="material-icons-outlined">mail_outline</span>Uitnodigen</button>';
+  }
+
+  function loginCell(v) {
+    return v ? v : '<span class="muted-italic">Nooit</span>';
+  }
+
+  function actionsCell(showMenu) {
+    if (!showMenu) {
+      return `<button class="actions-btn"><span class="material-icons-outlined">more_vert</span></button>`;
+    }
+    return `
+      <button class="actions-btn" onclick="toggleMenu(event)"><span class="material-icons-outlined">more_vert</span></button>
+      <div class="menu" id="row-menu" style="display:none;">
+        <button><span class="material-icons-outlined">apartment</span>Vestigingen toewijzen</button>
+        <button><span class="material-icons-outlined">lock_reset</span>Wachtwoord resetten</button>
+      </div>`;
+  }
+
+  document.getElementById('rows').innerHTML = rows.map(r => `
+    <tr>
+      <td class="col-employee"><a href="#">${r.name}</a></td>
+      <td>${chips(r.vest)}</td>
+      <td>${statusCell(r.status)}</td>
+      <td>${loginCell(r.login)}</td>
+      <td style="text-align: right; position: relative;">${actionsCell(r.showMenu)}</td>
+    </tr>
+  `).join('');
+
+  function toggleMenu(e) {
+    e.stopPropagation();
+    const m = document.getElementById('row-menu');
+    if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  }
+  document.addEventListener('click', () => {
+    const m = document.getElementById('row-menu');
+    if (m) m.style.display = 'none';
+  });
+</script>
+
+</body>
+</html>

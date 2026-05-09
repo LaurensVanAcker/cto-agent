@@ -243,15 +243,17 @@
   }
   .block.open .badge {
     position: absolute; top: -9px; right: -9px;
-    width: 24px; height: 24px;
-    background: #3C51F0; color: white;
-    border-radius: 50%;
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 700;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-    border: 2px solid white;
+    min-width: 24px; height: 22px; padding: 0 7px;
+    background: #B45309; color: white;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    border: 2px solid #FEF3C7;
     z-index: 6;
+    white-space: nowrap;
   }
+  .block.open .badge::before { content: "+"; opacity: 0.85; margin-right: 1px; }
 
   .block.fixed {
     background: #F0FDFA;
@@ -278,9 +280,44 @@
   .dag-wrap { margin: 0 16px 16px 16px; border: 1px solid #E2E8F0; position: relative; background: white; }
   .dag-scroll { overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; }
   .dag-inner {
-    --hw: 80px; --nw: 200px; --hours: 18;
+    --hw: 80px; --nw: 200px; --hours: 24;
     min-width: calc(var(--nw) + var(--hours) * var(--hw));
   }
+
+  /* tandwiel + plus knoppen */
+  .row-gear {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center;
+    color: #64748B; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s;
+    margin-left: 6px;
+  }
+  .row-gear .material-icons { font-size: 14px; }
+  .row-gear:hover { color: #3C51F0; border-color: #A5B4FC; background: #EEF2FF; }
+  .dag-vest:hover .row-gear,
+  .dag-row:hover .row-gear,
+  .dag-namecell:hover .row-gear { opacity: 1; }
+  .dag-namecell-text { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
+  .dag-vest > .vlabel { display: inline-flex; align-items: center; gap: 8px; }
+  /* + knop service location: full-width strook, content sticky aan links */
+  .add-sl-row {
+    padding: 0;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .add-sl-row .add-sl-content {
+    position: sticky; left: 0; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: #F8FAFC;
+    color: #64748B; font-size: 13px; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.5px;
+    border: 1px dashed transparent;
+    width: fit-content;
+  }
+  .add-sl-row .add-sl-content:hover { color: #3C51F0; background: #EEF2FF; border-color: #A5B4FC; }
+  .add-sl-row .material-icons { font-size: 16px; }
   
   /* Header row */
   .dag-headrow {
@@ -295,15 +332,24 @@
     border-right: 1px solid #E2E8F0;
   }
   .dag-headcell.now { background: #FC074F; color: white; font-weight: 700; }
-  .dag-name.dag-headcell { text-align: left; padding: 12px 14px; border-right: 2px solid #E2E8F0; font-weight: 500; }
+  .dag-name.dag-headcell {
+    text-align: left; padding: 12px 14px;
+    border-right: 2px solid #E2E8F0; font-weight: 500;
+    position: sticky; left: 0; z-index: 4; background: white;
+  }
   
-  /* Vestiging band */
+  /* Vestiging band: full-width magenta strook, met label+gear sticky aan links */
   .dag-vest {
     background: rgba(252, 7, 79, 0.06);
-    padding: 8px 14px;
+    padding: 0;
     color: #FC074F; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
-    display: flex; align-items: center; gap: 8px;
     border-bottom: 1px solid #E2E8F0;
+  }
+  .dag-vest .vest-content {
+    position: sticky; left: 0; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    width: fit-content;
   }
   .dag-vest .material-icons { font-size: 16px; }
   
@@ -351,11 +397,15 @@
   .dag-block .ti { font-size: 13px; opacity: 0.85; white-space: nowrap; }
   .dag-block.open { background: #FEF3C7; border-color: #B45309; border-style: dashed; color: #92400E; overflow: visible; }
   .dag-block.open .badge {
-    position: absolute; top: -9px; right: -9px; width: 24px; height: 24px;
-    background: #3C51F0; color: white; border-radius: 50%;
-    display: grid; place-items: center; font-size: 12px; font-weight: 700;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18); border: 2px solid white;
+    position: absolute; top: -9px; right: -9px;
+    min-width: 24px; height: 22px; padding: 0 7px;
+    background: #B45309; color: white; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12); border: 2px solid #FEF3C7;
+    white-space: nowrap;
   }
+  .dag-block.open .badge::before { content: "+"; opacity: 0.85; margin-right: 1px; }
   .dag-block.fixed { background: #F0FDFA; border-color: #115E59; color: #115E59; }
   .dag-block.fixed::before {
     content: "Vast";
@@ -434,15 +484,14 @@
     <input placeholder="Zoek op medewerker">
   </div>
   <div class="filter-input dd">Ingepland op</div>
-  <div class="filter-input dd">Filter op groep</div>
   <div style="flex:1;"></div>
   <div class="seg-toggle">
-      <button class="">Namen</button>
+      <button class="" onclick="location.href='v5-10-names.html'">Namen</button>
       <button class="active">Locaties</button>
     </div>
   <div class="sub-toggle">
       <button class="active">Dag</button>
-      <button class="">Week</button>
+      <button class="" onclick="location.href='v5-11-vsl.html'">Week</button>
       <button class="">2 weken</button>
     </div>
   <button class="batch-btn">
@@ -465,6 +514,12 @@
       <!-- Header row -->
       <div class="dag-headrow">
         <div class="dag-name dag-headcell">Locatie</div>
+        <div class="dag-headcell">0u</div>
+        <div class="dag-headcell">1u</div>
+        <div class="dag-headcell">2u</div>
+        <div class="dag-headcell">3u</div>
+        <div class="dag-headcell">4u</div>
+        <div class="dag-headcell">5u</div>
         <div class="dag-headcell">6u</div>
         <div class="dag-headcell">7u</div>
         <div class="dag-headcell">8u</div>
@@ -486,57 +541,90 @@
       </div>
       
       <!-- Vestiging Gent -->
-      <div class="dag-vest"><span class="material-icons">apartment</span>Gent Dok Noord</div>
-      
+      <div class="dag-vest">
+        <div class="vest-content">
+          <span class="vlabel"><span class="material-icons">apartment</span>Gent Dok Noord</span>
+          <button class="row-gear" title="Vestiging bewerken"><span class="material-icons">settings</span></button>
+        </div>
+      </div>
+
       <!-- Toog Gent -->
       <div class="dag-row">
-        <div class="dag-namecell">Toog</div>
+        <div class="dag-namecell">
+          <span class="dag-namecell-text">Toog</span>
+          <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+        </div>
         <div class="dag-track">
-          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
-          <div class="dag-block" style="grid-column:4/12;"><span class="n">Anouk Staelens</span><span class="ti">9:00 › 17:00</span></div>
-          <div class="dag-block open dag-lane2" style="grid-column:4/12;"><span class="n">2 open shifts</span><span class="ti">9:00 › 17:00</span><span class="badge">5</span></div>
+          <div class="dag-now" style="left:calc(14 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:10/18;"><span class="n">Anouk Staelens</span><span class="ti">9:00 › 17:00</span></div>
+          <div class="dag-block open dag-lane2" style="grid-column:10/18;"><span class="n">2 open shifts</span><span class="ti">9:00 › 17:00</span><span class="badge">5</span></div>
         </div>
       </div>
-      
+
       <!-- Kassa Gent -->
       <div class="dag-row">
-        <div class="dag-namecell">Kassa</div>
+        <div class="dag-namecell">
+          <span class="dag-namecell-text">Kassa</span>
+          <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+        </div>
         <div class="dag-track">
-          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
-          <div class="dag-block" style="grid-column:4/12;"><span class="n">Joke Carton</span><span class="ti">9:00 › 17:00</span></div>
+          <div class="dag-now" style="left:calc(14 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:10/18;"><span class="n">Joke Carton</span><span class="ti">9:00 › 17:00</span></div>
         </div>
       </div>
-      
+
       <!-- Terras Gent -->
       <div class="dag-row">
-        <div class="dag-namecell">Terras</div>
+        <div class="dag-namecell">
+          <span class="dag-namecell-text">Terras</span>
+          <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+        </div>
         <div class="dag-track">
-          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
-          <div class="dag-block fixed" style="grid-column:3/12;"><span class="n">Sarah Dubois</span><span class="ti">8:00 › 17:00</span></div>
-          <div class="dag-block" style="grid-column:12/17;"><span class="n">Bart Verhaegen</span><span class="ti">17:00 › 22:00</span></div>
+          <div class="dag-now" style="left:calc(14 * var(--hw));"></div>
+          <div class="dag-block fixed" style="grid-column:9/18;"><span class="n">Sarah Dubois</span><span class="ti">8:00 › 17:00</span></div>
+          <div class="dag-block" style="grid-column:18/23;"><span class="n">Bart Verhaegen</span><span class="ti">17:00 › 22:00</span></div>
         </div>
       </div>
-      
+
+      <div class="add-sl-row">
+        <div class="add-sl-content"><span class="material-icons">add</span>Service location toevoegen aan Gent Dok Noord</div>
+      </div>
+
       <!-- Vestiging Antwerpen -->
-      <div class="dag-vest"><span class="material-icons">apartment</span>Antwerpen Eilandje</div>
-      
+      <div class="dag-vest">
+        <div class="vest-content">
+          <span class="vlabel"><span class="material-icons">apartment</span>Antwerpen Eilandje</span>
+          <button class="row-gear" title="Vestiging bewerken"><span class="material-icons">settings</span></button>
+        </div>
+      </div>
+
       <!-- Toog Antwerpen -->
       <div class="dag-row">
-        <div class="dag-namecell">Toog</div>
+        <div class="dag-namecell">
+          <span class="dag-namecell-text">Toog</span>
+          <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+        </div>
         <div class="dag-track">
-          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
-          <div class="dag-block fixed" style="grid-column:4/13;"><span class="n">Thomas Janssens</span><span class="ti">9:00 › 18:00</span></div>
-          <div class="dag-block open dag-lane2" style="grid-column:9/17;"><span class="n">1 open shift</span><span class="ti">14:00 › 22:00</span><span class="badge">3</span></div>
+          <div class="dag-now" style="left:calc(14 * var(--hw));"></div>
+          <div class="dag-block fixed" style="grid-column:10/19;"><span class="n">Thomas Janssens</span><span class="ti">9:00 › 18:00</span></div>
+          <div class="dag-block open dag-lane2" style="grid-column:15/23;"><span class="n">1 open shift</span><span class="ti">14:00 › 22:00</span><span class="badge">3</span></div>
         </div>
       </div>
-      
+
       <!-- Bediening Antwerpen -->
       <div class="dag-row">
-        <div class="dag-namecell">Bediening</div>
-        <div class="dag-track">
-          <div class="dag-now" style="left:calc(8 * var(--hw));"></div>
-          <div class="dag-block" style="grid-column:5/13;"><span class="n">Jeff Callebaut</span><span class="ti">10:00 › 18:00</span></div>
+        <div class="dag-namecell">
+          <span class="dag-namecell-text">Bediening</span>
+          <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
         </div>
+        <div class="dag-track">
+          <div class="dag-now" style="left:calc(14 * var(--hw));"></div>
+          <div class="dag-block" style="grid-column:11/19;"><span class="n">Jeff Callebaut</span><span class="ti">10:00 › 18:00</span></div>
+        </div>
+      </div>
+
+      <div class="add-sl-row">
+        <div class="add-sl-content"><span class="material-icons">add</span>Service location toevoegen aan Antwerpen Eilandje</div>
       </div>
     </div>
   </div>
@@ -553,6 +641,16 @@
       s.scrollLeft += e.deltaY;
     }
   }, { passive: false });
+  // Center on the now indicator (14u) at load
+  function centerOnNow() {
+    var nameWidth = 200;
+    var hourWidth = 80;
+    var nowHour = 14;
+    var targetCenter = nameWidth + nowHour * hourWidth;
+    s.scrollLeft = Math.max(0, targetCenter - s.clientWidth / 2);
+  }
+  if (document.readyState === 'complete') centerOnNow();
+  else window.addEventListener('load', centerOnNow);
 })();
 </script>
 </body>

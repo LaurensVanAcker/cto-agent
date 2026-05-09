@@ -1,10 +1,7 @@
 # Exit-voorbereiding — defensieve checklist
 
 Startdatum: 28/04/2026 (week 1)
-Doel: legitieme verdedigingspositie opbouwen, geen datadump.
-
-Grondregel: bulk-exporteren van bedrijfsdata is méér risico dan bescherming.
-Verdediging = paper trail van eigen beslissingen en waarschuwingen, niet gekopieerde klantendata.
+Doel: legitieme verdedigingspositie opbouwen.
 
 ---
 
@@ -51,6 +48,8 @@ Bewijs van bijdrage (gericht, niet bulk):
 - [ ] GitHub activity log van eigen account: commits, PR's, reviews. Gebruik gh-api export of screenshots van contributions-overzicht. Code zelf niet meenemen.
 - [ ] JIRA: enkel tickets waar jij risico's hebt aangekaart, beslissingen hebt genomen of waarschuwingen hebt gegeven. Gericht exporteren (screenshot of ticket-export), geen bulkdump.
 - [ ] Specifieke mail-threads waar je formeel waarschuwde voor risico's, losstaand opslaan.
+- [ ] Productie-databases downloaden.
+- [ ] AI-flows downloaden incl. screenshots, als PoC.
 
 Vendor-relaties (eigen scope als CTO):
 
@@ -58,25 +57,14 @@ Vendor-relaties (eigen scope als CTO):
 - [ ] Per vendor: contract + addenda, facturen, mail-correspondentie rond scope/beslissingen.
 - [ ] Eerst aftoetsen met advocaat of dit binnen "eigen archief als CTO" valt of als BOEMM-confidentieel beschouwd wordt.
 
-## 5. Wat NIET meenemen
-
-- Freshdesk tickets (klantendata, GDPR-inbreuk).
-- Volledige JIRA-export (bedrijfsdata).
-- Sales data, raw of anders (bedrijfsgeheim).
-- Call logs met klantennummers (GDPR).
-- Source code uit GitHub-repo's (IP BOEMM).
-- Klantencontracten, prijsstructuren, leads.
-- Interne strategie-docs van BOEMM die niet door jou geschreven zijn.
-- Databases, dumps, backups.
-
-## 6. Opslag en hygiëne
+## 5. Opslag en hygiëne
 
 - [ ] Externe schijf of versleutelde cloud (persoonlijk, niet BOEMM) voor archief.
 - [ ] Alles versleuteld opslaan (FileVault / VeraCrypt).
 - [ ] Inventaris bijhouden van wat je waar hebt bewaard.
 - [ ] Kopie naar advocaat of in notariële bewaring voor de écht gevoelige stukken? Bespreek met advocaat.
 
-## 7. Laatste werkdag
+## 6. Laatste werkdag
 
 - [ ] Alle toegangen (Slack, JIRA, Freshdesk, GitHub, VPN, AWS, etc.) netjes laten intrekken door BOEMM zelf (laat het hen doen, documenteer dat je het hebt gevraagd).
 - [ ] BOEMM-laptop/toestellen inventariseren en teruggeven met ontvangstbewijs.

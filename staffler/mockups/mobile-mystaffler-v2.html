@@ -1,0 +1,1165 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>MyStaffler mobile mockups v2 — sluit aan op huidige app-stijl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --magenta: #E63956;
+    --magenta-deep: #D62E4D;
+    --magenta-soft: #FFE9F0;
+    --primary: #3C51F0;
+    --indigo-soft: #DDE7FF;
+    --indigo-text: #2A3EAF;
+    --green: #047857;
+    --green-soft: #D1FAE5;
+    --orange: #B45309;
+    --amber-bg: #FEF3C7;
+    --amber-border: #FCD34D;
+    --amber-text: #92400E;
+    --teal: #115E59;
+    --teal-soft: #F0FDFA;
+    --purple: #7C3AED;
+    --purple-soft: #F3E8FF;
+    --bg-app: #F4F5F8;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(252, 7, 79, 0.10), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(60, 81, 240, 0.10), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0.2px;
+    -webkit-font-smoothing: auto;
+    min-height: 100vh; padding: 32px;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  h1.page-title {
+    color: rgba(255, 255, 255, 0.92); margin: 0;
+    font-size: 18px; font-weight: 700;
+  }
+  h1.page-title .small {
+    color: rgba(255, 255, 255, 0.55); font-weight: 400;
+    margin-left: 10px; font-size: 13px;
+  }
+  .page-intro {
+    color: rgba(255, 255, 255, 0.65); font-size: 13px;
+    line-height: 1.55; max-width: 880px;
+  }
+
+  .phones-row {
+    display: flex; gap: 26px; flex-wrap: nowrap;
+    overflow-x: auto; padding-bottom: 20px;
+    align-items: flex-start;
+  }
+  .phone-col {
+    display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    align-items: center; width: 380px;
+  }
+  .phone-col .label {
+    color: rgba(255, 255, 255, 0.92); font-size: 12px;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px; padding: 4px 14px;
+  }
+  .phone-col .desc {
+    color: rgba(255, 255, 255, 0.55); font-size: 11px;
+    text-align: center; line-height: 1.4; letter-spacing: 0.2px;
+  }
+
+  .phone {
+    width: 380px; height: 800px;
+    background: #1F1F28;
+    border-radius: 38px;
+    padding: 10px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.50);
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: var(--bg-app);
+    border-radius: 30px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+
+  /* ====== Magenta hero header (matcht echte app) ====== */
+  .hero {
+    background: var(--magenta);
+    color: white;
+    padding: 50px 22px 32px 22px;
+    border-radius: 0 0 28px 28px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .hero h1 {
+    margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.3px;
+  }
+  .hero .sub {
+    margin: 4px 0 0 0; font-size: 14px; opacity: 0.92; font-weight: 400;
+  }
+  .hero.with-back {
+    padding: 46px 22px 14px 22px;
+    border-radius: 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero.with-back .back {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .hero.with-back .back .material-icons { font-size: 20px; color: white; }
+  .hero.with-back h1 {
+    font-size: 17px; font-weight: 700;
+  }
+  .hero.with-back .sub { font-size: 12px; }
+
+  /* Toggle pill (Deze week / Volgende week op beschikbaarheid) */
+  .seg {
+    margin: -16px 16px 0 16px;
+    background: white;
+    border-radius: 12px;
+    padding: 4px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    position: relative; z-index: 2;
+    flex-shrink: 0;
+  }
+  .seg button {
+    border: none; padding: 12px 8px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+  }
+  .seg button.active {
+    background: var(--magenta); color: white;
+  }
+
+  /* Date nav card */
+  .datebar {
+    margin: -16px 16px 4px 16px;
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: grid; grid-template-columns: 24px 1fr 24px;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    position: relative; z-index: 2;
+  }
+  .datebar.below-seg { margin-top: 12px; }
+  .datebar .nav-arrow {
+    color: var(--text); cursor: pointer;
+  }
+  .datebar .nav-arrow.disabled { color: #DBDFE7; cursor: not-allowed; }
+  .datebar .nav-arrow .material-icons { font-size: 22px; }
+  .datebar .when {
+    text-align: center;
+  }
+  .datebar .when .day { font-size: 12px; color: var(--muted); }
+  .datebar .when .date { font-size: 17px; font-weight: 700; color: var(--text-strong); margin-top: 1px; }
+
+  /* Week strip (date row maa-zon) */
+  .weekstrip {
+    margin: 12px 16px 4px 16px;
+    background: white; border-radius: 12px;
+    padding: 14px 8px;
+    display: grid; grid-template-columns: repeat(7, 1fr);
+  }
+  .weekstrip .d {
+    text-align: center; padding: 6px 4px; cursor: pointer;
+    border-radius: 8px;
+  }
+  .weekstrip .d .name { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .weekstrip .d .num { font-size: 18px; font-weight: 700; color: var(--text-strong); }
+  .weekstrip .d.has-shift {
+    position: relative;
+  }
+  .weekstrip .d.has-shift::after {
+    content: ""; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--primary);
+  }
+  .weekstrip .d.has-open::after { background: var(--orange); }
+  .weekstrip .d.has-responded::after { background: var(--magenta); }
+  .weekstrip .d.active {
+    background: var(--magenta);
+  }
+  .weekstrip .d.active .name,
+  .weekstrip .d.active .num { color: white; }
+  .weekstrip .d.active::after { background: white !important; }
+
+  /* Section heading on grey bg */
+  .sec-head {
+    padding: 20px 22px 8px 22px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .sec-head .ttl {
+    font-size: 17px; font-weight: 800; color: var(--text-strong);
+  }
+  .sec-head .cnt {
+    font-size: 12px; color: var(--muted);
+  }
+
+  /* Main scroll */
+  .main {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding-bottom: 90px;
+  }
+
+  /* Empty state card */
+  .empty-card {
+    margin: 0 16px 16px 16px;
+    background: white;
+    border-radius: 16px;
+    padding: 50px 24px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-card .material-icons {
+    font-size: 44px; color: #C4CAD6; display: block; margin-bottom: 12px;
+  }
+  .empty-card .ttl {
+    font-size: 15px; font-weight: 600; color: var(--text);
+  }
+
+  /* Shift card (matcht stijl van echte app: witte card, afgerond) */
+  .scard {
+    margin: 0 16px 12px 16px;
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    position: relative;
+    border-left: 4px solid var(--primary);
+  }
+  .scard.open {
+    border-left-color: var(--orange);
+  }
+  .scard.fixed {
+    border-left-color: var(--teal);
+  }
+  .scard.responded {
+    border-left-color: var(--magenta);
+  }
+  .scard.cancelled { opacity: 0.6; border-left-color: var(--soft); }
+  .scard .row1 {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 8px;
+  }
+  .scard .row1 .when {
+    font-size: 17px; font-weight: 800; color: var(--text-strong);
+  }
+  .scard .row1 .pkg {
+    font-size: 12px; color: var(--muted); margin-top: 2px;
+  }
+  .pill-state {
+    font-size: 10px; font-weight: 700;
+    padding: 4px 8px; border-radius: 999px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .pill-state.scheduled { background: var(--indigo-soft); color: var(--indigo-text); }
+  .pill-state.fixed { background: var(--teal-soft); color: var(--teal); }
+  .pill-state.open { background: var(--amber-bg); color: var(--amber-text); }
+  .pill-state.responded { background: var(--magenta-soft); color: var(--magenta); }
+  .pill-state.cancelled { background: #F1F5F9; color: var(--muted); }
+
+  .scard .meta {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .scard .meta .row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text);
+  }
+  .scard .meta .row .material-icons { font-size: 16px; color: var(--soft); }
+
+  .respond-row {
+    margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .btn-respond {
+    flex: 1; padding: 11px 12px;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-respond .material-icons { font-size: 16px; }
+  .btn-respond.yes { background: var(--magenta); color: white; }
+  .btn-respond.no {
+    background: white; color: var(--muted);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-respond.withdraw {
+    background: white; color: var(--magenta);
+    border: 1px solid var(--magenta);
+  }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip {
+    background: var(--bg-app); color: var(--muted);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .chip .material-icons { font-size: 13px; color: var(--soft); }
+  .chip.urgent { background: var(--amber-bg); color: var(--amber-text); }
+  .chip.urgent .material-icons { color: var(--orange); }
+  .chip.partner { background: var(--indigo-soft); color: var(--indigo-text); }
+  .chip.partner .material-icons { color: var(--primary); }
+
+  /* Day divider */
+  .day-divider {
+    padding: 14px 22px 4px 22px;
+    font-size: 14px; font-weight: 700; color: var(--text-strong);
+  }
+  .day-divider .when {
+    color: var(--magenta); margin-right: 6px;
+  }
+
+  /* ====== Bottom tab bar ====== */
+  .tabbar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 10px 14px 22px 14px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+  }
+  .tabbar.with-extra { grid-template-columns: repeat(4, 1fr); }
+  .tabbar .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); cursor: pointer; padding: 4px;
+    position: relative;
+  }
+  .tabbar .tab.active { color: var(--magenta); }
+  .tabbar .tab.active::after {
+    content: ""; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 3px; background: var(--magenta); border-radius: 0 0 3px 3px;
+  }
+  .tabbar .tab .material-icons { font-size: 22px; }
+  .tabbar .tab .lbl { font-size: 11px; font-weight: 600; }
+  .tabbar .tab .badge {
+    position: absolute; top: -4px; right: 24px;
+    background: var(--magenta); color: white;
+    font-size: 10px; font-weight: 800;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: grid; place-items: center;
+    border: 2px solid white;
+  }
+
+  /* Notif card (matcht echte app: card-style, gekleurde linker rand voor unread) */
+  .nlist { padding: 8px 16px 0 16px; }
+  .ngroup-h {
+    font-size: 13px; font-weight: 700; color: var(--text-strong);
+    padding: 10px 4px;
+  }
+  .nf {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: grid; grid-template-columns: 36px 1fr 10px;
+    gap: 12px; align-items: flex-start;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+  }
+  .nf.unread { border-left-color: var(--magenta); }
+  .nf .icon-tile {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center;
+  }
+  .nf .icon-tile .material-icons { font-size: 18px; }
+  .nf .icon-tile.shift { background: var(--indigo-soft); color: var(--primary); }
+  .nf .icon-tile.open { background: var(--amber-bg); color: var(--orange); }
+  .nf .icon-tile.confirm { background: var(--green-soft); color: var(--green); }
+  .nf .icon-tile.reminder { background: var(--purple-soft); color: var(--purple); }
+  .nf .icon-tile.system { background: var(--bg-app); color: var(--muted); }
+  .nf .body .ttl {
+    font-size: 14px; font-weight: 800; color: var(--text-strong);
+  }
+  .nf .body .txt {
+    font-size: 13px; color: var(--text); margin-top: 2px; line-height: 1.4;
+  }
+  .nf .body .when {
+    font-size: 11px; color: var(--muted); margin-top: 6px;
+  }
+  .nf .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--magenta);
+    margin-top: 8px;
+  }
+  .nf:not(.unread) .dot { display: none; }
+
+  /* Detail screen blocks */
+  .detail-area { padding: 16px 16px 110px 16px; }
+  .dblock {
+    background: white; border-radius: 16px;
+    padding: 18px; margin-bottom: 12px;
+  }
+  .dblock .titleline {
+    font-size: 18px; font-weight: 800; color: var(--text-strong);
+    margin-bottom: 4px;
+  }
+  .dblock .subline { font-size: 13px; color: var(--muted); }
+  .drow {
+    display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .drow:last-child { border-bottom: none; padding-bottom: 0; }
+  .drow:first-child { padding-top: 4px; }
+  .drow .material-icons { color: var(--soft); font-size: 18px; margin-top: 2px; }
+  .drow .lbl {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .drow .val {
+    font-size: 15px; font-weight: 700; color: var(--text-strong);
+    margin-top: 2px;
+  }
+  .drow .val .sub {
+    display: block; font-size: 12px; font-weight: 400; color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .info-banner {
+    padding: 12px 14px; border-radius: 12px;
+    background: var(--amber-bg); border: 1px solid var(--amber-border);
+    color: var(--amber-text);
+    font-size: 12px; line-height: 1.45;
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .info-banner .material-icons { font-size: 18px; color: var(--orange); flex-shrink: 0; }
+  .info-banner strong { display: block; color: var(--text-strong); margin-bottom: 2px; font-weight: 700; }
+
+  .info-banner.indigo {
+    background: var(--indigo-soft); border-color: #BFCBFD; color: var(--indigo-text);
+  }
+  .info-banner.indigo .material-icons { color: var(--primary); }
+  .info-banner.green {
+    background: var(--green-soft); border-color: #A7F0D0; color: var(--green);
+  }
+  .info-banner.green .material-icons { color: var(--green); }
+
+  /* Bottom CTA bar (sticky) */
+  .cta-bar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 12px 16px 22px 16px;
+    display: flex; gap: 8px;
+  }
+  .btn-l {
+    flex: 1; padding: 13px 12px; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: none;
+  }
+  .btn-l.primary { background: var(--magenta); color: white; }
+  .btn-l.secondary { background: white; color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-l.disabled { background: #E2E8F0; color: var(--muted); cursor: not-allowed; }
+  .btn-l .material-icons { font-size: 18px; }
+
+  /* Beschikbaarheid week list */
+  .avail-row {
+    background: white; margin: 0 16px 8px 16px;
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; gap: 10px;
+  }
+  .avail-row .day-info { display: flex; flex-direction: column; }
+  .avail-row .day-info .name {
+    font-size: 15px; font-weight: 700; color: var(--text-strong);
+    text-transform: capitalize;
+  }
+  .avail-row .day-info .date { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .avail-row .slot { text-align: right; }
+  .avail-row .slot .hours {
+    font-size: 15px; font-weight: 700; color: var(--magenta);
+  }
+  .avail-row .slot .none {
+    font-size: 12px; color: var(--soft); font-style: italic;
+  }
+  .avail-row.empty .slot .add {
+    color: var(--primary); font-size: 13px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .avail-row.empty .slot .add .material-icons { font-size: 16px; }
+  .avail-row.today {
+    border: 2px solid var(--magenta);
+  }
+
+  /* Beschikbaar edit time picker */
+  .day-edit {
+    margin: 0 16px 12px 16px;
+    background: white; border-radius: 16px;
+    padding: 18px;
+  }
+  .day-edit .heading {
+    font-size: 16px; font-weight: 800; color: var(--text-strong);
+    margin-bottom: 14px;
+  }
+  .time-pickers { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 8px; align-items: end; }
+  .time-pickers .lblc { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .time-pickers .picker {
+    border: 1px solid var(--border-strong); border-radius: 10px;
+    padding: 12px; background: var(--bg-app);
+    font-size: 22px; font-weight: 800;
+    color: var(--text-strong); text-align: center;
+    font-family: inherit;
+  }
+  .time-pickers .arr {
+    text-align: center; color: var(--muted); margin-bottom: 14px; font-size: 18px;
+  }
+
+  /* Lockscreen mockup */
+  .lockscreen {
+    background: linear-gradient(160deg, #1E1864 0%, #5B1142 100%);
+    color: white;
+    height: 100%;
+    padding: 60px 16px 16px 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .lockscreen .clock { text-align: center; margin-bottom: 24px; }
+  .lockscreen .clock .day { font-size: 14px; opacity: 0.85; }
+  .lockscreen .clock .hr { font-size: 56px; font-weight: 300; letter-spacing: -1px; }
+  .lockpush {
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 12px;
+    display: grid; grid-template-columns: 32px 1fr auto;
+    gap: 10px; align-items: flex-start;
+  }
+  .lockpush .pi {
+    width: 32px; height: 32px; border-radius: 7px;
+    display: grid; place-items: center;
+  }
+  .lockpush .pi.open { background: var(--orange); }
+  .lockpush .pi.confirm { background: var(--green); }
+  .lockpush .pi.changed { background: var(--primary); }
+  .lockpush .pi .material-icons { font-size: 18px; color: white; }
+  .lockpush .head { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .lockpush .ttl { font-size: 14px; font-weight: 800; margin-top: 2px; }
+  .lockpush .txt { font-size: 13px; opacity: 0.95; line-height: 1.4; margin-top: 1px; }
+  .lockpush .ago { font-size: 11px; opacity: 0.75; }
+
+  /* FAB */
+  .fab {
+    position: absolute; right: 16px; bottom: 90px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--magenta); color: white;
+    display: grid; place-items: center;
+    box-shadow: 0 8px 20px rgba(252, 7, 79, 0.40);
+    cursor: pointer; border: none;
+  }
+  .fab .material-icons { font-size: 26px; }
+
+  /* Notes panel */
+  .notes {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 24px 28px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px; line-height: 1.6;
+    max-width: 1100px;
+  }
+  .notes h2 {
+    margin: 0 0 14px 0; font-size: 14px; color: white;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .notes h3 {
+    margin: 18px 0 6px 0; font-size: 12px; color: white;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .notes ul { margin: 0; padding-left: 22px; }
+
+  /* Status bar (iOS-like) */
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 38px; padding: 12px 22px 0 22px;
+    color: white; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 700;
+    pointer-events: none;
+  }
+  .statusbar .right {
+    display: flex; align-items: center; gap: 4px; font-size: 11px;
+  }
+  .statusbar .right .material-icons { font-size: 13px; }
+  .statusbar.dark { color: var(--text-strong); }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">MyStaffler v2 — sluit aan op huidige app-stijl <span class="small">iteratie 2 · enkel week-view, kandidaat stellen / terugtrekken-flow</span></h1>
+<div class="page-intro">Versie 2 gebruikt dezelfde magenta hero-header, witte cards op grijs-50 background, en 3 bottom tabs (Planning · Meldingen · Profiel) zoals de huidige app. Beschikbaarheid wordt voorgesteld als 4de tab. Open shifts en het kandidaat-stellen-mechanisme komen erbij in Planning. Geen Dag/Week-toggle meer: planning is altijd week-view. Detail-scherm voor open shifts is geschrapt: klik op "Kandidaat stellen" gaat direct naar de bevestiging.</div>
+
+<!-- ============ ROW 1: PLANNING + KANDIDAAT-FLOW ============ -->
+<div class="phones-row">
+
+<!-- 1: Planning week — open shift waarop je kan reageren -->
+<div class="phone-col">
+  <span class="label">1 · Planning week</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero">
+      <h1>Hallo, Anouk!</h1>
+      <p class="sub">Hier is jouw planning</p>
+    </div>
+
+    <div class="datebar">
+      <div class="nav-arrow"><span class="material-icons">chevron_left</span></div>
+      <div class="when"><div class="day">week 19</div><div class="date">4 — 10 mei 2026</div></div>
+      <div class="nav-arrow"><span class="material-icons">chevron_right</span></div>
+    </div>
+
+    <div class="weekstrip">
+      <div class="d has-shift"><div class="name">maa</div><div class="num">4</div></div>
+      <div class="d has-shift"><div class="name">din</div><div class="num">5</div></div>
+      <div class="d"><div class="name">woe</div><div class="num">6</div></div>
+      <div class="d has-shift"><div class="name">don</div><div class="num">7</div></div>
+      <div class="d active has-shift"><div class="name">vri</div><div class="num">8</div></div>
+      <div class="d has-open"><div class="name">zat</div><div class="num">9</div></div>
+      <div class="d has-open"><div class="name">zon</div><div class="num">10</div></div>
+    </div>
+
+    <div class="sec-head"><span class="ttl">Shifts op 8 mei</span><span class="cnt">2 shifts</span></div>
+
+    <div class="main">
+
+      <div class="scard">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state scheduled">Ingepland</span>
+        </div>
+        <div class="meta">
+          <div class="row"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+          <div class="row"><span class="material-icons">payments</span>€ 84,40 netto geschat</div>
+        </div>
+      </div>
+
+      <div class="scard open">
+        <div class="row1">
+          <div>
+            <div class="when">14:00 › 22:00</div>
+            <div class="pkg">Bediening · Flexijob bediende</div>
+          </div>
+          <span class="pill-state open">Open shift</span>
+        </div>
+        <div class="meta">
+          <div class="row"><span class="material-icons">place</span>Antwerpen Eilandje · Toog</div>
+          <div class="row"><span class="material-icons">timer</span>Reageer voor vrij 18u</div>
+        </div>
+        <div class="chips">
+          <span class="chip"><span class="material-icons">people</span>3 andere kandidaten</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond yes"><span class="material-icons">how_to_reg</span>Kandidaat stellen</button>
+          <button class="btn-respond no"><span class="material-icons">event_busy</span>Niet beschikbaar</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tabbar">
+      <div class="tab active"><span class="material-icons">calendar_month</span><span class="lbl">Planning</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="badge">3</span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Week-view (geen Dag/Week-toggle meer). Geselecteerde dag toont 2 shifts: een ingeplande (indigo rand) en een open shift (oranje rand) met gestapelde knoppen. Klik op "Kandidaat stellen" → scherm 2.</div>
+</div>
+
+<!-- 2: Bevestiging na kandidaat stellen -->
+<div class="phone-col">
+  <span class="label">2 · Je bent kandidaat</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero with-back">
+      <div class="back"><span class="material-icons">arrow_back</span></div>
+      <div><h1>Open shift</h1><p class="sub">Stel je beschikbaar</p></div>
+    </div>
+
+    <div class="detail-area">
+
+      <div class="dblock" style="text-align: center; padding: 22px 18px;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--magenta); color: white; display: grid; place-items: center; margin: 0 auto 12px;">
+          <span class="material-icons" style="font-size: 28px;">check</span>
+        </div>
+        <div class="titleline">Je bent kandidaat</div>
+        <div class="subline">Je werkgever weet nu dat je beschikbaar bent.</div>
+      </div>
+
+      <div class="dblock">
+        <div class="drow"><span class="material-icons">event</span><div><div class="lbl">Shift</div><div class="val">vrij 8 mei · 14:00 › 22:00<span class="sub">Antwerpen Eilandje · Toog</span></div></div></div>
+        <div class="drow"><span class="material-icons">timer</span><div><div class="lbl">Wanneer hoor je het?</div><div class="val">Uiterlijk vrij 18:00<span class="sub">Je krijgt een melding bij keuze</span></div></div></div>
+        <div class="drow"><span class="material-icons">people</span><div><div class="lbl">Andere kandidaten</div><div class="val">3 andere kandidaten</div></div></div>
+      </div>
+
+      <div class="info-banner indigo">
+        <span class="material-icons">info</span>
+        <div><strong>Mening veranderd?</strong>Je kan je kandidatuur nog terugtrekken tot de werkgever kiest.</div>
+      </div>
+
+    </div>
+
+    <div class="cta-bar">
+      <button class="btn-l secondary"><span class="material-icons">undo</span>Terugtrekken</button>
+      <button class="btn-l primary">Terug</button>
+    </div>
+  </div></div>
+  <div class="desc">Bevestiging direct na klik op "Kandidaat stellen" in scherm 1. Vervangt het oude detail-scherm volledig. "Terug naar planning" → scherm 3.</div>
+</div>
+
+<!-- 3: Planning week — na kandidaat stellen, terug op zelfde scherm -->
+<div class="phone-col">
+  <span class="label">3 · Planning week (na reactie)</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero">
+      <h1>Hallo, Anouk!</h1>
+      <p class="sub">Hier is jouw planning</p>
+    </div>
+
+    <div class="datebar">
+      <div class="nav-arrow"><span class="material-icons">chevron_left</span></div>
+      <div class="when"><div class="day">week 19</div><div class="date">4 — 10 mei 2026</div></div>
+      <div class="nav-arrow"><span class="material-icons">chevron_right</span></div>
+    </div>
+
+    <div class="weekstrip">
+      <div class="d has-shift"><div class="name">maa</div><div class="num">4</div></div>
+      <div class="d has-shift"><div class="name">din</div><div class="num">5</div></div>
+      <div class="d"><div class="name">woe</div><div class="num">6</div></div>
+      <div class="d has-shift"><div class="name">don</div><div class="num">7</div></div>
+      <div class="d active has-shift"><div class="name">vri</div><div class="num">8</div></div>
+      <div class="d has-open"><div class="name">zat</div><div class="num">9</div></div>
+      <div class="d has-open"><div class="name">zon</div><div class="num">10</div></div>
+    </div>
+
+    <div class="sec-head"><span class="ttl">Shifts op 8 mei</span><span class="cnt">2 shifts</span></div>
+
+    <div class="main">
+
+      <div class="scard">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state scheduled">Ingepland</span>
+        </div>
+        <div class="meta">
+          <div class="row"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+          <div class="row"><span class="material-icons">payments</span>€ 84,40 netto geschat</div>
+        </div>
+      </div>
+
+      <div class="scard responded">
+        <div class="row1">
+          <div>
+            <div class="when">14:00 › 22:00</div>
+            <div class="pkg">Bediening · Flexijob bediende</div>
+          </div>
+          <span class="pill-state responded">Gereageerd</span>
+        </div>
+        <div class="meta">
+          <div class="row"><span class="material-icons">place</span>Antwerpen Eilandje · Toog</div>
+          <div class="row"><span class="material-icons">schedule</span>Wacht op keuze · vrij 18u</div>
+        </div>
+        <div class="chips">
+          <span class="chip"><span class="material-icons">people</span>3 andere kandidaten</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond withdraw"><span class="material-icons">undo</span>Terugtrekken</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tabbar">
+      <div class="tab active"><span class="material-icons">calendar_month</span><span class="lbl">Planning</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="badge">3</span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Zelfde scherm enkele minuten later: na klik op "Kandidaat stellen" en terugkeer uit scherm 2. Open shift is nu een Gereageerd-card (magenta rand) met enkel knop "Terugtrekken". Status verandert pas na keuze werkgever.</div>
+</div>
+
+</div>
+
+<!-- ============ ROW 2: BESCHIKBAARHEID ============ -->
+<div class="phones-row">
+
+<!-- 4: Beschikbaarheid week -->
+<div class="phone-col">
+  <span class="label">4 · Beschikbaar week</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero">
+      <h1>Beschikbaarheid</h1>
+      <p class="sub">3 dagen ingevuld · week 19</p>
+    </div>
+
+    <div class="seg">
+      <button class="active">Deze week</button>
+      <button>Volgende week</button>
+    </div>
+
+    <div class="sec-head"><span class="ttl">Per dag</span><span class="cnt">één tijdsblok</span></div>
+
+    <div class="main">
+
+      <div class="avail-row">
+        <div class="day-info"><span class="name">maandag</span><span class="date">4 mei</span></div>
+        <div class="slot"><span class="hours">8u — 19u</span></div>
+      </div>
+      <div class="avail-row today">
+        <div class="day-info"><span class="name">dinsdag · vandaag</span><span class="date">5 mei</span></div>
+        <div class="slot"><span class="hours">9u — 22u</span></div>
+      </div>
+      <div class="avail-row empty">
+        <div class="day-info"><span class="name">woensdag</span><span class="date">6 mei</span></div>
+        <div class="slot"><span class="add"><span class="material-icons">add</span>Toevoegen</span></div>
+      </div>
+      <div class="avail-row empty">
+        <div class="day-info"><span class="name">donderdag</span><span class="date">7 mei</span></div>
+        <div class="slot"><span class="add"><span class="material-icons">add</span>Toevoegen</span></div>
+      </div>
+      <div class="avail-row">
+        <div class="day-info"><span class="name">vrijdag</span><span class="date">8 mei</span></div>
+        <div class="slot"><span class="hours">14u — 22u</span></div>
+      </div>
+      <div class="avail-row empty">
+        <div class="day-info"><span class="name">zaterdag</span><span class="date">9 mei</span></div>
+        <div class="slot"><span class="add"><span class="material-icons">add</span>Toevoegen</span></div>
+      </div>
+      <div class="avail-row empty">
+        <div class="day-info"><span class="name">zondag</span><span class="date">10 mei</span></div>
+        <div class="slot"><span class="none">Niet beschikbaar</span></div>
+      </div>
+
+    </div>
+
+    <div class="tabbar with-extra">
+      <div class="tab"><span class="material-icons">calendar_month</span><span class="lbl">Planning</span></div>
+      <div class="tab active"><span class="material-icons">event_available</span><span class="lbl">Beschikbaar</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="badge">3</span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Voorstel: 4de tab "Beschikbaar". Eén tijdsblok per dag (regel). Vandaag krijgt magenta border. Tikken op een dag opent scherm 5 (toevoegen) of 6 (bewerken).</div>
+</div>
+
+<!-- 5: Beschikbaarheid toevoegen -->
+<div class="phone-col">
+  <span class="label">5 · Beschikbaar toevoegen</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero with-back">
+      <div class="back"><span class="material-icons">close</span></div>
+      <div><h1>Donderdag toevoegen</h1><p class="sub">7 mei 2026</p></div>
+    </div>
+
+    <div style="padding-top: 16px; padding-bottom: 110px; flex: 1; overflow-y: auto;">
+
+      <div class="day-edit">
+        <div class="heading">Wanneer ben je beschikbaar?</div>
+        <div class="time-pickers">
+          <div><div class="lblc">Vanaf</div><div class="picker">09:00</div></div>
+          <div class="arr">›</div>
+          <div><div class="lblc">Tot</div><div class="picker">17:00</div></div>
+        </div>
+      </div>
+
+      <div style="padding: 0 16px;">
+        <div class="info-banner">
+          <span class="material-icons">tips_and_updates</span>
+          <div><strong>Eén tijdsblok per dag.</strong>Hoe ruimer dat blok, hoe meer open shifts je werkgever je kan voorstellen.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cta-bar">
+      <button class="btn-l secondary">Niet beschikbaar</button>
+      <button class="btn-l primary">Beschikbaar</button>
+    </div>
+  </div></div>
+  <div class="desc">Nieuw-toevoegen variant: een dag waarvoor nog niets ingevuld is. Bottom CTA toont intentie: "Niet beschikbaar" of "Beschikbaar".</div>
+</div>
+
+<!-- 6: Beschikbaarheid bewerken -->
+<div class="phone-col">
+  <span class="label">6 · Beschikbaar bewerken</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero with-back">
+      <div class="back"><span class="material-icons">close</span></div>
+      <div><h1>Vrijdag bewerken</h1><p class="sub">8 mei 2026</p></div>
+    </div>
+
+    <div style="padding-top: 16px; padding-bottom: 110px; flex: 1; overflow-y: auto;">
+
+      <div class="day-edit">
+        <div class="heading">Beschikbaarheid</div>
+        <div class="time-pickers">
+          <div><div class="lblc">Vanaf</div><div class="picker">14:00</div></div>
+          <div class="arr">›</div>
+          <div><div class="lblc">Tot</div><div class="picker">22:00</div></div>
+        </div>
+      </div>
+
+      <div style="padding: 0 16px;">
+        <div class="info-banner indigo">
+          <span class="material-icons">link</span>
+          <div><strong>Open shift gekoppeld.</strong>Je hebt voor deze dag al gereageerd op een open shift (Antwerpen Eilandje, 14:00 › 22:00). Op "Niet beschikbaar" duwen wist je kandidatuur.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cta-bar">
+      <button class="btn-l secondary">Niet beschikbaar</button>
+      <button class="btn-l primary">Beschikbaar</button>
+    </div>
+  </div></div>
+  <div class="desc">Edit-scherm voor een dag waar al een tijdsblok staat. Zelfde intentie-CTA als scherm 5. Banner waarschuwt als er een gekoppelde reactie is.</div>
+</div>
+
+</div>
+
+<!-- ============ ROW 3: MELDINGEN + LOCKSCREEN ============ -->
+<div class="phones-row">
+
+<!-- 7: Meldingen (matcht echte app) -->
+<div class="phone-col">
+  <span class="label">7 · Meldingen</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="hero">
+      <h1>Meldingen</h1>
+      <p class="sub">3 nieuwe meldingen</p>
+    </div>
+
+    <div class="main">
+      <div class="nlist">
+        <div class="ngroup-h">Nieuw</div>
+
+        <div class="nf unread">
+          <div class="icon-tile open"><span class="material-icons">work_outline</span></div>
+          <div class="body">
+            <div class="ttl">Nieuwe open shift</div>
+            <div class="txt">vrij 8 mei · 14:00 › 22:00 · Antwerpen Eilandje</div>
+            <div class="when">5 min geleden · Reageer voor vrij 18u</div>
+          </div>
+          <div class="dot"></div>
+        </div>
+
+        <div class="nf unread">
+          <div class="icon-tile confirm"><span class="material-icons">verified</span></div>
+          <div class="body">
+            <div class="ttl">Shift ingepland</div>
+            <div class="txt">Je shift van zat 9 mei (Gent Dok Noord) is ingepland door Lieven.</div>
+            <div class="when">1u geleden</div>
+          </div>
+          <div class="dot"></div>
+        </div>
+
+        <div class="nf unread">
+          <div class="icon-tile shift"><span class="material-icons">schedule</span></div>
+          <div class="body">
+            <div class="ttl">Shift gewijzigd</div>
+            <div class="txt">Donderdag 7 mei: starttijd is nu 9:30 (was 9:00).</div>
+            <div class="when">3u geleden</div>
+          </div>
+          <div class="dot"></div>
+        </div>
+
+        <div class="ngroup-h">Eerder</div>
+
+        <div class="nf">
+          <div class="icon-tile reminder"><span class="material-icons">notifications_active</span></div>
+          <div class="body">
+            <div class="ttl">Herinnering · shift over 1 uur</div>
+            <div class="txt">9:00 › 17:00 · Gent Dok Noord · Toog</div>
+            <div class="when">gisteren 8:00</div>
+          </div>
+        </div>
+
+        <div class="nf">
+          <div class="icon-tile open"><span class="material-icons">close</span></div>
+          <div class="body">
+            <div class="ttl">Niet gekozen voor open shift</div>
+            <div class="txt">Iemand anders kreeg de shift van do 7 mei.</div>
+            <div class="when">gisteren 18:14</div>
+          </div>
+        </div>
+
+        <div class="nf">
+          <div class="icon-tile system"><span class="material-icons">description</span></div>
+          <div class="body">
+            <div class="ttl">Loonbrief beschikbaar</div>
+            <div class="txt">April 2026 · € 1.842,15 netto.</div>
+            <div class="when">2 mei</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab"><span class="material-icons">calendar_month</span><span class="lbl">Planning</span></div>
+      <div class="tab active"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Matcht het bestaande Meldingen-scherm: hero, "Nieuw"/"Eerder" sectiekoppen, witte cards met magenta linker rand voor unread + magenta dot rechts. 5 types: shift (indigo), open (oranje), ingepland (groen), reminder (paars), system (grijs).</div>
+</div>
+
+<!-- 8: Lockscreen push -->
+<div class="phone-col">
+  <span class="label">8 · Push-meldingen</span>
+  <div class="phone" style="background: #000;"><div class="phone-screen" style="background: transparent;">
+    <div class="statusbar"><span>9:41</span><span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span></div>
+
+    <div class="lockscreen">
+      <div class="clock">
+        <div class="day">vrijdag 8 mei</div>
+        <div class="hr">8:42</div>
+      </div>
+
+      <div class="lockpush">
+        <div class="pi open"><span class="material-icons">work_outline</span></div>
+        <div>
+          <div class="head">MyStaffler</div>
+          <div class="ttl">Nieuwe open shift</div>
+          <div class="txt">vrij 8 mei · 14:00 › 22:00 · Antwerpen Eilandje. Reageer voor 18u.</div>
+        </div>
+        <div class="ago">nu</div>
+      </div>
+
+      <div class="lockpush">
+        <div class="pi confirm"><span class="material-icons">verified</span></div>
+        <div>
+          <div class="head">MyStaffler</div>
+          <div class="ttl">Shift ingepland voor jou</div>
+          <div class="txt">zat 9 mei · 9:00 › 17:00 · Gent Dok Noord (Toog).</div>
+        </div>
+        <div class="ago">8m</div>
+      </div>
+
+      <div class="lockpush">
+        <div class="pi changed"><span class="material-icons">schedule</span></div>
+        <div>
+          <div class="head">MyStaffler</div>
+          <div class="ttl">Shift gewijzigd</div>
+          <div class="txt">do 7 mei: starttijd is nu 9:30 (was 9:00).</div>
+        </div>
+        <div class="ago">15m</div>
+      </div>
+    </div>
+  </div></div>
+  <div class="desc">Drie push-types matchen drie Jira-tickets: BCJ-19446 (nieuwe shift), BCJ-19447 (reminder), BCJ-19448 (gewijzigd). Oranje/groen/indigo iconen.</div>
+</div>
+
+</div>
+
+<!-- Notes -->
+<div class="phones-row" style="overflow: visible;">
+<div class="notes">
+  <h2>Designkeuzes v2 (iteratie 2)</h2>
+
+  <h3>Wijzigingen sinds eerste v2</h3>
+  <ul>
+    <li>Dag/Week-toggle volledig verwijderd. Planning is altijd week-view met dagen-strip.</li>
+    <li>Status "Bevestigd" hernoemd naar "Ingepland" (matcht BCJ-19435: enkel "Scheduled" en "Cancelled" worden getoond aan de werknemer).</li>
+    <li>"Reageren" hernoemd naar "Kandidaat stellen". Pill na reactie blijft "Gereageerd".</li>
+    <li>Detail-scherm voor open shift verwijderd. "Kandidaat stellen" gaat direct naar bevestiging (scherm 3).</li>
+    <li>Na terugkeer uit bevestiging zie je dezelfde planning, maar de open shift is nu een Gereageerd-card met enkel knop "Terugtrekken" (scherm 2).</li>
+    <li>Beschikbaarheid bewerken: aparte "Wissen"-link weg. Bottom CTA toont intentie: "Niet beschikbaar" of "Beschikbaar".</li>
+  </ul>
+
+  <h3>Wat is NIEUW (toevoegen aan bestaande app)</h3>
+  <ul>
+    <li>Open shifts in Planning-scherm: zelfde scard-component met oranje linker rand + Kandidaat stellen / Niet beschikbaar inline.</li>
+    <li>Bevestiging na kandidaatstelling (scherm 3): wachten op werkgever-keuze, "Terugtrekken" als enige actie.</li>
+    <li>Beschikbaarheid: voorstel als 4de tab tussen Planning en Meldingen.</li>
+    <li>Meldingen: 5 icoon-categorieën ipv huidige 3.</li>
+  </ul>
+
+  <h3>Eén tijdsblok per dag</h3>
+  <ul>
+    <li>Hard limit. Dagen zonder beschikbaarheid tonen "Toevoegen" of expliciet "Niet beschikbaar".</li>
+    <li>Op "Niet beschikbaar" duwen wist gekoppelde open-shift-reactie. Banner waarschuwt op scherm 5.</li>
+  </ul>
+
+  <h3>Open vragen voor jou</h3>
+  <ul>
+    <li>Beschikbaarheid als 4de tab of als subsectie binnen Planning?</li>
+    <li>Mag een werknemer zijn kandidatuur terugtrekken tot de werkgever kiest? (Zo getoond op scherm 2 en 3.)</li>
+    <li>Tonen we hoeveel anderen al reageerden? Goed voor druk-gevoel of slecht voor demotivatie?</li>
+    <li>Loonschatting tonen op open shifts (€ 84,40)? Per pakket of pas na bevestiging?</li>
+    <li>Partner-shifts (Jobfixers, Randstad, Trixxo): apart label of gewoon onderdeel van pool-feed?</li>
+    <li>Deadline-chip in elke kaart of enkel bij urgente shifts (&lt; 24u)?</li>
+    <li>Eén push per shift of digest? Burst-risico bij batch-share van 8 open shifts.</li>
+    <li>Cancellen van een Ingeplande shift (BCJ-19438): hoort niet in deze mockup-set, maar bestaat als aparte flow met reden-keuze (Niet beschikbaar / Ziek / Andere).</li>
+  </ul>
+
+  <h3>Naam "Kandidaat stellen"</h3>
+  <ul>
+    <li>"Reageren" was te dubbelzinnig: "Niet beschikbaar" is óók een reactie.</li>
+    <li>"Kandidaat stellen" maakt duidelijk dat je je positief opwerpt, en dat de werkgever nog kiest.</li>
+    <li>Pill na klik blijft "Gereageerd" (kort en herkenbaar).</li>
+  </ul>
+
+  <h3>Gerelateerde Jira-tickets</h3>
+  <ul>
+    <li>BCJ-19432 epic: MyStaffler shift scheduling &amp; planning</li>
+    <li>BCJ-19433 FE View weekly schedule (Vanessa, In Progress)</li>
+    <li>BCJ-19435 Shift card details (DEV TESTING) — definieert "Scheduled"/"Cancelled" als enige zichtbare statussen</li>
+    <li>BCJ-19436 Full shift details · BCJ-19437 Empty state</li>
+    <li>BCJ-19438 Cancel scheduled shift — reden-keuze + notificatie naar werkgever</li>
+    <li>BCJ-19445 epic: MyStaffler Notifications · BCJ-19446/47/48/49/50</li>
+    <li>BCJ-19425 Pool Overview &amp; Invite Management (Dmytro) — apart document</li>
+    <li>BCJ-19524 SPIKE: 2 pools (Dmytro, In Progress) — wel relevant voor architectuur</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

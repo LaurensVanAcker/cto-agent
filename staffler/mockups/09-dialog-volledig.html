@@ -244,12 +244,12 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
     letter-spacing: 0.5px;
   }
-  .choice-btn:hover { background: var(--bg); }
-  .choice-btn.persoon:hover {
-    border-color: var(--primary); background: var(--indigo-soft); color: var(--indigo-text);
-  }
+  .choice-btn:hover,
+  .choice-btn.persoon:hover,
   .choice-btn.open:hover {
-    border-color: var(--amber-border); background: var(--amber-bg); color: var(--amber-text);
+    border-color: var(--orange);
+    background: #FCD34D;
+    color: var(--amber-text);
   }
   .choice-btn .material-icons { font-size: 14px; }
 
@@ -272,6 +272,36 @@
     color: var(--amber-text); font-weight: 600; font-size: 13px;
   }
 
+  /* Hoverable open-shift slot: default toont "Open shift", hover toont choice buttons.
+     X blijft zichtbaar. Slot mag NIET verspringen, dus vaste min-height. */
+  .slot.open-shift.hoverable .slot-head { min-height: 32px; align-items: center; }
+  .slot.hoverable .slot-content { min-width: 0; display: grid; }
+  .slot.hoverable .default-content,
+  .slot.hoverable .hover-content { grid-column: 1; grid-row: 1; align-items: center; }
+  .slot.hoverable .default-content { display: flex; }
+  .slot.hoverable .hover-content { display: none; }
+  .slot.hoverable:hover .default-content { display: none; }
+  .slot.hoverable:hover .hover-content { display: flex; gap: 6px; }
+  .slot.hoverable .choice-btn { padding: 5px 10px; font-size: 11px; }
+  .slot.hoverable .choice-btn .material-icons { font-size: 13px; }
+
+  /* Vaste werknemer slot (groen/teal, geen loonpakket-dropdown) */
+  .slot.assigned.fixed {
+    background: var(--teal-soft);
+    border-color: var(--teal-border);
+  }
+  .slot.assigned.fixed .num { background: var(--teal); color: white; }
+  .slot.assigned.fixed .name { color: var(--teal); }
+  .slot.assigned.fixed .vast-tag {
+    display: inline-block;
+    background: var(--teal); color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+  }
+
   .slot .undo {
     width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
     display: grid; place-items: center;
@@ -279,6 +309,45 @@
   }
   .slot .undo:hover { background: rgba(0, 0, 0, 0.06); }
   .slot .undo .material-icons { font-size: 14px; }
+
+  /* Confirmation banner per slot, voor ontbrekend loonpakket etc */
+  .confirm-banner {
+    padding: 10px 12px;
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-left: 4px solid var(--orange);
+    border-radius: var(--radius);
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 12px; color: var(--text);
+    line-height: 1.45;
+  }
+  .confirm-banner.inline { margin-top: 4px; }
+  .confirm-banner .material-icons {
+    color: var(--orange); font-size: 16px; flex-shrink: 0; margin-top: 1px;
+  }
+  .confirm-banner strong { color: var(--text-strong); font-weight: 600; display: block; }
+  .confirm-banner .btn-create-pkg {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    letter-spacing: 0.5px;
+  }
+  .confirm-banner .btn-create-pkg:hover { background: var(--amber-text); }
+
+  /* Disabled "Bevestig shift" zolang het loonpakket niet aangemaakt is */
+  .btn-confirm.disabled {
+    background: #FCC9D6;
+    color: white;
+    cursor: not-allowed;
+    opacity: 0.85;
+    pointer-events: none;
+  }
 
   /* Loonpakket per slot */
   .slot-detail {
@@ -487,7 +556,7 @@
       <label class="field-label">Shifts</label>
       <div class="slot-list">
 
-        <!-- Slot 1: ingevuld + loonpakket -->
+        <!-- Slot 1: Anouk, ingevuld + loonpakket -->
         <div class="slot assigned">
           <div class="slot-head">
             <div class="num">1</div>
@@ -504,30 +573,54 @@
           </div>
         </div>
 
-        <!-- Slot 2: open shift -->
-        <div class="slot open-shift">
+        <!-- Slot 2: Sarah Dubois, vaste werknemer (geen loonpakket) -->
+        <div class="slot assigned fixed">
           <div class="slot-head">
             <div class="num">2</div>
-            <div class="name">Open shift</div>
+            <div class="name"><span class="vast-tag">Vast</span>Sarah Dubois</div>
             <button class="undo"><span class="material-icons">close</span></button>
           </div>
         </div>
 
-        <!-- Slot 3: nog te kiezen, op gele open-shift achtergrond -->
-        <div class="slot open-shift empty">
+        <!-- Slot 3: open shift met hover (default: Open shift + X, hover: choice buttons + X) -->
+        <div class="slot open-shift hoverable">
           <div class="slot-head">
             <div class="num">3</div>
-            <div class="choice-row">
-              <button class="choice-btn persoon">
-                <span class="material-icons">person</span>
-                Persoon kiezen
-              </button>
-              <button class="choice-btn open">
-                <span class="material-icons">help_outline</span>
-                Open laten
-              </button>
+            <div class="slot-content">
+              <div class="default-content"><div class="name">Open shift</div></div>
+              <div class="hover-content">
+                <button class="choice-btn persoon">
+                  <span class="material-icons">person</span>
+                  Persoon kiezen
+                </button>
+                <button class="choice-btn open">
+                  <span class="material-icons">help_outline</span>
+                  Open laten
+                </button>
+              </div>
             </div>
-            <span></span>
+            <button class="undo"><span class="material-icons">close</span></button>
+          </div>
+        </div>
+
+        <!-- Slot 4: open shift met hover (zelfde gedrag als slot 3) -->
+        <div class="slot open-shift hoverable">
+          <div class="slot-head">
+            <div class="num">4</div>
+            <div class="slot-content">
+              <div class="default-content"><div class="name">Open shift</div></div>
+              <div class="hover-content">
+                <button class="choice-btn persoon">
+                  <span class="material-icons">person</span>
+                  Persoon kiezen
+                </button>
+                <button class="choice-btn open">
+                  <span class="material-icons">help_outline</span>
+                  Open laten
+                </button>
+              </div>
+            </div>
+            <button class="undo"><span class="material-icons">close</span></button>
           </div>
         </div>
 
@@ -659,33 +752,175 @@
 
 </div>
 
-<!-- KOLOM 3: NOTITIES -->
+<!-- KOLOM 3: DIALOG MET LOONPAKKET-CONFIRMATIE -->
+<div class="col dialog-col">
+  <h1>Variant — Loonpakket niet gekoppeld <span class="small">confirmatie onderaan</span></h1>
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <div>
+        <h2>Nieuwe shift voor <span class="pos">Gent Dok Noord — Toog</span></h2>
+        <div class="sub">Klant: IzyCoffee</div>
+      </div>
+      <button class="icon-x"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="field">
+        <label class="field-label">Datum</label>
+        <div class="daterange">
+          <span class="material-icons">event</span>
+          <span>05-05-2026</span>
+          <span class="arrow">›</span>
+          <span>06-05-2026</span>
+        </div>
+      </div>
+
+      <div class="shift-card">
+        <div class="day-title">dinsdag 5 mei — woensdag 6 mei 2026</div>
+
+        <div class="toggle-2">
+          <button class="active">Bestaande shift gebruiken</button>
+          <button>Nieuwe uren ingeven</button>
+        </div>
+
+        <div class="shift-template-row">
+          <input class="input-base" value="09u-17u" readonly>
+          <button class="clear-btn"><span class="material-icons">close</span></button>
+          <button class="chev-btn"><span class="material-icons">expand_more</span></button>
+        </div>
+
+        <div class="time-row">
+          <div></div>
+          <div class="col-heads"><span>Van</span><span></span><span>Tot</span></div>
+
+          <div class="row-label">Werkuren</div>
+          <div class="time-pair">
+            <input value="09:00">
+            <span class="arr">›</span>
+            <input value="17:00">
+          </div>
+
+          <div class="row-label">Pauze</div>
+          <div class="time-pair">
+            <input value="12:00">
+            <span class="arr">›</span>
+            <input value="12:30">
+          </div>
+        </div>
+      </div>
+
+      <label class="field-label">Shifts</label>
+      <div class="slot-list">
+
+        <div class="slot assigned">
+          <div class="slot-head">
+            <div class="num">1</div>
+            <div class="name">Anouk Staelens</div>
+            <button class="undo"><span class="material-icons">close</span></button>
+          </div>
+          <div class="slot-detail">
+            <div class="pakket-label">Loonpakket voor Anouk</div>
+            <select>
+              <option>Barista — Flexijob bediende — Antwerpen Eilandje</option>
+              <option>Barista — Arbeider — Gent Dok Noord</option>
+              <option>Kelner — Flexijob bediende — Gent Dok Noord</option>
+            </select>
+            <div class="confirm-banner inline">
+              <span class="material-icons">info</span>
+              <div>
+                <strong>Dit loonpakket hoort niet bij Gent Dok Noord.</strong>
+                Voor Anouk bestaat er nog geen Barista (Flexijob bediende) op deze vestiging. Wil je dit loonpakket nu aanmaken?
+                <button class="btn-create-pkg">Aanmaken</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slot assigned fixed">
+          <div class="slot-head">
+            <div class="num">2</div>
+            <div class="name"><span class="vast-tag">Vast</span>Sarah Dubois</div>
+            <button class="undo"><span class="material-icons">close</span></button>
+          </div>
+        </div>
+
+        <div class="slot open-shift hoverable">
+          <div class="slot-head">
+            <div class="num">3</div>
+            <div class="slot-content">
+              <div class="default-content"><div class="name">Open shift</div></div>
+              <div class="hover-content">
+                <button class="choice-btn persoon"><span class="material-icons">person</span>Persoon kiezen</button>
+                <button class="choice-btn open"><span class="material-icons">help_outline</span>Open laten</button>
+              </div>
+            </div>
+            <button class="undo"><span class="material-icons">close</span></button>
+          </div>
+        </div>
+
+        <div class="slot open-shift hoverable">
+          <div class="slot-head">
+            <div class="num">4</div>
+            <div class="slot-content">
+              <div class="default-content"><div class="name">Open shift</div></div>
+              <div class="hover-content">
+                <button class="choice-btn persoon"><span class="material-icons">person</span>Persoon kiezen</button>
+                <button class="choice-btn open"><span class="material-icons">help_outline</span>Open laten</button>
+              </div>
+            </div>
+            <button class="undo"><span class="material-icons">close</span></button>
+          </div>
+        </div>
+
+        <button class="add-slot">
+          <span class="material-icons">add</span>
+          Shift toevoegen
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel">Annuleren</button>
+      <button class="btn-confirm disabled" title="Eerst loonpakket aanmaken via de melding">Bevestig shift</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- KOLOM 4: NOTITIES -->
 <div class="col legend-col">
   <h1>Wat is gewijzigd v2</h1>
 
   <div class="legend-card">
-    <h3>Verwijderd</h3>
+    <h3>Aangepast (Philippe-feedback)</h3>
     <ul>
-      <li>Plaats tewerkstelling-veld weg. Adres komt op de service-locatie zelf, mockup 14 toont waar je dat instelt</li>
-      <li>Broadcast-sectie weg (radios, deadline). Open shifts worden enkel via batch-knop op planscherm gedeeld</li>
-      <li>Capaciteit 1 2 3 4 5 + pills weg, vervangen door één "Shift toevoegen" plus-knop onder de laatste shift</li>
-      <li>Email onder vaste werknemer-namen weg</li>
+      <li>4 shifts ipv 3: Anouk, Sarah Dubois (vaste, geen loonpakket), 2x open shift</li>
+      <li>Vaste werknemer-slot heeft géén loonpakket-dropdown (teal styling, "Vast"-tag)</li>
+      <li>Open-shift slots zijn hoverable: default toont "Open shift" + X, op hover verschijnen de keuze-knoppen + X blijft staan</li>
+      <li>X-kruisje altijd zichtbaar zodat je nooit "vastloopt" bij hover</li>
     </ul>
 
-    <h3>Toegevoegd / aangepast</h3>
+    <h3>Variant kolom 3</h3>
     <ul>
-      <li>Avatar-cirkel met initialen voor IEDERE rij in dropdown, niet enkel vaste werknemers</li>
-      <li>Statuut ipv functie onder elke naam (Flexijob bediende, Arbeider, Student, Extra, Bediende, ...). Functies zaten in loonpakket-naam, dat is dubbele info</li>
-      <li>Tijd-grid met cleane 2-koloms layout (Werkuren / Pauze) ipv overflow van vorige versie</li>
-      <li>Datum-format DD-MM-YYYY zoals live Staffler popup</li>
-      <li>Material Icons voor close / event / expand / search / person / help</li>
+      <li>Loonpakket-melding INLINE binnen het slot, net onder de loonpakket-dropdown</li>
+      <li>Per slot apart, want elke shift kan zijn eigen mismatch hebben</li>
+      <li>Footer-knop blijft gewoon "Bevestig shift". Bij confirmatie worden ontbrekende pakketten automatisch aangemaakt.</li>
+    </ul>
+
+    <h3>Verwijderd</h3>
+    <ul>
+      <li>Plaats tewerkstelling-veld weg. Adres komt op de vestiging zelf, mockup 14 toont waar je dat instelt</li>
+      <li>Broadcast-sectie weg. Open shifts worden enkel via batch-knop op planscherm gedeeld</li>
+      <li>Capaciteit 1 2 3 4 5 + pills weg, vervangen door één "Shift toevoegen" plus-knop</li>
     </ul>
 
     <h3>Behouden</h3>
     <ul>
       <li>Toggle Bestaande shift gebruiken / Nieuwe uren ingeven</li>
-      <li>Nog niet gekozen shifts hebben de gele open-shift achtergrond met daarop binaire keuze (Persoon kiezen / Open laten)</li>
-      <li>Loonpakket-veld verschijnt PER slot na naam-keuze</li>
+      <li>Loonpakket-veld verschijnt PER slot na naam-keuze (behalve voor vaste werknemers)</li>
       <li>Drie groepen in autosuggest: groen volledig dekkend, oranje + geen-label gemengd, vaste werknemers apart</li>
     </ul>
   </div>

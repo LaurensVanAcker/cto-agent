@@ -185,7 +185,37 @@
     display: flex; align-items: center; gap: 8px;
     border-bottom: 1px solid #E2E8F0;
   }
+  .vest-band > .vlabel { display: inline-flex; align-items: center; gap: 8px; }
   .vest-band .material-icons { font-size: 16px; }
+  .name-cell-text { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
+  .row-gear {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 1px solid #E2E8F0; background: white;
+    display: grid; place-items: center;
+    color: #64748B; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s;
+    margin-left: 6px;
+  }
+  .row-gear .material-icons { font-size: 14px; }
+  .row-gear:hover { color: #3C51F0; border-color: #A5B4FC; background: #EEF2FF; }
+  .vest-band:hover .row-gear { opacity: 1; }
+  .grid-row:hover .row-gear,
+  .dag-row:hover .row-gear,
+  .name-cell:hover .row-gear,
+  .dag-namecell:hover .row-gear { opacity: 1; }
+  .name-cell { gap: 6px; }
+  .add-sl-row {
+    grid-column: 1 / -1;
+    padding: 10px 14px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    color: #64748B; font-size: 13px; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+    border: 1px dashed transparent;
+  }
+  .add-sl-row:hover { color: #3C51F0; background: #EEF2FF; border-color: #A5B4FC; }
+  .add-sl-row .material-icons { font-size: 16px; }
 
   .grid-row { border-bottom: 1px solid #E2E8F0; min-height: 96px; }
   .grid-row:last-child { border-bottom: none; }
@@ -252,14 +282,18 @@
   }
   .block.open .badge {
     position: absolute; top: -9px; right: -9px;
-    width: 24px; height: 24px;
-    background: #3C51F0; color: white;
-    border-radius: 50%;
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 700;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-    border: 2px solid white;
+    min-width: 24px; height: 22px; padding: 0 7px;
+    background: #B45309; color: white;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    border: 2px solid #FEF3C7;
     z-index: 6;
+    white-space: nowrap;
+  }
+  .block.open .badge::before {
+    content: "+"; opacity: 0.85; margin-right: 1px;
   }
 
   .block.fixed {
@@ -368,11 +402,15 @@
     overflow: visible;
   }
   .dag-block.open .badge {
-    position: absolute; top: -9px; right: -9px; width: 24px; height: 24px;
-    background: #3C51F0; color: white; border-radius: 50%;
-    display: grid; place-items: center; font-size: 12px; font-weight: 700;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18); border: 2px solid white;
+    position: absolute; top: -9px; right: -9px;
+    min-width: 24px; height: 22px; padding: 0 7px;
+    background: #B45309; color: white; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12); border: 2px solid #FEF3C7;
+    white-space: nowrap;
   }
+  .dag-block.open .badge::before { content: "+"; opacity: 0.85; margin-right: 1px; }
   .dag-block.fixed { background: #F0FDFA; border-color: #115E59; color: #115E59; }
   .dag-lane2 { margin-top: 8px; }
   .dag-now {
@@ -437,14 +475,13 @@
     <input placeholder="Zoek op medewerker">
   </div>
   <div class="filter-input dd">Ingepland op</div>
-  <div class="filter-input dd">Filter op groep</div>
   <div style="flex:1;"></div>
   <div class="seg-toggle">
-      <button class="">Namen</button>
+      <button class="" onclick="location.href='v5-10-names.html'">Namen</button>
       <button class="active">Locaties</button>
     </div>
   <div class="sub-toggle">
-      <button class="">Dag</button>
+      <button class="" onclick="location.href='v5-13-dag.html'">Dag</button>
       <button class="active">Week</button>
       <button class="">2 weken</button>
     </div>
@@ -472,10 +509,16 @@
     <div class="week-label">4 mei 2026 - 10 mei 2026 (Week 19)</div>
   </div>
 
-  <div class="vest-band"><span class="material-icons">apartment</span>Gent Dok Noord</div>
+  <div class="vest-band">
+    <span class="vlabel"><span class="material-icons">apartment</span>Gent Dok Noord</span>
+    <button class="row-gear" title="Vestiging bewerken"><span class="material-icons">settings</span></button>
+  </div>
 
   <div class="grid-row has-lane2">
-    <div class="name-cell">Toog</div>
+    <div class="name-cell">
+      <span class="name-cell-text">Toog</span>
+      <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+    </div>
     <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
     <div class="block" style="--col-start:2; --col-span:2;"><div class="title">Anouk Staelens</div><div class="times"><span>9:00 › 17:00</span><span>9:00 › 17:00</span></div></div>
     <div class="block open lane2" style="--col-start:2; --col-span:2;"><div class="title">2 open shifts</div><div class="times"><span>9:00 › 17:00</span><span>9:00 › 17:00</span></div><div class="badge">5</div></div>
@@ -484,27 +527,43 @@
   </div>
 
   <div class="grid-row">
-    <div class="name-cell">Kassa</div>
+    <div class="name-cell">
+      <span class="name-cell-text">Kassa</span>
+      <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+    </div>
     <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
     <div class="block" style="--col-start:2; --col-span:2;"><div class="title">Joke Carton</div><div class="times"><span>9:00 › 17:00</span><span>9:00 › 17:00</span></div></div>
     <div class="block open" style="--col-start:5; --col-span:2;"><div class="title">1 open shift</div><div class="times"><span>10:00 › 19:00</span><span>10:00 › 19:00</span></div><div class="badge">2</div></div>
   </div>
 
   <div class="grid-row">
-    <div class="name-cell">Terras</div>
+    <div class="name-cell">
+      <span class="name-cell-text">Terras</span>
+      <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+    </div>
     <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
     <div class="block fixed" style="--col-start:2; --col-span:4;"><div class="title">Sarah Dubois</div><div class="times"><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 17:00</span><span>8:00 › 13:00</span></div></div>
   </div>
 
-  <div class="vest-band"><span class="material-icons">apartment</span>Antwerpen Eilandje</div>
+  <div class="add-sl-row"><span class="material-icons">add</span>Service location toevoegen aan Gent Dok Noord</div>
+
+  <div class="vest-band">
+    <span class="vlabel"><span class="material-icons">apartment</span>Antwerpen Eilandje</span>
+    <button class="row-gear" title="Vestiging bewerken"><span class="material-icons">settings</span></button>
+  </div>
 
   <div class="grid-row has-lane2">
-    <div class="name-cell">Toog</div>
+    <div class="name-cell">
+      <span class="name-cell-text">Toog</span>
+      <button class="row-gear" title="Service location bewerken"><span class="material-icons">settings</span></button>
+    </div>
     <div class="day"></div><div class="day today"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day weekend"></div><div class="day weekend"></div>
     <div class="block fixed" style="--col-start:2; --col-span:3;"><div class="title">Thomas Janssens</div><div class="times"><span>9:00 › 18:00</span><span>9:00 › 18:00</span><span>9:00 › 18:00</span></div></div>
     <div class="block" style="--col-start:5; --col-span:1;"><div class="title">Jeff Callebaut</div><div class="times"><span>10:00 › 18:00</span></div></div>
     <div class="block open lane2" style="--col-start:3; --col-span:3;"><div class="title">1 open shift</div><div class="times"><span>14:00 › 22:00</span><span>14:00 › 22:00</span><span>14:00 › 22:00</span></div><div class="badge">3</div></div>
   </div>
+
+  <div class="add-sl-row"><span class="material-icons">add</span>Service location toevoegen aan Antwerpen Eilandje</div>
 </div>
 </main>
 </div>

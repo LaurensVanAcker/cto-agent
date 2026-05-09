@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>MyStaffler mobile mockups — open shifts, beschikbaarheid, meldingen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --magenta: #FC074F;
+    --magenta-hover: #D70643;
+    --magenta-soft: #FFE9F0;
+
+    --primary: #3C51F0;
+    --primary-hover: #2C3FBF;
+    --indigo-soft: #EEF2FF;
+    --indigo-text: #312E81;
+    --indigo-border: #A5B4FC;
+
+    --teal: #115E59;
+    --teal-soft: #F0FDFA;
+    --teal-border: #5EEAD4;
+
+    --green: #047857;
+    --green-soft: #D1FAE5;
+
+    --orange: #B45309;
+    --amber-bg: #FEF3C7;
+    --amber-border: #FCD34D;
+    --amber-text: #92400E;
+
+    --bg-app: #F4F4F8;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #334155;
+    --text-strong: #0F172A;
+    --muted: #64748B;
+    --soft: #94A3B8;
+
+    --radius: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(252, 7, 79, 0.10), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(60, 81, 240, 0.10), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    -webkit-font-smoothing: auto;
+    min-height: 100vh; padding: 32px;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .material-icons { font-feature-settings: 'liga'; }
+
+  h1.page-title {
+    color: rgba(255, 255, 255, 0.92); margin: 0;
+    font-size: 18px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  h1.page-title .small {
+    color: rgba(255, 255, 255, 0.55); font-weight: 400;
+    margin-left: 10px; font-size: 13px;
+  }
+
+  .phones-row {
+    display: flex; gap: 28px; flex-wrap: nowrap;
+    overflow-x: auto; padding-bottom: 20px;
+    align-items: flex-start;
+  }
+
+  .phone-col {
+    display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    align-items: center;
+  }
+  .phone-col .label {
+    color: rgba(255, 255, 255, 0.92); font-size: 12px;
+    font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .phone-col .desc {
+    color: rgba(255, 255, 255, 0.55); font-size: 11px;
+    text-align: center; max-width: 360px; line-height: 1.4;
+    letter-spacing: 0.3px;
+  }
+
+  /* Phone shell */
+  .phone {
+    width: 360px; height: 760px;
+    background: #1F1F28;
+    border-radius: 38px;
+    padding: 10px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.50);
+    flex-shrink: 0;
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    background: var(--bg-app);
+    border-radius: 30px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+
+  /* Status bar */
+  .statusbar {
+    height: 36px;
+    background: white;
+    padding: 10px 22px 6px 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 600; color: var(--text-strong);
+    flex-shrink: 0;
+  }
+  .statusbar .right {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px;
+  }
+  .statusbar .right .material-icons { font-size: 13px; }
+
+  /* App header */
+  .appbar {
+    padding: 12px 18px 10px 18px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .appbar .back {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--text); cursor: pointer;
+  }
+  .appbar .back .material-icons { font-size: 22px; }
+  .appbar h1 {
+    margin: 0; font-size: 17px; font-weight: 700; color: var(--text-strong);
+    flex: 1;
+  }
+  .appbar h1 .sub {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--muted); margin-top: 2px;
+  }
+  .appbar .badge-bell {
+    position: relative; cursor: pointer;
+  }
+  .appbar .badge-bell .material-icons { color: var(--text); font-size: 22px; }
+  .appbar .badge-bell::after {
+    content: ""; position: absolute; top: 0; right: 1px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--magenta);
+    border: 2px solid white;
+  }
+  .appbar .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--indigo-soft); color: var(--indigo-text);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+  }
+
+  /* Tabs (top tabs in screen) */
+  .tabs {
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tabs button {
+    border: none; background: transparent;
+    padding: 13px 8px;
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    cursor: pointer; font-family: inherit; letter-spacing: 0.3px;
+    border-bottom: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .tabs button.active {
+    color: var(--magenta); border-bottom-color: var(--magenta);
+  }
+  .tabs button .pill {
+    background: var(--magenta-soft); color: var(--magenta);
+    font-size: 10px; font-weight: 700; padding: 1px 7px;
+    border-radius: 999px; line-height: 1.4;
+  }
+
+  /* Main scroll area */
+  .main {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 14px 14px 96px 14px;
+  }
+
+  .section-h {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 12px 4px 8px 4px;
+  }
+  .section-h .title {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .section-h .count {
+    background: var(--bg-app); color: var(--muted);
+    padding: 1px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+  }
+  .section-h:first-child { margin-top: 0; }
+
+  .day-divider {
+    margin: 18px 4px 8px 4px;
+    font-size: 12px; font-weight: 700; color: var(--text-strong);
+    letter-spacing: 0.3px;
+  }
+  .day-divider .when {
+    color: var(--magenta); font-weight: 700; margin-right: 6px;
+  }
+  .day-divider:first-child { margin-top: 4px; }
+
+  /* Card variants */
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    position: relative;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card .row1 {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 8px;
+  }
+  .card .when {
+    font-size: 13px; font-weight: 700; color: var(--text-strong);
+  }
+  .card .pkg {
+    font-size: 11px; color: var(--muted); margin-top: 1px;
+  }
+  .card .loc {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--text); margin-top: 6px;
+  }
+  .card .loc .material-icons { font-size: 14px; color: var(--soft); }
+  .card .pay {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px;
+  }
+  .card .pay .amt {
+    color: var(--text-strong); font-weight: 700; font-size: 15px;
+  }
+  .card .pay .amt-sub {
+    color: var(--muted); font-size: 11px; font-weight: 500;
+    margin-left: 4px;
+  }
+
+  /* Status pills on cards */
+  .pill-state {
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 999px;
+    letter-spacing: 0.04em;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pill-state::before { content: ""; width: 5px; height: 5px; border-radius: 50%; }
+  .pill-state.confirmed { background: var(--indigo-soft); color: var(--indigo-text); }
+  .pill-state.confirmed::before { background: var(--primary); }
+  .pill-state.fixed { background: var(--teal-soft); color: var(--teal); }
+  .pill-state.fixed::before { background: var(--teal); }
+  .pill-state.open { background: var(--amber-bg); color: var(--amber-text); }
+  .pill-state.open::before { background: var(--orange); }
+  .pill-state.responded { background: var(--magenta-soft); color: var(--magenta); }
+  .pill-state.responded::before { background: var(--magenta); }
+  .pill-state.notpicked { background: #F1F5F9; color: var(--muted); }
+  .pill-state.notpicked::before { background: var(--soft); }
+
+  /* Card variants by state */
+  .card.confirmed { border-left: 4px solid var(--primary); }
+  .card.fixed { border-left: 4px solid var(--teal); }
+  .card.open {
+    border-left: 4px solid var(--orange);
+    background: linear-gradient(to right, #FFFBEB 0%, white 40%);
+  }
+  .card.responded { border-left: 4px solid var(--magenta); }
+
+  .card .respond-row {
+    margin-top: 12px; display: flex; gap: 8px;
+  }
+  .btn-respond {
+    flex: 1; padding: 10px 12px;
+    border: none; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.3px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-respond .material-icons { font-size: 16px; }
+  .btn-respond.yes { background: var(--magenta); color: white; }
+  .btn-respond.yes:hover { background: var(--magenta-hover); }
+  .btn-respond.no {
+    background: white; color: var(--muted);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-respond.no:hover { background: var(--bg-app); }
+
+  /* Empty state */
+  .empty {
+    text-align: center; padding: 36px 24px;
+    color: var(--muted);
+  }
+  .empty .material-icons {
+    font-size: 40px; color: var(--soft); margin-bottom: 8px;
+  }
+  .empty h3 {
+    margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text-strong);
+  }
+  .empty p { margin: 0; font-size: 12px; line-height: 1.5; }
+
+  /* Bottom tab bar */
+  .tabbar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 8px 8px 14px 8px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .tabbar .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 4px;
+    color: var(--muted); cursor: pointer;
+    position: relative;
+  }
+  .tabbar .tab.active { color: var(--magenta); }
+  .tabbar .tab .material-icons { font-size: 22px; }
+  .tabbar .tab .lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; }
+  .tabbar .tab .dot {
+    position: absolute; top: 2px; right: 16px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--magenta);
+    border: 2px solid white;
+  }
+
+  /* Detail screen specifics */
+  .detail-block {
+    background: white; border-radius: var(--radius-md);
+    padding: 16px; margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .detail-block .title-line {
+    font-size: 16px; font-weight: 700; color: var(--text-strong);
+    margin-bottom: 4px;
+  }
+  .detail-block .sub-line { font-size: 12px; color: var(--muted); }
+  .detail-list { display: flex; flex-direction: column; gap: 12px; }
+  .detail-row {
+    display: grid; grid-template-columns: 28px 1fr; gap: 10px;
+    align-items: flex-start;
+  }
+  .detail-row .material-icons {
+    font-size: 18px; color: var(--soft); margin-top: 2px;
+  }
+  .detail-row .lbl {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .detail-row .val {
+    font-size: 14px; font-weight: 600; color: var(--text-strong);
+    margin-top: 2px;
+  }
+  .detail-row .val .sub {
+    font-weight: 400; color: var(--muted); font-size: 12px;
+  }
+
+  .info-banner {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--magenta-soft);
+    border: 1px solid #FFD3DF;
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: 12px; line-height: 1.45;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .info-banner.amber {
+    background: var(--amber-bg);
+    border-color: var(--amber-border);
+  }
+  .info-banner .material-icons { font-size: 16px; color: var(--magenta); flex-shrink: 0; margin-top: 1px; }
+  .info-banner.amber .material-icons { color: var(--orange); }
+  .info-banner strong { font-weight: 700; color: var(--text-strong); display: block; margin-bottom: 2px; }
+
+  /* Detail bottom CTAs */
+  .detail-cta {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 12px 14px 22px 14px;
+    display: flex; gap: 8px;
+  }
+  .btn-large {
+    flex: 1; padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: none;
+  }
+  .btn-large.primary { background: var(--magenta); color: white; }
+  .btn-large.primary:hover { background: var(--magenta-hover); }
+  .btn-large.secondary {
+    background: white; color: var(--text); border: 1px solid var(--border-strong);
+  }
+  .btn-large.full { width: 100%; }
+  .btn-large.disabled {
+    background: #E2E8F0; color: var(--muted); cursor: not-allowed;
+  }
+
+  /* Beschikbaarheid week list */
+  .week-row {
+    background: white; border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; gap: 10px;
+  }
+  .week-row .day-info { display: flex; flex-direction: column; }
+  .week-row .day-info .name {
+    font-size: 14px; font-weight: 700; color: var(--text-strong);
+    text-transform: capitalize;
+  }
+  .week-row .day-info .date { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .week-row .slot {
+    text-align: right;
+  }
+  .week-row .slot .hours {
+    font-size: 14px; font-weight: 700; color: var(--magenta);
+  }
+  .week-row .slot .none {
+    font-size: 12px; color: var(--soft); font-style: italic;
+  }
+  .week-row.empty .slot .add {
+    color: var(--primary); font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .week-row.empty .slot .add .material-icons { font-size: 16px; }
+  .week-row.today {
+    background: linear-gradient(to right, rgba(252, 7, 79, 0.04), white 50%);
+    border-color: rgba(252, 7, 79, 0.20);
+  }
+  .week-row.today .day-info .name { color: var(--magenta); }
+
+  /* Detail beschikbaarheid */
+  .day-edit {
+    background: white; border-radius: var(--radius-md);
+    padding: 18px; margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .day-edit .heading {
+    font-size: 15px; font-weight: 700; color: var(--text-strong);
+    margin-bottom: 14px;
+  }
+  .time-pickers { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 8px; align-items: center; }
+  .time-pickers .label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .time-pickers .picker {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md); padding: 10px 12px;
+    background: white; font-size: 16px; font-weight: 700;
+    color: var(--text-strong); text-align: center;
+    font-family: inherit; letter-spacing: 0.5px;
+  }
+  .time-pickers .arr {
+    text-align: center; color: var(--muted); margin-top: 22px;
+  }
+
+  .danger-link {
+    margin-top: 14px;
+    color: var(--magenta); font-size: 13px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    background: none; border: none; padding: 0; font-family: inherit;
+    letter-spacing: 0.3px;
+  }
+  .danger-link .material-icons { font-size: 16px; }
+
+  /* Notification list */
+  .notif {
+    background: white; padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 36px 1fr; gap: 12px;
+    cursor: pointer;
+    position: relative;
+  }
+  .notif.unread::before {
+    content: ""; position: absolute; left: 6px; top: 22px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--magenta);
+  }
+  .notif .icon-wrap {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .notif .icon-wrap.shift { background: var(--indigo-soft); color: var(--primary); }
+  .notif .icon-wrap.open { background: var(--amber-bg); color: var(--orange); }
+  .notif .icon-wrap.system { background: var(--bg-app); color: var(--muted); }
+  .notif .icon-wrap.success { background: var(--green-soft); color: var(--green); }
+  .notif .icon-wrap.material-icons-host { /* nothing */ }
+  .notif .icon-wrap .material-icons { font-size: 18px; }
+  .notif .content { min-width: 0; }
+  .notif .title-l {
+    font-size: 13px; font-weight: 700; color: var(--text-strong);
+    margin-bottom: 2px;
+  }
+  .notif .body {
+    font-size: 12px; color: var(--text); line-height: 1.4;
+  }
+  .notif .when {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+  }
+
+  /* FAB */
+  .fab {
+    position: absolute; right: 16px; bottom: 86px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--magenta); color: white;
+    display: grid; place-items: center;
+    box-shadow: 0 8px 20px rgba(252, 7, 79, 0.40);
+    cursor: pointer; border: none;
+  }
+  .fab .material-icons { font-size: 26px; }
+
+  /* Quick info chips inside open shift card */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip {
+    background: var(--bg-app); color: var(--muted);
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    letter-spacing: 0.3px;
+  }
+  .chip .material-icons { font-size: 13px; color: var(--soft); }
+  .chip.urgent { background: var(--amber-bg); color: var(--amber-text); }
+  .chip.urgent .material-icons { color: var(--orange); }
+  .chip.partner { background: var(--indigo-soft); color: var(--indigo-text); }
+
+  /* Section explanation card (column intro under phone label) */
+  .col-section-title {
+    color: rgba(255, 255, 255, 0.92); font-size: 12px;
+    font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 4px 14px;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">MyStaffler — mockups voor open shifts, beschikbaarheid en meldingen <span class="small">v1, klaar voor feedback</span></h1>
+
+<!-- ===================== ROW 1: HOME (gecombineerd) + DETAIL OPEN SHIFT ===================== -->
+<div class="phones-row">
+
+<!-- ============ PHONE 1: HOME, gecombineerd ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 1 · Home</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="avatar">AS</div>
+      <h1>Anouk<span class="sub">IzyCoffee</span></h1>
+      <div class="badge-bell"><span class="material-icons">notifications</span></div>
+    </div>
+    <div class="tabs">
+      <button class="active">Mijn shifts</button>
+      <button>Open shifts <span class="pill">4</span></button>
+    </div>
+    <div class="main">
+
+      <div class="day-divider"><span class="when">Vandaag</span>woensdag 6 mei</div>
+      <div class="card confirmed">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state confirmed">Bevestigd</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+        <div class="pay"><span class="amt-sub">Vandaag te verdienen</span><span class="amt">€ 84,40 <span class="amt-sub">netto</span></span></div>
+      </div>
+
+      <div class="day-divider">donderdag 7 mei</div>
+      <div class="card confirmed">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state confirmed">Bevestigd</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+      </div>
+
+      <div class="day-divider">vrijdag 8 mei</div>
+      <div class="card open">
+        <div class="row1">
+          <div>
+            <div class="when">14:00 › 22:00</div>
+            <div class="pkg">Bediening · Flexijob bediende</div>
+          </div>
+          <span class="pill-state open">Open shift</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Antwerpen Eilandje · Toog</div>
+        <div class="chips">
+          <span class="chip urgent"><span class="material-icons">timer</span>Reageer voor vrij 18u</span>
+          <span class="chip"><span class="material-icons">people</span>3 anderen</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond yes"><span class="material-icons">check</span>Reageren</button>
+          <button class="btn-respond no">Niet beschikbaar</button>
+        </div>
+      </div>
+
+      <div class="day-divider">zaterdag 9 mei</div>
+      <div class="card open">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state open">Open shift</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+        <div class="chips">
+          <span class="chip"><span class="material-icons">people</span>Pool</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond yes"><span class="material-icons">check</span>Reageren</button>
+          <button class="btn-respond no">Niet beschikbaar</button>
+        </div>
+      </div>
+
+    </div>
+    <div class="tabbar">
+      <div class="tab active"><span class="material-icons">home</span><span class="lbl">Shifts</span></div>
+      <div class="tab"><span class="material-icons">event_available</span><span class="lbl">Beschikbaar</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="dot"></span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Tab "Mijn shifts" toont bevestigde + open shifts samen, gegroepeerd per dag. Open shifts hebben een gele rand + reageer-actie inline.</div>
+</div>
+
+<!-- ============ PHONE 2: TAB OPEN SHIFTS ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 2 · Tab Open shifts</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="avatar">AS</div>
+      <h1>Anouk<span class="sub">IzyCoffee</span></h1>
+      <div class="badge-bell"><span class="material-icons">notifications</span></div>
+    </div>
+    <div class="tabs">
+      <button>Mijn shifts</button>
+      <button class="active">Open shifts <span class="pill">4</span></button>
+    </div>
+    <div class="main">
+
+      <div class="day-divider">vrijdag 8 mei</div>
+      <div class="card open">
+        <div class="row1">
+          <div>
+            <div class="when">14:00 › 22:00</div>
+            <div class="pkg">Bediening · Flexijob bediende</div>
+          </div>
+          <span class="pill-state open">Open</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Antwerpen Eilandje · Toog</div>
+        <div class="pay"><span class="amt-sub">Geschat netto</span><span class="amt">€ 84,40</span></div>
+        <div class="chips">
+          <span class="chip urgent"><span class="material-icons">timer</span>Reageer voor vrij 18u</span>
+          <span class="chip"><span class="material-icons">people</span>3 anderen reageerden</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond yes"><span class="material-icons">check</span>Reageren</button>
+          <button class="btn-respond no">Niet beschikbaar</button>
+        </div>
+      </div>
+
+      <div class="day-divider">zaterdag 9 mei</div>
+      <div class="card responded">
+        <div class="row1">
+          <div>
+            <div class="when">9:00 › 17:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state responded">Wacht op bevestiging</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Gent Dok Noord · Toog</div>
+        <div class="info-banner">
+          <span class="material-icons">schedule</span>
+          <div><strong>Je hebt gereageerd.</strong>Je hoort uiterlijk vrij 18u of de shift voor jou is.</div>
+        </div>
+      </div>
+
+      <div class="day-divider">zondag 10 mei</div>
+      <div class="card open">
+        <div class="row1">
+          <div>
+            <div class="when">10:00 › 18:00</div>
+            <div class="pkg">Barista · Flexijob bediende</div>
+          </div>
+          <span class="pill-state open">Open</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Gent Dok Noord · Kassa</div>
+        <div class="chips">
+          <span class="chip partner"><span class="material-icons">handshake</span>via Jobfixers</span>
+        </div>
+        <div class="respond-row">
+          <button class="btn-respond yes"><span class="material-icons">check</span>Reageren</button>
+          <button class="btn-respond no">Niet beschikbaar</button>
+        </div>
+      </div>
+
+      <div class="card open" style="opacity: 0.65;">
+        <div class="row1">
+          <div>
+            <div class="when">14:00 › 22:00</div>
+            <div class="pkg">Bediening · Flexijob bediende</div>
+          </div>
+          <span class="pill-state notpicked">Niet gekozen</span>
+        </div>
+        <div class="loc"><span class="material-icons">place</span>Antwerpen Eilandje · Toog</div>
+        <div class="info-banner amber">
+          <span class="material-icons">info</span>
+          <div>Iemand anders kreeg deze shift toegewezen.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="tabbar">
+      <div class="tab active"><span class="material-icons">home</span><span class="lbl">Shifts</span></div>
+      <div class="tab"><span class="material-icons">event_available</span><span class="lbl">Beschikbaar</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="dot"></span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Tab "Open shifts": vier statussen tonen samen — open + tegenklok deadline, gereageerd (wachten), via partner (Jobfixers), en "niet gekozen" als afsluiter.</div>
+</div>
+
+<!-- ============ PHONE 3: DETAIL OPEN SHIFT ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 3 · Detail open shift</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="back"><span class="material-icons">arrow_back</span></div>
+      <h1>Open shift<span class="sub">via Pool</span></h1>
+    </div>
+    <div class="main" style="padding-bottom: 100px;">
+
+      <div class="detail-block">
+        <div class="title-line">vrij 8 mei · 14:00 › 22:00</div>
+        <div class="sub-line">Bediening · Flexijob bediende</div>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-list">
+          <div class="detail-row">
+            <span class="material-icons">place</span>
+            <div>
+              <div class="lbl">Locatie</div>
+              <div class="val">Antwerpen Eilandje · Toog<div class="sub">Sint-Laureiskaai 8, 2000 Antwerpen</div></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">payments</span>
+            <div>
+              <div class="lbl">Geschat loon</div>
+              <div class="val">€ 84,40 netto<div class="sub">8u × € 10,55 (Flexijob bediende)</div></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">restaurant</span>
+            <div>
+              <div class="lbl">Pauze</div>
+              <div class="val">30 min onbetaald</div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">people</span>
+            <div>
+              <div class="lbl">Wie kan reageren</div>
+              <div class="val">Pool van IzyCoffee · 3 reageerden al</div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">timer</span>
+            <div>
+              <div class="lbl">Deadline reactie</div>
+              <div class="val" style="color: var(--magenta);">vrij 18:00<div class="sub" style="color: var(--muted);">over 28 uur</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner amber">
+        <span class="material-icons">info</span>
+        <div><strong>Reageren ≠ bevestigd.</strong>Je werkgever kiest na de deadline wie de shift krijgt. Je krijgt een melding zodra de keuze gemaakt is.</div>
+      </div>
+
+    </div>
+    <div class="detail-cta">
+      <button class="btn-large secondary">Niet beschikbaar</button>
+      <button class="btn-large primary"><span class="material-icons">check</span>Reageren</button>
+    </div>
+  </div></div>
+  <div class="desc">Detail-scherm via tap op een open shift. Toont alle info, deadline, hoeveel anderen al reageerden. CTA's onderaan vast.</div>
+</div>
+
+</div>
+
+<!-- ===================== ROW 2: BESCHIKBAARHEID ===================== -->
+<div class="phones-row">
+
+<!-- ============ PHONE 4: BESCHIKBAARHEID OVERZICHT ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 4 · Beschikbaarheid week</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="avatar">AS</div>
+      <h1>Beschikbaarheid<span class="sub">week 19 · 4 — 10 mei</span></h1>
+      <div class="badge-bell"><span class="material-icons">notifications</span></div>
+    </div>
+
+    <div class="main">
+
+      <div class="info-banner">
+        <span class="material-icons">tips_and_updates</span>
+        <div><strong>Eén tijdsblok per dag.</strong>Hoe meer dagen je invult, hoe meer open shifts je werkgever je kan voorstellen.</div>
+      </div>
+
+      <div class="section-h" style="margin-top: 18px;">
+        <span class="title">Deze week</span>
+        <span class="count">5 / 7 dagen</span>
+      </div>
+
+      <div class="week-row">
+        <div class="day-info">
+          <span class="name">maandag</span>
+          <span class="date">4 mei</span>
+        </div>
+        <div class="slot"><span class="hours">8u — 19u</span></div>
+      </div>
+
+      <div class="week-row today">
+        <div class="day-info">
+          <span class="name">dinsdag · vandaag</span>
+          <span class="date">5 mei</span>
+        </div>
+        <div class="slot"><span class="hours">9u — 22u</span></div>
+      </div>
+
+      <div class="week-row">
+        <div class="day-info">
+          <span class="name">woensdag</span>
+          <span class="date">6 mei</span>
+        </div>
+        <div class="slot"><span class="hours">9u — 22u</span></div>
+      </div>
+
+      <div class="week-row empty">
+        <div class="day-info">
+          <span class="name">donderdag</span>
+          <span class="date">7 mei</span>
+        </div>
+        <div class="slot"><span class="add"><span class="material-icons">add</span>Toevoegen</span></div>
+      </div>
+
+      <div class="week-row">
+        <div class="day-info">
+          <span class="name">vrijdag</span>
+          <span class="date">8 mei</span>
+        </div>
+        <div class="slot"><span class="hours">14u — 22u</span></div>
+      </div>
+
+      <div class="week-row">
+        <div class="day-info">
+          <span class="name">zaterdag</span>
+          <span class="date">9 mei</span>
+        </div>
+        <div class="slot"><span class="hours">9u — 17u</span></div>
+      </div>
+
+      <div class="week-row empty">
+        <div class="day-info">
+          <span class="name">zondag</span>
+          <span class="date">10 mei</span>
+        </div>
+        <div class="slot"><span class="none">Niet beschikbaar</span></div>
+      </div>
+
+    </div>
+    <button class="fab"><span class="material-icons">add</span></button>
+    <div class="tabbar">
+      <div class="tab"><span class="material-icons">home</span><span class="lbl">Shifts</span></div>
+      <div class="tab active"><span class="material-icons">event_available</span><span class="lbl">Beschikbaar</span></div>
+      <div class="tab"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span><span class="dot"></span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Week-overzicht: één tijdsblok per dag. Lege dagen tonen "Toevoegen" of "Niet beschikbaar" als de werknemer dat expliciet kiest. FAB rechtsonder voor snelle toevoeging.</div>
+</div>
+
+<!-- ============ PHONE 5: DETAIL DAG (NIEUW) ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 5 · Detail dag (nieuw)</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="back"><span class="material-icons">close</span></div>
+      <h1>Donderdag toevoegen<span class="sub">7 mei 2026</span></h1>
+    </div>
+    <div class="main" style="padding-bottom: 110px;">
+
+      <div class="day-edit">
+        <div class="heading">Wanneer ben je beschikbaar?</div>
+        <div class="time-pickers">
+          <div>
+            <div class="label">Vanaf</div>
+            <div class="picker">09:00</div>
+          </div>
+          <div class="arr">›</div>
+          <div>
+            <div class="label">Tot</div>
+            <div class="picker">17:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <span class="material-icons">info</span>
+        <div><strong>Eén tijdsblok per dag.</strong>Werkgevers kunnen open shifts binnen dit blok aan jou voorstellen.</div>
+      </div>
+
+      <div class="info-banner amber">
+        <span class="material-icons">visibility_off</span>
+        <div><strong>Dag overslaan?</strong>Markeer als "Niet beschikbaar" zodat je geen voorstellen krijgt voor deze dag.</div>
+      </div>
+
+      <button class="danger-link" style="display: none;">
+        <span class="material-icons">delete_outline</span>Beschikbaarheid wissen
+      </button>
+
+    </div>
+    <div class="detail-cta">
+      <button class="btn-large secondary">Niet beschikbaar</button>
+      <button class="btn-large primary">Opslaan</button>
+    </div>
+  </div></div>
+  <div class="desc">Toevoegen-scherm voor donderdag. Eén tijdsblok van/tot. Nood-CTA "Niet beschikbaar" voor de dagen waarvoor je expliciet niets wil voorgesteld krijgen.</div>
+</div>
+
+<!-- ============ PHONE 6: DETAIL DAG (BEWERKEN) ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 6 · Detail dag (bewerken)</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="back"><span class="material-icons">close</span></div>
+      <h1>Vrijdag bewerken<span class="sub">8 mei 2026</span></h1>
+    </div>
+    <div class="main" style="padding-bottom: 110px;">
+
+      <div class="day-edit">
+        <div class="heading">Beschikbaarheid</div>
+        <div class="time-pickers">
+          <div>
+            <div class="label">Vanaf</div>
+            <div class="picker">14:00</div>
+          </div>
+          <div class="arr">›</div>
+          <div>
+            <div class="label">Tot</div>
+            <div class="picker">22:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <span class="material-icons">link</span>
+        <div><strong>Open shift gekoppeld.</strong>Je hebt voor deze dag al gereageerd op een open shift (Antwerpen Eilandje, 14:00 › 22:00). Wijzigen wist je reactie.</div>
+      </div>
+
+      <button class="danger-link"><span class="material-icons">delete_outline</span>Beschikbaarheid wissen</button>
+
+    </div>
+    <div class="detail-cta">
+      <button class="btn-large secondary">Annuleren</button>
+      <button class="btn-large primary">Bewaren</button>
+    </div>
+  </div></div>
+  <div class="desc">Bewerken van een bestaande dag. Toont link met een actieve open-shift-reactie als die er is. Wissen-knop expliciet als secondary action.</div>
+</div>
+
+</div>
+
+<!-- ===================== ROW 3: MELDINGEN + GECOMBINEERD ===================== -->
+<div class="phones-row">
+
+<!-- ============ PHONE 7: MELDINGEN ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 7 · Meldingen</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <h1>Meldingen<span class="sub">3 nieuwe</span></h1>
+      <div class="badge-bell" style="cursor: pointer;"><span class="material-icons" style="font-size: 22px; color: var(--muted);">tune</span></div>
+    </div>
+
+    <div class="main" style="padding: 0 0 96px 0;">
+
+      <div class="section-h" style="padding: 14px 14px 4px 14px; margin: 0;">
+        <span class="title">Vandaag</span>
+      </div>
+
+      <div class="notif unread">
+        <div class="icon-wrap open"><span class="material-icons">work_outline</span></div>
+        <div class="content">
+          <div class="title-l">Nieuwe open shift</div>
+          <div class="body">vrij 8 mei · 14:00 › 22:00 · Antwerpen Eilandje</div>
+          <div class="when">5 min geleden · Reageer voor vrij 18u</div>
+        </div>
+      </div>
+
+      <div class="notif unread">
+        <div class="icon-wrap success"><span class="material-icons">verified</span></div>
+        <div class="content">
+          <div class="title-l">Shift bevestigd</div>
+          <div class="body">Je shift van zat 9 mei (Gent Dok Noord) is bevestigd door Lieven.</div>
+          <div class="when">1u geleden</div>
+        </div>
+      </div>
+
+      <div class="notif unread">
+        <div class="icon-wrap shift"><span class="material-icons">schedule</span></div>
+        <div class="content">
+          <div class="title-l">Shift gewijzigd</div>
+          <div class="body">Donderdag 7 mei: starttijd is nu 9:30 (was 9:00).</div>
+          <div class="when">3u geleden</div>
+        </div>
+      </div>
+
+      <div class="section-h" style="padding: 14px 14px 4px 14px; margin: 0;">
+        <span class="title">Gisteren</span>
+      </div>
+
+      <div class="notif">
+        <div class="icon-wrap shift"><span class="material-icons">notifications_active</span></div>
+        <div class="content">
+          <div class="title-l">Herinnering · shift over 1 uur</div>
+          <div class="body">9:00 › 17:00 · Gent Dok Noord · Toog</div>
+          <div class="when">gisteren 8:00</div>
+        </div>
+      </div>
+
+      <div class="notif">
+        <div class="icon-wrap open"><span class="material-icons">close</span></div>
+        <div class="content">
+          <div class="title-l">Niet gekozen voor open shift</div>
+          <div class="body">Iemand anders kreeg de shift van do 7 mei.</div>
+          <div class="when">gisteren 18:14</div>
+        </div>
+      </div>
+
+      <div class="section-h" style="padding: 14px 14px 4px 14px; margin: 0;">
+        <span class="title">Eerder</span>
+      </div>
+
+      <div class="notif">
+        <div class="icon-wrap system"><span class="material-icons">description</span></div>
+        <div class="content">
+          <div class="title-l">Loonbrief beschikbaar</div>
+          <div class="body">April 2026 · € 1.842,15 netto.</div>
+          <div class="when">2 mei</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="tabbar">
+      <div class="tab"><span class="material-icons">home</span><span class="lbl">Shifts</span></div>
+      <div class="tab"><span class="material-icons">event_available</span><span class="lbl">Beschikbaar</span></div>
+      <div class="tab active"><span class="material-icons">notifications</span><span class="lbl">Meldingen</span></div>
+      <div class="tab"><span class="material-icons">person</span><span class="lbl">Profiel</span></div>
+    </div>
+  </div></div>
+  <div class="desc">Meldingen gegroepeerd per tijdvak. Iconen + kleur duiden type aan: groen voor bevestigingen, geel voor open shifts, indigo voor wijzigingen, grijs voor systeem.</div>
+</div>
+
+<!-- ============ PHONE 8: REAGEREN BEVESTIGING ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 8 · Net gereageerd</span>
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+    <div class="appbar">
+      <div class="back"><span class="material-icons">arrow_back</span></div>
+      <h1>Open shift<span class="sub">via Pool</span></h1>
+    </div>
+    <div class="main" style="padding-bottom: 100px;">
+
+      <div class="detail-block" style="border-color: var(--magenta); background: linear-gradient(to bottom, var(--magenta-soft) 0%, white 60%);">
+        <div style="text-align: center; padding: 12px 0;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--magenta); color: white; display: grid; place-items: center; margin: 0 auto 12px;">
+            <span class="material-icons" style="font-size: 28px;">check</span>
+          </div>
+          <div class="title-line" style="margin-bottom: 6px;">Reactie verstuurd</div>
+          <div class="sub-line">Je werkgever weet nu dat je beschikbaar bent.</div>
+        </div>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-list">
+          <div class="detail-row">
+            <span class="material-icons">event</span>
+            <div>
+              <div class="lbl">Shift</div>
+              <div class="val">vrij 8 mei · 14:00 › 22:00<div class="sub">Antwerpen Eilandje · Toog</div></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">timer</span>
+            <div>
+              <div class="lbl">Wanneer hoor je het?</div>
+              <div class="val">Uiterlijk vrij 18:00<div class="sub">Je krijgt een melding bij keuze</div></div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="material-icons">people</span>
+            <div>
+              <div class="lbl">Andere reacties</div>
+              <div class="val">3 anderen reageerden ook</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <span class="material-icons">info</span>
+        <div><strong>Mening veranderd?</strong>Je kan je reactie nog wissen tot de werkgever kiest. Tap "Reactie wissen" hieronder.</div>
+      </div>
+
+    </div>
+    <div class="detail-cta">
+      <button class="btn-large secondary">Reactie wissen</button>
+      <button class="btn-large primary disabled" style="cursor: not-allowed;">Wachten op keuze</button>
+    </div>
+  </div></div>
+  <div class="desc">Bevestiging na reageren. Primary CTA gedeactiveerd ("Wachten op keuze"). "Reactie wissen" als enige actie zolang werkgever niet gekozen heeft.</div>
+</div>
+
+<!-- ============ PHONE 9: NIEUWE OPEN SHIFT BINNEN (PUSH-INTRO) ============ -->
+<div class="phone-col">
+  <span class="col-section-title">Scherm 9 · Push + lockscreen</span>
+  <div class="phone" style="background: #000;"><div class="phone-screen" style="background: linear-gradient(160deg, #1E1864 0%, #5B1142 100%); color: white;">
+    <div class="statusbar" style="background: transparent; color: white;">
+      <span>9:41</span>
+      <span class="right"><span class="material-icons">signal_cellular_4_bar</span><span class="material-icons">wifi</span><span>92%</span></span>
+    </div>
+
+    <div style="flex: 1; padding: 80px 18px 14px 18px; display: flex; flex-direction: column; gap: 14px;">
+
+      <div style="text-align: center; margin-bottom: 30px;">
+        <div style="font-size: 14px; opacity: 0.85; letter-spacing: 0.5px;">vrijdag 8 mei</div>
+        <div style="font-size: 64px; font-weight: 300; letter-spacing: -1px;">8:42</div>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); border-radius: 16px; padding: 14px; display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: flex-start;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--magenta); display: grid; place-items: center;">
+          <span class="material-icons" style="font-size: 20px; color: white;">work_outline</span>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.85; text-transform: uppercase;">MyStaffler</div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 2px;">Nieuwe open shift</div>
+          <div style="font-size: 13px; line-height: 1.4; margin-top: 2px; opacity: 0.95;">vrij 8 mei · 14:00 › 22:00 · Antwerpen Eilandje. Reageer voor 18u.</div>
+        </div>
+        <div style="font-size: 11px; opacity: 0.8;">nu</div>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); border-radius: 16px; padding: 14px; display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: flex-start;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--green); display: grid; place-items: center;">
+          <span class="material-icons" style="font-size: 20px; color: white;">verified</span>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.85; text-transform: uppercase;">MyStaffler</div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 2px;">Shift bevestigd voor jou</div>
+          <div style="font-size: 13px; line-height: 1.4; margin-top: 2px; opacity: 0.95;">zat 9 mei · 9:00 › 17:00 · Gent Dok Noord (Toog).</div>
+        </div>
+        <div style="font-size: 11px; opacity: 0.8;">8m</div>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); border-radius: 16px; padding: 14px; display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: flex-start;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary); display: grid; place-items: center;">
+          <span class="material-icons" style="font-size: 20px; color: white;">schedule</span>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.85; text-transform: uppercase;">MyStaffler</div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 2px;">Shift gewijzigd</div>
+          <div style="font-size: 13px; line-height: 1.4; margin-top: 2px; opacity: 0.95;">do 7 mei: starttijd is nu 9:30 (was 9:00).</div>
+        </div>
+        <div style="font-size: 11px; opacity: 0.8;">15m</div>
+      </div>
+
+    </div>
+    <div style="text-align: center; padding: 10px 0 22px 0; opacity: 0.7; font-size: 12px; letter-spacing: 0.5px;">
+      Veeg omhoog om te openen
+    </div>
+  </div></div>
+  <div class="desc">Voor referentie: hoe push-meldingen op het lockscreen verschijnen. Drie types: nieuwe open shift (magenta), bevestigd (groen), gewijzigd (indigo).</div>
+</div>
+
+</div>
+
+<!-- ===================== LEGENDE / NOTITIES ===================== -->
+<div class="phones-row" style="overflow: visible;">
+<div style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 24px 28px; color: rgba(255, 255, 255, 0.85); font-size: 13px; line-height: 1.6; max-width: 1100px;">
+  <h2 style="margin: 0 0 14px 0; font-size: 14px; color: white; text-transform: uppercase; letter-spacing: 0.06em;">Designkeuzes en open vragen</h2>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Naamkeuze "Reageren"</h3>
+  <p style="margin: 0 0 6px 0;">"Reageren" past beter dan "Inschrijven" of "Aanmelden":</p>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>"Inschrijven" lijkt definitief, terwijl het pas een wens is. De werkgever kiest later.</li>
+    <li>"Aanmelden" botst met login-terminologie.</li>
+    <li>"Reageren" suggereert correct dat je antwoord geeft op een uitnodiging, met een open uitkomst.</li>
+    <li>Alternatief: "Ja, ik kan" als knop-tekst, "Reactie" als status.</li>
+  </ul>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Combinatie contracten + opties (Scherm 1)</h3>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>Eén home-tab "Mijn shifts" met dag-dividers en mix van bevestigde + open shifts.</li>
+    <li>Tweede tab "Open shifts" voor wie liever filtert op acties die nog open staan.</li>
+    <li>Visueel onderscheid: linkerrand-kleur (indigo bevestigd, oranje open, magenta gereageerd, teal vast) + status-pill rechtsboven.</li>
+  </ul>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Eén tijdsblok per dag (regel)</h3>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>Hard limit zoals gevraagd. Als je twee blokken wil (bv. ochtend + avond), moet je het samenvoegen tot 1 blok.</li>
+    <li>Empty state per dag: ofwel "Toevoegen" ofwel "Niet beschikbaar" expliciet.</li>
+    <li>Wijzigen wist eventueel gekoppelde open-shift-reactie. Banner waarschuwt op scherm 6.</li>
+  </ul>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Push-flow (Scherm 9)</h3>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>Drie push-types matchen drie Jira-tickets: BCJ-19446 (nieuwe shift assignment), BCJ-19447 (shift reminder), BCJ-19448 (shift details changed).</li>
+    <li>Magenta voor open shift met deadline, groen voor bevestiging, indigo voor wijzigingen.</li>
+  </ul>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Open vragen voor jou (Laurens)</h3>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>Mag een werknemer zijn reactie wissen na het reageren? (Zo getoond op scherm 8.)</li>
+    <li>Tonen we hoeveel anderen al reageerden? Goed voor druk-gevoel of slecht voor demotivatie?</li>
+    <li>"Niet beschikbaar" expliciet markeren per dag of laten als impliciete leegte?</li>
+    <li>Loonschatting tonen op open shifts? (€ 84,40 op detail-scherm.) Per pakket of pas na bevestiging?</li>
+    <li>Partner-shifts (Jobfixers, Randstad, Trixxo): apart label of gewoon onderdeel van pool-feed?</li>
+    <li>Deadline: zichtbaar in elke kaart of enkel bij urgente shifts (bv. &lt; 24u)?</li>
+    <li>Eén push per shift of digest? (Burst-risico bij batch-share van 8 open shifts.)</li>
+  </ul>
+
+  <h3 style="margin: 18px 0 6px 0; font-size: 12px; color: white; letter-spacing: 0.06em; text-transform: uppercase;">Gerelateerde Jira-tickets</h3>
+  <ul style="margin: 0; padding-left: 22px;">
+    <li>BCJ-19432 epic: MyStaffler shift scheduling &amp; planning</li>
+    <li>BCJ-19433 FE: View my weekly shift schedule (In Progress, Vanessa)</li>
+    <li>BCJ-19435 View shift card details in the schedule list (In Progress, Bernardo)</li>
+    <li>BCJ-19436 View full shift details · BCJ-19437 Empty state · BCJ-19438 Cancel scheduled shift</li>
+    <li>BCJ-19445 epic: MyStaffler Notifications · BCJ-19446/47/48/49/50</li>
+    <li>BCJ-19425 Pool Overview &amp; Invite Management (In Progress, Dmytro) ← apart document</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

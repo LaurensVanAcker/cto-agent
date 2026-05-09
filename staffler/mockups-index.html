@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Staffler — Actieve mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --magenta: #FC074F;
+    --primary: #3C51F0;
+    --bg: #1C1C2A;
+    --surface: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.55);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", sans-serif;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(252, 7, 79, 0.10), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(60, 81, 240, 0.10), transparent 50%),
+      #1C1C2A;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    min-height: 100vh;
+    padding: 48px 32px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 {
+    margin: 0 0 8px 0; font-size: 22px; font-weight: 700;
+  }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+  .group {
+    margin-bottom: 28px;
+  }
+  .group-title {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 0 10px 4px;
+  }
+  .links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  a.link-card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  a.link-card:hover {
+    background: rgba(60, 81, 240, 0.18);
+    border-color: rgba(60, 81, 240, 0.50);
+  }
+  a.link-card .file {
+    font-size: 12px; color: var(--muted); margin-bottom: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0;
+  }
+  a.link-card .name {
+    font-size: 14px; font-weight: 600;
+  }
+  .footer-note {
+    margin-top: 24px; padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Staffler — Actieve mockups</h1>
+  <div class="sub">De zes schermen waar Laurens nu op werkt. Klik om te openen.</div>
+
+  <div class="group">
+    <div class="group-title">Planschermen</div>
+    <div class="links">
+      <a class="link-card" href="save webpage/v5-10-names.html">
+        <div class="file">save webpage/v5-10-names.html</div>
+        <div class="name">Namen × Week</div>
+      </a>
+      <a class="link-card" href="save webpage/v5-11-vsl.html">
+        <div class="file">save webpage/v5-11-vsl.html</div>
+        <div class="name">Vestiging + Service location × Week</div>
+      </a>
+      <a class="link-card" href="save webpage/v5-13-dag.html">
+        <div class="file">save webpage/v5-13-dag.html</div>
+        <div class="name">Vestiging + Service location × Dag (0u-24u)</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">Dialogs</div>
+    <div class="links">
+      <a class="link-card" href="mockups/09-dialog-volledig.html">
+        <div class="file">mockups/09-dialog-volledig.html</div>
+        <div class="name">Shift-dialog (4 slots, hover-X, confirmatie)</div>
+      </a>
+      <a class="link-card" href="mockups/12-batch-dialog.html">
+        <div class="file">mockups/12-batch-dialog.html</div>
+        <div class="name">Open shifts delen (pool / namen / partners)</div>
+      </a>
+      <a class="link-card" href="mockups/14-locatie-eigenschappen.html">
+        <div class="file">mockups/14-locatie-eigenschappen.html</div>
+        <div class="name">Vestiging + Service location-eigenschappen</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-title">MyStaffler (mobile)</div>
+    <div class="links">
+      <a class="link-card" href="mockups/mobile-mystaffler-v2.html">
+        <div class="file">mockups/mobile-mystaffler-v2.html</div>
+        <div class="name">v2 — sluit aan op huidige app-stijl (9 schermen)</div>
+      </a>
+      <a class="link-card" href="mockups/mobile-mystaffler.html">
+        <div class="file">mockups/mobile-mystaffler.html</div>
+        <div class="name">v1 — origineel ontwerp (referentie)</div>
+      </a>
+      <a class="link-card" href="jira-pool-groups-mystaffler.md">
+        <div class="file">jira-pool-groups-mystaffler.md</div>
+        <div class="name">BCJ-19425 Pool/Groups uitgewerkt (Dmytro)</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Bookmark deze pagina (file:///...) of laat ze open in een tab. De links zijn relatief, dus alles werkt zolang de bestanden in /staffler/ blijven staan.
+  </div>
+</div>
+</body>
+</html>

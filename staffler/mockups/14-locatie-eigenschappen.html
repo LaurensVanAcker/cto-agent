@@ -49,9 +49,9 @@
   .material-icons { font-feature-settings: 'liga'; }
 
   .col { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
-  .col.modal-col { width: 480px; }
-  .col.context-col { width: 540px; }
-  .col.legend-col { width: 320px; }
+  .col.modal-col { width: 420px; }
+  .col.context-col { width: 480px; }
+  .col.legend-col { width: 300px; }
   .col h1 {
     color: rgba(255, 255, 255, 0.92); margin: 0; font-size: 13px;
     font-weight: 600; letter-spacing: 0.04em; padding-left: 4px;
@@ -212,7 +212,9 @@
     display: flex; align-items: center; gap: 8px;
     border-bottom: 1px solid var(--border);
   }
+  .vestband .vlabel { display: inline-flex; align-items: center; gap: 8px; }
   .vestband .material-icons { font-size: 16px; }
+  .vestband .row-actions { margin-left: auto; }
 
   .mini-row {
     display: grid;
@@ -297,17 +299,22 @@
   <h1>Waar je deze instelt <span class="small">vanuit de V+SL planscherm-rij</span></h1>
 
   <div class="context-card">
-    <div class="ctx-title">Stap 1 — Klik op het tandwiel-icoon naast de service location</div>
+    <div class="ctx-title">Stap 1 — Klik op het tandwiel naast een vestiging of service location</div>
     <div class="ctx-body">
       <div class="vestband">
-        <span class="material-icons">apartment</span>
-        Gent Dok Noord
+        <span class="vlabel">
+          <span class="material-icons">apartment</span>
+          Gent Dok Noord
+        </span>
+        <div class="row-actions">
+          <button class="active" title="Vestiging bewerken"><span class="material-icons">settings</span></button>
+        </div>
       </div>
       <div class="mini-row">
         <div class="name-cell">
           Toog
           <div class="row-actions">
-            <button title="Bewerken"><span class="material-icons">settings</span></button>
+            <button title="Service location bewerken"><span class="material-icons">settings</span></button>
           </div>
         </div>
         <div class="day-cell"></div>
@@ -318,7 +325,7 @@
         <div class="name-cell">
           Kassa
           <div class="row-actions">
-            <button class="active" title="Bewerken"><span class="material-icons">settings</span></button>
+            <button class="active" title="Service location bewerken"><span class="material-icons">settings</span></button>
           </div>
         </div>
         <div class="day-cell"></div>
@@ -329,7 +336,7 @@
         <div class="name-cell">
           Terras
           <div class="row-actions">
-            <button title="Bewerken"><span class="material-icons">settings</span></button>
+            <button title="Service location bewerken"><span class="material-icons">settings</span></button>
           </div>
         </div>
         <div class="day-cell"></div>
@@ -345,9 +352,47 @@
   </div>
 </div>
 
-<!-- KOLOM 2: EIGENSCHAPPEN-DIALOG -->
+<!-- KOLOM 2: VESTIGING DIALOG -->
 <div class="col modal-col">
-  <h1>Eigenschappen — Service location <span class="small">opent vanuit tandwiel</span></h1>
+  <h1>Eigenschappen — Vestiging <span class="small">opent vanuit tandwiel naast Gent Dok Noord</span></h1>
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <div>
+        <h2>Vestiging <span class="pos">Gent Dok Noord</span></h2>
+      </div>
+      <button class="icon-x"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Naam vestiging -->
+      <div class="field">
+        <label class="field-label">Naam vestiging</label>
+        <input class="input-base" value="Gent Dok Noord">
+      </div>
+
+      <!-- Plaats tewerkstelling -->
+      <div class="field">
+        <label class="field-label">Plaats tewerkstelling</label>
+        <input class="input-base" value="Dok Noord 4F, 9000 Gent, België">
+        <div class="field-help">Dit adres wordt automatisch ingevuld op elk contract dat hier gepland wordt. Dimona pakt deze waarde mee.</div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel">Annuleren</button>
+      <button class="btn-confirm">Wijzigingen opslaan</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- KOLOM 3: SERVICE LOCATION DIALOG -->
+<div class="col modal-col">
+  <h1>Eigenschappen — Service location <span class="small">opent vanuit tandwiel naast Kassa</span></h1>
 
   <div class="modal">
 
@@ -361,35 +406,10 @@
 
     <div class="modal-body">
 
-      <!-- Naam -->
+      <!-- Naam locatie -->
       <div class="field">
-        <label class="field-label">Naam service location</label>
+        <label class="field-label">Naam locatie</label>
         <input class="input-base" value="Kassa">
-      </div>
-
-      <!-- Vestiging -->
-      <div class="field">
-        <label class="field-label">Vestiging</label>
-        <div class="vest-select">
-          <span>Gent Dok Noord</span>
-          <span class="material-icons">expand_more</span>
-        </div>
-        <div class="field-help">Verplaats deze service location naar een andere vestiging als nodig.</div>
-      </div>
-
-      <!-- Plaats tewerkstelling -->
-      <div class="field">
-        <label class="field-label">Plaats tewerkstelling</label>
-        <input class="input-base" value="Dok Noord 4F, 9000 Gent, België" style="margin-bottom: 6px;">
-        <input class="input-base" placeholder="Specifieke plek (bv. Bus, Verdieping, Zaal)" value="Bovenverdieping">
-        <div class="field-help">Dit adres wordt automatisch ingevuld op elk contract dat hier gepland wordt. Dimona pakt deze waarde mee.</div>
-      </div>
-
-      <!-- Verwijderen -->
-      <div class="danger-row">
-        <span class="material-icons">warning</span>
-        <span>Service location verwijderen verbreekt geen bestaande contracten, maar nieuwe shifts kunnen er niet meer geplaatst worden.</span>
-        <button class="btn-delete">Verwijderen</button>
       </div>
 
     </div>
@@ -402,36 +422,33 @@
   </div>
 </div>
 
-<!-- KOLOM 3: NOTITIES -->
+<!-- KOLOM 4: NOTITIES -->
 <div class="col legend-col">
   <h1>Wat doet dit scherm</h1>
 
   <div class="legend-card">
     <h3>Doel</h3>
     <ul>
-      <li>Plaats tewerkstelling werd vroeger per contract gevraagd in de shift-dialog</li>
-      <li>Nu zit dit als eigenschap op de service location zelf, dus 1 keer instellen ipv telkens opnieuw</li>
-      <li>Bij contract-creatie wordt het adres automatisch overgenomen op basis van waar je het blok plaatst in de grid</li>
+      <li>Plaats tewerkstelling zit nu als eigenschap op de vestiging zelf, niet meer per contract</li>
+      <li>Bij contract-creatie wordt het adres automatisch overgenomen op basis van waar je het blok plaatst</li>
     </ul>
 
-    <h3>Velden</h3>
+    <h3>Vestiging-dialog</h3>
     <ul>
-      <li>Naam: korte label voor de rij in het planscherm (Toog, Kassa, Terras, ...)</li>
-      <li>Vestiging: koppeling aan een Vestiging. Verplaatsbaar als de service location verhuist</li>
-      <li>Plaats tewerkstelling: adres + specifieke plek (de "Bus" sub-tekst uit de live Staffler popup blijft, hier "Bovenverdieping")</li>
+      <li>Opent via tandwiel naast Gent Dok Noord, Antwerpen Eilandje, ...</li>
+      <li>Naam vestiging + plaats tewerkstelling</li>
+    </ul>
+
+    <h3>Service location-dialog</h3>
+    <ul>
+      <li>Opent via tandwiel naast Toog, Kassa, Terras, ...</li>
+      <li>Enkel naam locatie (vestiging staat al vast via de hoger gelegen rij)</li>
     </ul>
 
     <h3>Hoe je hier komt</h3>
     <ul>
-      <li>Tandwiel-icoon naast elke service location-rij in het V+SL planscherm</li>
-      <li>Of via een algemeen "Vestigingen + Service locations beheren" scherm (out of scope voor deze mockup-set)</li>
-    </ul>
-
-    <h3>Verwijderen</h3>
-    <ul>
-      <li>Bestaande contracten op deze service location blijven gewoon staan</li>
-      <li>Nieuwe shifts kunnen niet meer aangemaakt worden op deze rij</li>
-      <li>Soft-delete dus, geen cascade naar contracten</li>
+      <li>Tandwiel-icoons in het V+SL planscherm op vestiging- en service location-niveau</li>
+      <li>Hover op een rij toont het tandwiel</li>
     </ul>
   </div>
 </div>
