@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --open",
-    "start:qa": "ng serve -c=qa --open",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "start:qa": "ng serve -c=qa --proxy-config proxy.conf.json",
+    "build": "ng build -c qa --output-path ../dist/frontend",
     "build:dev": "ng build -c dev",
     "build:qa": "ng build -c qa",
     "build:prod": "ng build -c prod",

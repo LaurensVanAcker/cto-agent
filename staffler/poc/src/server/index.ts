@@ -122,6 +122,12 @@ function asResponse(err: unknown) {
 // ── auth endpoints ──────────────────────────────────────────────────────
 
 // POST /api/login
+// Response shape matcht de cloned DPS-frontend (`AuthResultModel`):
+// `{ authStatus, username, session, skey }`. Het echte sessie-token leeft
+// in een httpOnly cookie (poc_sid); de `skey` in de body is een marker zodat
+// de frontend zijn localStorage-`AUTH_KEY` flag kan zetten en de
+// authenticatedGuard groen ziet. We sturen het echte Staffler-skey
+// bewust NIET naar de browser.
 app.post<{ Body: { username: string; password: string } }>(
   "/api/login",
   async (req, reply) => {
@@ -134,7 +140,12 @@ app.post<{ Body: { username: string; password: string } }>(
     try {
       const result = await client.login({ username, password });
       if (result.authStatus !== "SUCCESS" || !result.skey) {
-        return { ok: false, authStatus: result.authStatus, session: result.session };
+        return {
+          authStatus: result.authStatus ?? "FAILURE",
+          username,
+          session: result.session ?? "",
+          skey: "",
+        };
       }
       const sid = newSessionId();
       const session: Session = { skey: result.skey, username };
@@ -144,14 +155,20 @@ app.post<{ Body: { username: string; password: string } }>(
         `poc_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
       );
 
-      // immediate currentuser hydrate + cache
+      // immediate currentuser hydrate + cache (best-effort, niet blocking)
       try {
         const profile = await client.getCurrentUser();
         session.profileJson = JSON.stringify(profile);
-        return { ok: true, profile };
       } catch {
-        return { ok: true, profile: null };
+        // negeer; /api/me kan later hertryen
       }
+
+      return {
+        authStatus: "SUCCESS",
+        username,
+        session: "",
+        skey: "cookie-session",
+      };
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);

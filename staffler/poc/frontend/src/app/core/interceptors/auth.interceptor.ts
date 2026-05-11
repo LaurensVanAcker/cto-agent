@@ -9,25 +9,21 @@ import {
 } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 
-import { AUTH_KEY } from '../api/auth';
 import { AuthRoutePath } from 'src/app/pages/auth';
 
-const AUTH_SKEY_HEADER = 'x-boemm-skey';
-
+// PoC: sessie loopt via een httpOnly cookie (poc_sid) die Fastify zet bij
+// /api/login. De frontend kent geen skey en stuurt geen x-boemm-skey header
+// meer. We hebben enkel withCredentials nodig zodat de cookie meegestuurd
+// wordt op elke call naar /api/*.
 export function authInterceptor(
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
 ): Observable<HttpEvent<unknown>> {
   const router = inject(Router);
 
-  return next(
-    req.clone({
-      headers: req.headers.append(AUTH_SKEY_HEADER, localStorage.getItem(AUTH_KEY) || ''),
-    })
-  ).pipe(
+  return next(req.clone({ withCredentials: true })).pipe(
     catchError(error => {
       if (error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized) {
-        localStorage.removeItem(AUTH_KEY);
         router.navigateByUrl(AuthRoutePath.LOGIN);
       }
 

@@ -1,1 +1,4 @@
 .DS_Store
+
+# Claude Code per-user state (auto-generated, do not commit)
+.claude/settings.local.json

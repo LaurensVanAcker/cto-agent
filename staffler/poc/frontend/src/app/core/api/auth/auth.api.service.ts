@@ -27,9 +27,12 @@ export interface AuthResultModel {
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
-  private readonly CURRENT_USER_API_URL = `${environment.apiBaseUrl}/users/currentuser`;
-  private readonly COMPANY_USER_API_URL = `${environment.publicApiBaseUrl}/companies/users`;
-  private readonly USER_API_URL = `${environment.apiBaseUrl}/users`;
+  // PoC: auth-endpoints zijn flatter dan in DPS. /api/login zet het cookie,
+  // /api/me geeft het profiel terug. set/reset password en cognito-logout
+  // worden in v0 niet ondersteund (zie step 1 strip).
+  private readonly CURRENT_USER_API_URL = `${environment.apiBaseUrl}/me`;
+  private readonly COMPANY_USER_API_URL = `${environment.apiBaseUrl}`;
+  private readonly USER_API_URL = `${environment.apiBaseUrl}`;
 
   constructor(
     private http: HttpClient,
