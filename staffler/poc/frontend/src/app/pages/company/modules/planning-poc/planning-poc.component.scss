@@ -1,91 +1,41 @@
-.poc-grid {
+:host {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+}
+
+.poc-scheduler-host {
+  position: relative;
   border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
   overflow: hidden;
   background: white;
+  min-height: 480px;
 }
 
-.grid-header,
-.grid-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) repeat(7, minmax(80px, 1fr));
+/* Bryntum event colors per source */
+
+::ng-deep .b-sch-event-wrap.poc-event-contract .b-sch-event {
+  background: #ec4899;
+  color: white;
 }
 
-.grid-header {
-  background: #f8fafc;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #334155;
+::ng-deep .b-sch-event-wrap.poc-event-shift .b-sch-event {
+  background: #f59e0b;
+  color: white;
 }
 
-.grid-corner,
-.grid-day,
-.grid-name {
-  padding: 0.6rem 0.8rem;
-  border-right: 1px solid var(--surface-border, #e2e8f0);
+::ng-deep .b-sch-event-wrap.poc-event-shift-draft .b-sch-event {
+  background: repeating-linear-gradient(
+    45deg,
+    #f59e0b,
+    #f59e0b 6px,
+    #fbbf24 6px,
+    #fbbf24 12px
+  );
 }
 
-.grid-day {
-  text-align: center;
-}
-
-.grid-day.weekend {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.grid-row + .grid-row .grid-name {
-  border-top: 1px solid var(--surface-border, #e2e8f0);
-}
-
-.grid-name {
-  display: flex;
-  align-items: center;
-}
-
-.grid-cell {
-  border: none;
-  border-right: 1px solid var(--surface-border, #e2e8f0);
-  border-top: 1px solid var(--surface-border, #e2e8f0);
-  background: white;
-  min-height: 56px;
-  padding: 0;
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.grid-cell:hover {
-  background: #fef2f6;
-}
-
-.grid-cell.weekend {
-  background: #f8fafc;
-}
-
-.grid-empty {
-  padding: 2rem;
-  text-align: center;
-  color: #64748b;
-}
-
-.placeholder-card {
-  padding: 2rem;
-  border: 1px dashed var(--surface-border, #e2e8f0);
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.placeholder-card h2 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-}
-
-.placeholder-card code {
-  background: rgba(0, 0, 0, 0.06);
-  padding: 0.1em 0.4em;
-  border-radius: 4px;
-  font-family: ui-monospace, monospace;
-  font-size: 0.85em;
+::ng-deep .b-sch-event-wrap.poc-event-permanent .b-sch-event {
+  background: #14b8a6;
+  color: white;
 }

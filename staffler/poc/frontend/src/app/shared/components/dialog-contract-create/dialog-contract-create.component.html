@@ -1,13 +1,26 @@
 <div class="flex flex-column gap-3">
   <p class="text-color-secondary m-0">
-    Niveau 1 — directe toewijzing aan een temporary medewerker. Skeleton:
-    de echte <code>POST /api/contracts</code> (Dimona!) volgt in stap 6 van
-    de PoC.
+    Niveau 1 — directe toewijzing aan een temporary medewerker. Roept
+    <code>POST /api/contracts</code> aan (Dimona aanvraag bij Staffler).
   </p>
 
   <label class="flex flex-column gap-1">
-    <span class="text-sm">Medewerker (id)</span>
-    <input pInputText [(ngModel)]="form.employeeId" placeholder="employee uuid" />
+    <span class="text-sm">Loonpakket</span>
+    @if (loadingWages()) {
+      <span class="text-color-secondary">Laden…</span>
+    } @else if (wages().length === 0) {
+      <span class="text-color-secondary font-italic">
+        Geen loonpakketten gevonden voor deze medewerker bij dit bedrijf.
+      </span>
+    } @else {
+      <p-select
+        [options]="wageOptions()"
+        [(ngModel)]="form.wageId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies een loonpakket"
+      />
+    }
   </label>
 
   <div class="grid">
@@ -36,18 +49,19 @@
     </label>
   </div>
 
-  <label class="flex flex-column gap-1">
-    <span class="text-sm">Loonpakket (employeeWage id)</span>
-    <input pInputText [(ngModel)]="form.wageId" placeholder="wage uuid (todo: dropdown uit /api/employeewages)" />
-  </label>
-
-  <label class="flex flex-column gap-1">
-    <span class="text-sm">Plaats tewerkstelling</span>
-    <input pInputText [(ngModel)]="form.employmentAddress" />
-  </label>
+  @if (errorMessage()) {
+    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
+      {{ errorMessage() }}
+    </div>
+  }
 </div>
 
 <div class="flex justify-content-end gap-2 mt-3">
   <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
-  <p-button label="Bevestigen" (onClick)="confirm()" [loading]="inProgress()" />
+  <p-button
+    label="Contract aanmaken"
+    [loading]="saving()"
+    [disabled]="!canConfirm()"
+    (onClick)="confirm()"
+  />
 </div>
