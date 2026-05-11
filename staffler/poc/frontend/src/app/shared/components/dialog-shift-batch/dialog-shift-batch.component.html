@@ -1,13 +1,25 @@
 <div class="flex flex-column gap-3">
   <p class="text-color-secondary m-0">
-    Niveau 2 — open shift broadcasten. Skeleton: maakt een
-    <code>shifts</code> rij aan in PoC-DB en publiceert direct. De
-    kandidaat-flow + DPS contract-create bij selectie volgt later.
+    Niveau 2 — open shift broadcasten. POSTs naar
+    <code>/api/shifts</code> en publiceert direct.
   </p>
 
   <label class="flex flex-column gap-1">
-    <span class="text-sm">Service location (id)</span>
-    <input pInputText [(ngModel)]="form.serviceGroupId" placeholder="service group uuid" />
+    <span class="text-sm">Service location</span>
+    @if (serviceGroupOptions().length === 0) {
+      <span class="text-color-secondary font-italic">
+        Geen service locations aangemaakt voor dit bedrijf. Voeg er toe via
+        Beheer locaties.
+      </span>
+    } @else {
+      <p-select
+        [options]="serviceGroupOptions()"
+        [(ngModel)]="form.serviceGroupId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies service location"
+      />
+    }
   </label>
 
   <div class="grid">
@@ -32,7 +44,7 @@
     </label>
     <label class="col-4 flex flex-column gap-1">
       <span class="text-sm">Capaciteit</span>
-      <input pInputText type="number" min="1" [(ngModel)]="form.capacity" />
+      <p-inputNumber [(ngModel)]="form.capacity" [min]="1" [max]="20" />
     </label>
   </div>
 
@@ -50,9 +62,20 @@
     <span class="text-sm">Deadline (optioneel)</span>
     <input pInputText type="datetime-local" [(ngModel)]="form.deadline" />
   </label>
+
+  @if (error()) {
+    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
+      {{ error() }}
+    </div>
+  }
 </div>
 
 <div class="flex justify-content-end gap-2 mt-3">
   <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
-  <p-button label="Aanmaken en publiceren" [loading]="saving()" (onClick)="confirmAndPublish()" />
+  <p-button
+    label="Aanmaken en publiceren"
+    [loading]="saving()"
+    [disabled]="!canSave()"
+    (onClick)="confirmAndPublish()"
+  />
 </div>
