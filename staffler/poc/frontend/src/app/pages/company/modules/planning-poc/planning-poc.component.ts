@@ -359,7 +359,7 @@ export class PlanningPocComponent implements AfterViewInit {
       this.messageService.add({
         severity: 'info',
         summary: 'Vaste medewerker',
-        detail: 'Beheer via PoC-DB permanent_assignments — TODO admin-UI.',
+        detail: 'Bewerk de toewijzing via Beheer locaties → Vaste toewijzingen.',
       });
     }
   }
