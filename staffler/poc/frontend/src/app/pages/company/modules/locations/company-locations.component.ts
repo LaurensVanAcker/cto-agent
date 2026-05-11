@@ -13,6 +13,7 @@ import { filter, take } from 'rxjs';
 
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -32,6 +33,11 @@ import {
   PermanentEmployeeApiService,
   PermanentEmployeeModel,
 } from '@dps/core/api/permanent-employee/permanent-employee.api.service';
+import {
+  PermanentAssignmentApiService,
+  PermanentAssignmentModel,
+} from '@dps/core/api/permanent-assignment/permanent-assignment.api.service';
+import { DialogPermanentAssignmentComponent } from '@dps/shared/components/dialog-permanent-assignment/dialog-permanent-assignment.component';
 
 interface ServiceGroupForm {
   id: string | null;
@@ -72,6 +78,7 @@ function emptyForm(): ServiceGroupForm {
     TableModule,
     TooltipModule,
   ],
+  providers: [DialogService],
   templateUrl: './company-locations.component.html',
   styleUrl: './company-locations.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -81,12 +88,15 @@ export class CompanyLocationsComponent {
   private readonly serviceGroupsApi = inject(ServiceGroupApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
+  private readonly permanentAssignmentsApi = inject(PermanentAssignmentApiService);
+  private readonly dialogService = inject(DialogService);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly branches = signal<EngagementGroupModel[]>([]);
   protected readonly serviceGroups = signal<ServiceGroupModel[]>([]);
   protected readonly permanentEmployees = signal<PermanentEmployeeModel[]>([]);
+  protected readonly permanentAssignments = signal<PermanentAssignmentModel[]>([]);
   protected readonly loading = signal(false);
   protected readonly dialogVisible = signal(false);
   protected readonly saving = signal(false);
@@ -212,6 +222,44 @@ export class CompanyLocationsComponent {
       },
       error: () => this.permanentEmployees.set([]),
     });
+    this.permanentAssignmentsApi.list({ companyId }).subscribe({
+      next: rows => {
+        this.permanentAssignments.set(rows ?? []);
+        this.cdr.markForCheck();
+      },
+      error: () => this.permanentAssignments.set([]),
+    });
+  }
+
+  protected openPermanentAssignmentDialog(): void {
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return;
+    const ref = this.dialogService.open(DialogPermanentAssignmentComponent, {
+      header: 'Vaste medewerker pinnen',
+      width: '36rem',
+      modal: true,
+      data: { companyId: company.id },
+    });
+    ref.onClose.subscribe(result => {
+      if (result?.kind === 'permanent-assignment.created') {
+        this.refreshAll(company.id);
+      }
+    });
+  }
+
+  protected formatPattern(p: Record<string, { from: string; to: string }>): string {
+    return Object.entries(p)
+      .map(([day, slot]) => `${day} ${slot.from}–${slot.to}`)
+      .join(' · ');
+  }
+
+  protected serviceGroupName(id: string): string {
+    return this.serviceGroups().find(s => s.id === id)?.name ?? id;
+  }
+
+  protected permanentEmployeeName(id: string): string {
+    const e = this.permanentEmployees().find(x => x.id === id);
+    return e ? `${e.first_name} ${e.last_name}` : id;
   }
 
   protected canAddPermanent(): boolean {
