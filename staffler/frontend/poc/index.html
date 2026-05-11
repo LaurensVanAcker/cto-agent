@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Staffler FE PoC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fc074f" />
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --pink: #fc074f;
+        --pink-dim: #fce8ec;
+        --bg: #f9fafb;
+        --text: #1a1a1a;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); }
+      header {
+        background: var(--pink);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      header h1 { margin: 0; font-size: 1.1rem; font-weight: 500; }
+      header .auth-state { font-size: 0.85rem; opacity: 0.9; }
+      main {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1.5rem;
+      }
+      .panel {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.25rem;
+      }
+      .panel h2 { margin: 0 0 0.75rem; font-size: 0.95rem; font-weight: 500; }
+      .panel p { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.85rem; }
+      label { display: block; margin: 0 0 0.75rem; font-size: 0.85rem; }
+      label > span { display: block; margin-bottom: 0.25rem; color: var(--muted); }
+      input[type="text"], input[type="password"], input[type="email"] {
+        width: 100%;
+        padding: 0.5rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font: inherit;
+      }
+      button {
+        background: var(--pink);
+        color: white;
+        border: none;
+        padding: 0.55rem 0.95rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 500;
+      }
+      button:hover { background: #d60643; }
+      button:disabled { background: var(--muted); cursor: not-allowed; }
+      button.secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+      button.secondary:hover { background: var(--bg); }
+      .actions { display: flex; flex-direction: column; gap: 0.5rem; }
+      .output {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 0.75rem;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+        font-size: 0.78rem;
+        overflow: auto;
+        max-height: 480px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .pill {
+        display: inline-block;
+        background: var(--pink-dim);
+        color: var(--pink);
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .pill.ok { background: #dcfce7; color: #008236; }
+      .err { color: #d9334a; font-size: 0.8rem; margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Staffler frontend PoC</h1>
+      <div class="auth-state" id="auth-state">geen sessie</div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Authenticatie</h2>
+        <p>QA company-pool. Skey komt in <code>sessionStorage</code>.</p>
+
+        <div id="login-block">
+          <label>
+            <span>Email</span>
+            <input id="login-email" type="email" autocomplete="username email" />
+          </label>
+          <label>
+            <span>Password</span>
+            <input id="login-password" type="password" autocomplete="current-password" />
+          </label>
+          <div class="actions">
+            <button id="btn-login">Login</button>
+          </div>
+          <div class="err" id="login-err"></div>
+        </div>
+
+        <div id="logged-in-block" hidden>
+          <p>Ingelogd als <span class="pill ok" id="user-name"></span></p>
+          <div class="actions">
+            <button id="btn-logout" class="secondary">Logout</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>API calls</h2>
+        <p>Klik om een call te triggeren. Resultaat verschijnt onderaan.</p>
+
+        <div class="actions" style="flex-direction: row; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+          <button id="btn-currentuser">GET /api/users/currentuser</button>
+          <button id="btn-statutes">GET /publicapi/statutes</button>
+          <button id="btn-dictionaries">GET /publicapi/dictionaries?types=countries,languages</button>
+          <button class="secondary" id="btn-clear">Clear output</button>
+        </div>
+
+        <pre class="output" id="output">// Output verschijnt hier
+// Tip: dictionaries werken zonder login (publicapi).
+// Currentuser vereist een geldige skey (login eerst).</pre>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

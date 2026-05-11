@@ -1,0 +1,54 @@
+# Jira BCJ — API-relevant tickets (last 180 days)
+
+Pulled 2026-05-09. JQL: project = BCJ AND text ~ API/endpoint/swagger/openapi/REST. Top 50 by updated.
+
+- **BCJ-19585** [In Progress / Story] Save PC 124 wage indexation with coefficient
+- **BCJ-19607** [To be refined / Story] My Languages screen
+- **BCJ-19605** [To be refined / Story] Add / edit license modal
+- **BCJ-19329** [DEV TESTING / Story] BE: endpoint to execute wage indexation for normal pc codes
+- **BCJ-19612** [Done / Sub-task] (Testing task) BCJ-19246 - BE: Retrieve and delete saved indexations endpoint
+- **BCJ-19246** [Done / Story] BE: Retrieve and delete saved indexations endpoint
+- **BCJ-19554** [To Do / Story] Dictionary for STATUTE
+- **BCJ-19243** [Ready for testing / Story] BE: endpoint to save Travel Allowance
+- **BCJ-19242** [In Progress / Story] BE: endpoint to save wage indexation (all wages)
+- **BCJ-19250** [Ready for testing / Story] BE: endpoint indexation History
+- **BCJ-19535** [To Do / Story] MyStaffler Force password reset on first login
+- **BCJ-19173** [Done / Story] Eagle prevent duplicate employee creation via popup
+- **BCJ-19583** [To Do / Sub-task] (Testing task) BCJ-19242 - BE: endpoint to save wage indexation (all wages)
+- **BCJ-19338** [To Do / Story] implement webhook endpoint for SSN updates from Brightstaffing
+- **BCJ-19111** [On hold / Story] ITSME update to v2 endpoint
+- **BCJ-19278** [Done / Sub-task] BE: have 3 new endpoints
+- **BCJ-19487** [To Do / Sub-task] Set up AWS Transfer Family SFTP endpoint and S3 bucket
+- **BCJ-19494** [To Do / Sub-task] Configure new endpoint in the CUCM phone central
+- **BCJ-19468** [To Do / Sub-task] Migrate all lambdas on v2 itsme endpoints
+- **BCJ-19066** [Done / Sub-task] FE: Use new endpoint in Staffler when selecting a PC on a wage template
+- **BCJ-19067** [Done / Sub-task] FE: Use new endpoint in WorkToday when selecting a PC on a wage template
+- **BCJ-19186** [Done / Story] New niche DSR
+- **BCJ-19061** [Done / Story] Ask for BIC/Swift when non-belgian bank account
+- **BCJ-19064** [Done / Sub-task] BE: Use new endpoint in Staffler when selecting a PC on a wage template
+- **BCJ-19065** [Done / Sub-task] BE: Use new endpoint in WorkToday when selecting a PC on a wage template
+- **BCJ-19063** [Done / Sub-task] BE: Use new endpoint in Eagle on company profile, when adding a new
+- **BCJ-19068** [Done / Sub-task] FE: Use new endpoint in Eagle on company profile, when adding a new
+- **BCJ-19212** [Done / Sub-task] BE create endpoint to change employeeType
+- **BCJ-19285** [To Do / Sub-task] (Testing task) BCJ-19111 - ITSME update to v2 endpoint
+- **BCJ-19124** [To be refined / Story] BE: save indexation params for execution
+- **BCJ-19254** [To Do / Sub-task] BE endpoint Statutes
+- **BCJ-19253** [To Do / Sub-task] BE endpoint PC codes
+- **BCJ-19157** [Done / Story] VDAB - Migrate to Competence 2.0
+- **BCJ-19030** [To Do / Story] BE: Indexation app: Travel Allowance Indexation Endpoint
+- **BCJ-19024** [To be refined / Story] BE: Indexation app: Wages transactional indexing endpoint
+- **BCJ-18692** [Done / Story] Expose Freshness score on Employee in Eagle UI and API
+- **BCJ-18610** [To Do / Sub-task] BE: Manual Registration Endpoint
+- **BCJ-18588** [To Do / Story] Registration: Enter contact details and validate BTW-nummer via Core / Creditsafe
+- **BCJ-18784** [To Do / Sub-task] BE: Add API endpoints for saving and resuming registration sessions
+- **BCJ-18616** [To Do / Sub-task] BE: Endpoint to Validate Representative via Creditsafe
+- **BCJ-18545** [Done / Story] Redirecting logic for the registration process
+- **BCJ-18123** [Done / Task] API endpoint in MyJobfixers service that returns contracts and paychecks
+- **BCJ-18715** [Done / Story] CR: Allow user to change their email address during account creation
+- **BCJ-18639** [Done / Story] Create challenge in Cognito and send it via email to user
+- **BCJ-18405** [Done / Story] Create EP to download documents on the fly
+- **BCJ-18951** [Done / Sub-task] (Testing task) BCJ-18123 - API endpoint in MyJobfixers service that returns contracts and paychecks
+- **BCJ-18103** [Done / Story] Allow to switch between companies
+- **BCJ-18046** [Done / Story] Adapt EP for batch contract creation
+- **BCJ-18844** [To Do / Task] Create Request Validations for each endpoint
+- **BCJ-18557** [On hold / Story] Allow to block & unblock employees: modal + endpoint + BE logic

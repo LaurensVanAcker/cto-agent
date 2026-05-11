@@ -1,0 +1,23 @@
+{
+  "name": "staffler-frontend-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser-side PoC die de Staffler-backend rechtstreeks consumeert via Vite dev-proxy. Vanilla TS + minimal HTML UI.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview --port 5174",
+    "typecheck": "tsc --noEmit",
+    "gen:types": "openapi-typescript ../../api/openapi/openapi.json -o src/openapi.generated.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0"
+  }
+}

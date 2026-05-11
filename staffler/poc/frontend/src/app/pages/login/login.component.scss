@@ -1,0 +1,32 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+.login-card {
+  width: 360px;
+  max-width: 100%;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.login-card input {
+  width: 100%;
+}
+
+.login-card button {
+  margin-top: var(--space-3);
+  align-self: stretch;
+}
+
+.login-card .err {
+  margin-top: var(--space-2);
+  font-size: 13px;
+}

@@ -51,8 +51,35 @@ cto/
 │   └── team/                    ← gesprekken met teamleden
 ├── data/                        ← grafieken, exports, bewijsmateriaal
 │   └── ticketbeheer-trend.png
-└── frameworks/                  ← referentiedocumenten, modellen
+├── frameworks/                  ← referentiedocumenten, modellen
+└── staffler/                    ← Staffler/DPS uitbreiding + PoC werk
+    ├── AGENTS.md                ← oriëntatiepunt voor alle Staffler werk
+    ├── api/                     ← API kennisbank (37 md files, OpenAPI spec)
+    │   ├── README.md
+    │   ├── monday-checklist.md  ← shopping list voor dev-ops
+    │   ├── poc-recipe.md        ← step-by-step PoC instructies
+    │   └── ...
+    ├── poc/                     ← werkende Fastify + Angular skeleton
+    │   ├── AGENTS.md            ← entry-point voor PoC werk
+    │   ├── TODAY-CHECKLIST.md   ← copy-paste commando's voor opstart
+    │   ├── src/                 ← Fastify backend
+    │   └── frontend/            ← Angular 18 app
+    │       └── AGENTS.md
+    ├── mockups/                 ← HTML mockups van planscherm visie
+    ├── visie/                   ← 3-niveaus uitbreiding, domeinmodel
+    └── stack-decision.md        ← Fastify + Angular keuze, A2N voor later
 ```
+
+## Staffler PoC handoff (mei 2026)
+
+Apart project naast de CTO-coaching: een externe PoC bovenop de Staffler/DPS backend, geïnspireerd op de WT-proxy klant die hetzelfde deed voor WorkToday. Live skeleton in `staffler/poc/` met Fastify backend en Angular 18 frontend. Zie `staffler/poc/CONCLUSIONS.md` voor de huidige stand van zaken, beslissingen en next steps. Een nieuwe Claude-thread die hieraan werkt moet eerst dat bestand lezen.
+
+Belangrijke verwijzingen voor het Staffler PoC werk:
+- `staffler/poc/CONCLUSIONS.md` — wat is er beslist, wat moet er nog gebeuren
+- `staffler/poc/TODAY-CHECKLIST.md` — commando's voor de eerste dag bouw
+- `staffler/api/auth.md` — login flow met skey + Cognito
+- `staffler/api/openapi/openapi.json` — 85 endpoints, 114 schemas
+- `staffler/api/known-gaps.md` — open vragen aan dev-ops
 
 ## Rode lijnen (Laurens)
 - Nog één keer "je doet niets extra" → standepé weg

@@ -1,0 +1,6760 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Staffler / DPS-Service API",
+    "version": "0.0.671-SNAPSHOT (commit 1fc6cd3)",
+    "description": "Reconstructed OpenAPI spec from `wlnob/dps-service` controllers. Scope: REST endpoints exposed by dps-service Spring Boot 3.2 monolith. Inlined real schemas as of 2026-05-09 from sources/dps-service-dtos.md (priority DTOs only; non-priority types may still be x-stub). Source commit: 1fc6cd30d62ec3bba51285585483a524a22f4238.",
+    "contact": {
+      "name": "BOEMM Staffler team"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://gw.qa.dps.boemm.eu/v1/dps-api",
+      "description": "QA"
+    },
+    {
+      "url": "https://gw.dev.dps.boemm.eu/v1/dps-api",
+      "description": "DEV"
+    },
+    {
+      "url": "https://gw.myplanning.digitalpayrollservices.be/v1/dps-api",
+      "description": "PROD"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BoemmSkey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-boemm-skey",
+        "description": "Opaque session key obtained via /publicapi/companies/users/login or /publicapi/employees/users/login. Resolved by API Gateway authorizer to a Cognito JWT."
+      },
+      "BoemmInternal": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-boemm-skey",
+        "description": "Internal cron endpoints. Externally not reachable; documented for completeness."
+      }
+    },
+    "schemas": {
+      "PageWebDto": {
+        "type": "object",
+        "description": "Custom paged envelope (NOT Spring's default Page).",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {}
+          },
+          "totalElements": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          },
+          "number": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "numberOfElements": {
+            "type": "integer"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "apiErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          },
+          "traceId": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthResultWebDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "session": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authStatus": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "FORCE_PASSWORD_RESET"
+            ]
+          },
+          "skey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "authStatus"
+        ]
+      },
+      "ActualWebDto": {
+        "type": "object",
+        "description": "Returned by paged GET /api/companies/{companyId}/actuals. Note: contractEndDate uses non-standard date-time format 'yyyy-MM-dd HH:mm:ss' (space, not T).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contractId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "string"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date"
+          },
+          "statuteCode": {
+            "type": "string"
+          },
+          "contractEndDate": {
+            "type": "string",
+            "description": "Non-standard format: 'yyyy-MM-dd HH:mm:ss' with a space separator, not ISO-8601 'T'. Example: '2026-05-09 17:30:00'."
+          },
+          "workTime": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkTimeWebDto"
+            }
+          },
+          "compensationHours": {
+            "$ref": "#/components/schemas/CompensationHours"
+          }
+        }
+      },
+      "AppUserDto": {
+        "type": "object",
+        "description": "Returned by POST /api/users/companies/{companyId}/invite.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppUserStatus"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "companyMemberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserCompanyMembershipDto"
+            }
+          }
+        }
+      },
+      "UserDto": {
+        "type": "object",
+        "description": "Current-user-like projection. Reused inside CompanyCustomerWebDto and AppUserService lookups. Note: there is no GET /api/users/currentuser endpoint.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppUserStatus"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CodeLinkDto": {
+        "type": "object",
+        "description": "Returned by /publicapi/oauth/itsme/codeLink (eu.boemm.dps.itsmeinvite.model.itsme.CodeLinkDto).",
+        "properties": {
+          "codeLink": {
+            "type": "string",
+            "description": "URL to redirect the user-agent to."
+          }
+        }
+      },
+      "CompanyBaseInfoWebDto": {
+        "type": "object",
+        "description": "Returned in pages by GET /api/companies/engagements.",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "vat": {
+            "type": "string"
+          }
+        }
+      },
+      "CompanyCoefficientsWebDto": {
+        "type": "object",
+        "description": "Returned by GET /api/companies/{companyId}/coefficients?types=...",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generalCompanyCoefficients": {
+            "$ref": "#/components/schemas/GeneralCompanyCoefficientsWebDto"
+          },
+          "generalCoefficientsPerStatute": {
+            "type": "object",
+            "description": "Map keyed by CoefficientTypeDto enum values.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CompanyCoefficientsPerStatuteWebDto"
+            }
+          },
+          "holidayCoefficientsPerStatute": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CompanyCoefficientsPerStatuteWebDto"
+            }
+          },
+          "companyInvoiceInfo": {
+            "$ref": "#/components/schemas/CompanyInvoiceInfoWebDto"
+          },
+          "travelAllowance": {
+            "$ref": "#/components/schemas/GeneralCompanyTravelAllowanceWebDto"
+          },
+          "mealVoucher": {
+            "$ref": "#/components/schemas/GeneralCompanyMealVoucherWebDto"
+          }
+        }
+      },
+      "GeneralCompanyCoefficientsWebDto": {
+        "type": "object",
+        "properties": {
+          "coefficientTravelAllowance": {
+            "type": "number"
+          },
+          "dimonaCost": {
+            "type": "number"
+          },
+          "dimonaAddon": {
+            "type": "number"
+          },
+          "coefficientMealVouchers": {
+            "type": "number"
+          },
+          "coefficientEcoVouchers": {
+            "type": "number"
+          },
+          "defaultTaxRate": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          }
+        }
+      },
+      "CompanyCoefficientsPerStatuteWebDto": {
+        "type": "object",
+        "description": "Same DTO reused for both holiday and general coefficient maps. Each field is the per-statute coefficient.",
+        "properties": {
+          "coefficientWhiteCollar": {
+            "type": "number"
+          },
+          "coefficientBlueCollar": {
+            "type": "number"
+          },
+          "coefficientWhiteCollarJobStudent": {
+            "type": "number"
+          },
+          "coefficientBlueCollarJobStudent": {
+            "type": "number"
+          },
+          "coefficientFlextimeWhiteCollar": {
+            "type": "number"
+          },
+          "coefficientFlextimeBlueCollar": {
+            "type": "number"
+          },
+          "coefficientWhiteCollarStudentWorker": {
+            "type": "number"
+          },
+          "coefficientBlueCollarStudentWorker": {
+            "type": "number"
+          },
+          "coefficientExtra": {
+            "type": "number"
+          },
+          "coefficientSeasonalWorker": {
+            "type": "number"
+          },
+          "coefficientConstructionWorker": {
+            "type": "number"
+          },
+          "coefficientConstructionJobStudent": {
+            "type": "number"
+          }
+        }
+      },
+      "CompanyInvoiceInfoWebDto": {
+        "type": "object",
+        "properties": {
+          "invoiceEcoWeekly": {
+            "type": "boolean"
+          },
+          "compensationHours": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "companyHoursPerWeek": {
+            "type": "number"
+          },
+          "isSickInvoicingEnabled": {
+            "type": "boolean"
+          },
+          "holidayInvoicingEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GeneralCompanyTravelAllowanceWebDto": {
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GeneralCompanyMealVoucherWebDto": {
+        "type": "object",
+        "properties": {
+          "shareEmployee": {
+            "type": "number"
+          },
+          "shareCompany": {
+            "type": "number"
+          },
+          "shareTotal": {
+            "type": "number"
+          },
+          "minimumHours": {
+            "type": "number"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompanyCreateResultWebDto": {
+        "type": "object",
+        "description": "Returned by POST /api/companies/{vat}.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusWebDto"
+          }
+        }
+      },
+      "CompanyUserDto": {
+        "type": "object",
+        "description": "Returned by GET /api/companies/{companyId}/users (paged) and PATCH /api/companies/{companyId}/users/{userId}.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppUserStatus"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "accessGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngagementGroupWebDto"
+            }
+          }
+        }
+      },
+      "CompanyUserLoginRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "CompanyUserRoleDto": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "COMPANY_USER",
+              "GROUP_USER"
+            ]
+          },
+          "engagementGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "CompanyWebDto": {
+        "type": "object",
+        "description": "Canonical company resource: same shape on read (GET /api/companies/{companyId}) and write (PUT /api/companies/{uuid}). No separate Create/Update DTOs.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nickName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vat": {
+            "type": "string"
+          },
+          "vatCountryCode": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "paritairComites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemWebDto"
+            }
+          },
+          "officeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "communication": {
+            "$ref": "#/components/schemas/CommunicationWebDto"
+          },
+          "personalContacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalContactWebDto"
+            }
+          },
+          "blockingReason": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "blockedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "blockingExtraInfo": {
+            "type": "string",
+            "nullable": true
+          },
+          "blockedBy": {
+            "$ref": "#/components/schemas/ConsultantWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CompanyStatusDto"
+          },
+          "revenueConsultant": {
+            "$ref": "#/components/schemas/ConsultantWebDto"
+          },
+          "coefficients": {
+            "$ref": "#/components/schemas/GeneralCompanyCoefficientsWebDto"
+          },
+          "holidayCoefficientsPerStatute": {
+            "$ref": "#/components/schemas/CompanyCoefficientsPerStatuteWebDto"
+          },
+          "coefficientsPerStatute": {
+            "$ref": "#/components/schemas/CompanyCoefficientsPerStatuteWebDto"
+          },
+          "companyInvoiceInfo": {
+            "$ref": "#/components/schemas/CompanyInvoiceInfoWebDto"
+          },
+          "travelAllowance": {
+            "$ref": "#/components/schemas/GeneralCompanyTravelAllowanceWebDto"
+          },
+          "mealVoucher": {
+            "$ref": "#/components/schemas/GeneralCompanyMealVoucherWebDto"
+          },
+          "externalService": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalServiceRegNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOnboarded": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isTimeRegistrationEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isGroupsEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isActualsEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "actualsBlockEnabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "presumedStartDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "socialSecurityCategory": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          }
+        }
+      },
+      "AddressWebDto": {
+        "type": "object",
+        "description": "Shared by company, contract, employee, invitation. NOT the same as boemm-core AddressDTO.",
+        "properties": {
+          "streetNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "street": {
+            "type": "string",
+            "nullable": true
+          },
+          "postalCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "bus": {
+            "type": "string",
+            "nullable": true
+          },
+          "formattedAddress": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CommunicationWebDto": {
+        "type": "object",
+        "description": "Embedded in CompanyWebDto.",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "invoicePhoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfServiceEmails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eremindersEmails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "einvoicesEmails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          }
+        }
+      },
+      "PersonalContactWebDto": {
+        "type": "object",
+        "description": "Embedded as a list on CompanyWebDto.personalContacts.",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CompanyWebSearchResultWebDto": {
+        "type": "object",
+        "description": "Returned by GET /api/companies/external (Credit Safe lookup).",
+        "properties": {
+          "vat": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isExisting": {
+            "type": "boolean",
+            "description": "True if already in DPS DB.",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusWebDto"
+          },
+          "formattedAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOnboarded": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "ConfirmResetPasswordRequestDto": {
+        "type": "object",
+        "required": [
+          "username",
+          "newPassword",
+          "confirmationCode"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password"
+          },
+          "confirmationCode": {
+            "type": "string"
+          }
+        }
+      },
+      "ContractBaseWebDto": {
+        "type": "object",
+        "description": "Returned by paginated GET /api/contracts and embedded in ContractWorkTimeOverviewDto.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date"
+          },
+          "timetable": {
+            "$ref": "#/components/schemas/ContractTimetableWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContractStatusWebDto"
+          }
+        }
+      },
+      "ContractWebDto": {
+        "type": "object",
+        "description": "Both request (POST/PUT) and response on ContractController. Single canonical shape; no separate Create/Update DTO. Carries embedded result holder for batch responses. Time fields use HH:mm format inside timetable.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "allocationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContractStatusWebDto"
+          },
+          "previousStatus": {
+            "$ref": "#/components/schemas/ContractStatusWebDto"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date"
+          },
+          "timetable": {
+            "$ref": "#/components/schemas/ContractTimetableWebDto"
+          },
+          "flexibleTimetable": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "TODO NULL no scope per source comment."
+          },
+          "officeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "consultant": {
+            "$ref": "#/components/schemas/ConsultantWebDto"
+          },
+          "revenueOfficeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "revenueConsultant": {
+            "$ref": "#/components/schemas/ConsultantWebDto"
+          },
+          "wageHour": {
+            "type": "number"
+          },
+          "compensationHours": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "invoiceEcoWeekly": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "mealVoucher": {
+            "$ref": "#/components/schemas/ContractWebDto_ContractEmployeeWageMealVoucherWebDto"
+          },
+          "travelAllowance": {
+            "$ref": "#/components/schemas/ContractWebDto_ContractEmployeeWageTravelAllowanceWebDto"
+          },
+          "invoicing": {
+            "$ref": "#/components/schemas/ContractInvoicingWebDto"
+          },
+          "employmentAddress": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "paritairComite": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "statute": {
+            "$ref": "#/components/schemas/StatuteItemWebDto"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "employeeHoursPerWeek": {
+            "type": "number",
+            "nullable": true
+          },
+          "companyHoursPerWeek": {
+            "type": "number",
+            "nullable": true
+          },
+          "cancelReason": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "cancelExtraInfo": {
+            "type": "string",
+            "nullable": true
+          },
+          "isLate": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sourceType": {
+            "$ref": "#/components/schemas/ContractSourceWebDto"
+          },
+          "shiftTemplate": {
+            "$ref": "#/components/schemas/ShiftTemplateWebDto"
+          },
+          "mutualAgreementContractCancellation": {
+            "$ref": "#/components/schemas/MutualAgreementContractCancellationWebDto"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ContractBatchCreationResultWebDto",
+            "description": "Populated only on POST /batch responses."
+          },
+          "socialSecurityCategory": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          }
+        }
+      },
+      "ContractWebDto_ContractEmployeeWageTravelAllowanceWebDto": {
+        "type": "object",
+        "description": "Inner static class on ContractWebDto. Flat shape on the wire under 'travelAllowance'.",
+        "properties": {
+          "travelAllowance": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "distanceKm": {
+            "type": "number",
+            "nullable": true
+          },
+          "forfait": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Derived getter; serialised under @JsonProperty('isEnabled')."
+          }
+        }
+      },
+      "ContractWebDto_ContractEmployeeWageMealVoucherWebDto": {
+        "type": "object",
+        "description": "Inner static class on ContractWebDto. Flat shape on the wire under 'mealVoucher'.",
+        "properties": {
+          "minimumHours": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareEmployee": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareCompany": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareTotal": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Derived getter; serialised under @JsonProperty('isEnabled')."
+          }
+        }
+      },
+      "ContractTimetableWebDto": {
+        "type": "object",
+        "properties": {
+          "schedule": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractTimetableDayItemWebDto"
+            }
+          }
+        }
+      },
+      "ContractTimetableDayItemWebDto": {
+        "type": "object",
+        "description": "Time fields use HH:mm pattern via @JsonFormat.",
+        "properties": {
+          "shiftTemplateId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "shiftTemplateName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createShiftTemplate": {
+            "type": "boolean",
+            "description": "Tells server to upsert as a template."
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "dayOfWeek": {
+            "type": "string",
+            "enum": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY"
+            ],
+            "description": "FE doesn't send this; server derives."
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "pauseFromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          },
+          "pauseToTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          },
+          "changeCredit": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "ContractTimetableScheduleItemWebDto": {
+        "type": "object",
+        "description": "Variant used outside the ContractTimetableWebDto schedule (shift-template generation flows). Keyed by dayOfWeek instead of date.",
+        "properties": {
+          "dayOfWeek": {
+            "type": "string",
+            "enum": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY"
+            ]
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "changeCredit": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "ContractTimetablePauseItemWebDto": {
+        "type": "object",
+        "properties": {
+          "dayOfWeek": {
+            "type": "string",
+            "enum": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY"
+            ]
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          }
+        }
+      },
+      "ContractWorkTimeOverviewDto": {
+        "type": "object",
+        "description": "Used by ContractWorkTimeOverviewController (GET /api/companies/{companyId}/contracts/workTimes).",
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/ContractBaseWebDto"
+          },
+          "workTimes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractWorkTimeWebDto"
+            }
+          }
+        }
+      },
+      "ContractWorkTimeWebDto": {
+        "type": "object",
+        "description": "Used by ContractWorkTimeController (POST/GET /api/contracts/{contractId}/workTimes).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "contractId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "contractDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Free-form; not enum-typed on wire."
+          }
+        }
+      },
+      "ShiftTemplateWebDto": {
+        "type": "object",
+        "description": "Returned by GET /api/contracts/shiftTemplates (paged) and embedded in ContractWebDto.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "pauseFromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          },
+          "pauseToTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          }
+        }
+      },
+      "ContractInvoicingWebDto": {
+        "type": "object",
+        "properties": {
+          "coefficient": {
+            "type": "number",
+            "nullable": true
+          },
+          "coefficientTravelAllowance": {
+            "type": "number",
+            "nullable": true
+          },
+          "coefficientMealVouchers": {
+            "type": "number",
+            "nullable": true
+          },
+          "coefficientEcoVouchers": {
+            "type": "number",
+            "nullable": true
+          },
+          "coefficientBankHoliday": {
+            "type": "number",
+            "nullable": true
+          },
+          "dimonaCost": {
+            "type": "number",
+            "nullable": true
+          },
+          "defaultTaxRate": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          }
+        }
+      },
+      "MutualAgreementContractCancellationWebDto": {
+        "type": "object",
+        "properties": {
+          "isMutualAgreement": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "cancellationTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ContractBatchCreationResultWebDto": {
+        "type": "object",
+        "description": "Embedded in ContractWebDto.result and returned per-item in POST /api/contracts/batch. Conveys partial-failure details when batch contracts cannot be inserted atomically.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "ERROR"
+            ],
+            "description": "ContractCreationStatus enum."
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeContractWebDto": {
+        "type": "object",
+        "description": "Returned by GET /api/my-staffler/employees/{id}/contracts and embedded in StudentBalanceWebDto.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "allocationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "contractNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "EmployeeInfoRequest": {
+        "type": "object",
+        "x-stub": true,
+        "description": "DTO EmployeeInfoRequest. Full field definitions in sources/dps-service-dtos.md."
+      },
+      "EmployeeInvitationStatusWebDto": {
+        "type": "object",
+        "description": "Body of PATCH /api/employees/invitations/{id}.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EmployeeInvitationStatus"
+          }
+        }
+      },
+      "EmployeeInvitationWebDto": {
+        "type": "object",
+        "description": "Body of POST /api/employees/invitations and GET /publicapi/employees/invitations/{id}.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Public-shareable token, NOT a UUID."
+          },
+          "referenceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "$ref": "#/components/schemas/EmployeeInvitationCompanyWebDto"
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "useMinimumWage": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "wageHour": {
+            "type": "number",
+            "nullable": true
+          },
+          "mealVoucher": {
+            "$ref": "#/components/schemas/InvitationMealVoucherWebDto"
+          },
+          "travelAllowance": {
+            "$ref": "#/components/schemas/InvitationTravelAllowanceWebDto"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "employmentAddress": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EmployeeInvitationStatus"
+          },
+          "paritairComite": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "statute": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "invoiceEcoWeekly": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "oauthState": {
+            "type": "string",
+            "description": "Round-trip state for itsme.",
+            "nullable": true
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngagementGroupWebDto"
+            }
+          }
+        }
+      },
+      "EmployeeInvitationCompanyWebDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "vat": {
+            "type": "string"
+          },
+          "vatCountryCode": {
+            "type": "string"
+          }
+        }
+      },
+      "InvitationMealVoucherWebDto": {
+        "type": "object",
+        "properties": {
+          "shareEmployee": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareCompany": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareTotal": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "InvitationTravelAllowanceWebDto": {
+        "type": "object",
+        "properties": {
+          "travelAllowance": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "distanceKm": {
+            "type": "number",
+            "nullable": true
+          },
+          "forfait": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeLoginRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "EmployeeWageWebDto": {
+        "type": "object",
+        "description": "Both request (POST/PUT) and response on EmployeeWageController.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ssn": {
+            "type": "string",
+            "nullable": true
+          },
+          "allocationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "companyInfo": {
+            "$ref": "#/components/schemas/EmployeeWageCompanyInfoWebDto"
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "wageHour": {
+            "type": "number"
+          },
+          "compensationHours": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "invoiceEcoWeekly": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "mealVoucher": {
+            "$ref": "#/components/schemas/EmployeeWageMealVoucherWebDto"
+          },
+          "travelAllowance": {
+            "$ref": "#/components/schemas/EmployeeWageTravelAllowanceWebDto"
+          },
+          "statute": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "paritairComite": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "employmentAddress": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "revenueConsultant": {
+            "$ref": "#/components/schemas/ConsultantWebDto"
+          },
+          "revenueOfficeCode": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeWageCompanyInfoWebDto": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "vat": {
+            "type": "string"
+          }
+        }
+      },
+      "EmployeeWageMealVoucherWebDto": {
+        "type": "object",
+        "properties": {
+          "minimumHours": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareEmployee": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareCompany": {
+            "type": "number",
+            "nullable": true
+          },
+          "shareTotal": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeWageTravelAllowanceWebDto": {
+        "type": "object",
+        "properties": {
+          "travelAllowance": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "distanceKm": {
+            "type": "number",
+            "nullable": true
+          },
+          "forfait": {
+            "type": "number",
+            "nullable": true
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "TravelAllowanceWebDto_Calculate": {
+        "type": "object",
+        "description": "Alias placeholder; see TravelAllowanceWebDto."
+      },
+      "DistanceDetailsWebDto": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "distanceMeters": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "transportCode": {
+            "type": "string"
+          }
+        }
+      },
+      "EmployeeWebDto": {
+        "type": "object",
+        "description": "Both request (PUT/POST registration) and response (GET /api/employees/{id}, paged GET /api/employees). No separate short/long variant.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "socialSecurityNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactWebDto"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderWebDto"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "placeOfBirth": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryOfBirth": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "countryOfOrigin": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EmployeeStatusWebDto"
+          },
+          "isDraft": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "maritalStatus": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "dependentPartner": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "dependentChildren": {
+            "type": "integer",
+            "nullable": true
+          },
+          "taxLevel": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentBalance": {
+            "$ref": "#/components/schemas/StudentBalanceWebDto"
+          },
+          "creditCardMedia": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpirableMediaWebDto"
+            }
+          },
+          "identityMedia": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpirableMediaWebDto"
+            }
+          },
+          "newcomerInfo": {
+            "$ref": "#/components/schemas/NewcomerInfoWebDto"
+          }
+        }
+      },
+      "ContactWebDto": {
+        "type": "object",
+        "description": "Embedded in EmployeeWebDto.contact and NewcomerWebDto.contact.",
+        "properties": {
+          "employeeUuid": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "esigning": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "electronicDocuments": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "residenceAddress": {
+            "$ref": "#/components/schemas/AddressWebDto"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "mobileNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "homeNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "communicationLanguage": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "hasCustomResidencyAddress": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "StudentBalanceWebDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "balance": {
+            "type": "integer",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "changedByConsultant": {
+            "$ref": "#/components/schemas/EmployeeConsultantWebDto"
+          },
+          "changedByContract": {
+            "$ref": "#/components/schemas/EmployeeContractWebDto"
+          }
+        }
+      },
+      "EmployeeConsultantWebDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        }
+      },
+      "ExpirableMediaWebDto": {
+        "type": "object",
+        "properties": {
+          "media": {
+            "$ref": "#/components/schemas/MediaWebDto"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/MediaTypeWebDto"
+          }
+        }
+      },
+      "MediaWebDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "S3 object key."
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "NewcomerInfoWebDto": {
+        "type": "object",
+        "description": "Embedded as EmployeeWebDto.newcomerInfo.",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newcomerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agreeToStatuteTerm": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngagementGroupWebDto"
+            }
+          }
+        }
+      },
+      "EngagementGroupCreateRequestWebDto": {
+        "type": "object",
+        "description": "Body for POST /api/companies/{companyId}/groups.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "employees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngagementGroupCreateRequestWebDto_EmployeeGroupCreateRequestWebDto"
+            }
+          }
+        }
+      },
+      "EngagementGroupCreateRequestWebDto_EmployeeGroupCreateRequestWebDto": {
+        "type": "object",
+        "description": "Inner static class on EngagementGroupCreateRequestWebDto.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "EngagementGroupEmployeeWebDto": {
+        "type": "object",
+        "description": "Returned (paged) by GET /api/companies/{companyId}/groups/employees.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "engagementGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngagementGroupWebDto"
+            }
+          }
+        }
+      },
+      "EngagementGroupWebDto": {
+        "type": "object",
+        "description": "Lite group reference embedded everywhere (CompanyUser, NewcomerInfo, etc.).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "EngagementRequest": {
+        "type": "object",
+        "x-stub": true,
+        "description": "DTO EngagementRequest. Full field definitions in sources/dps-service-dtos.md."
+      },
+      "ImportJobWebDto": {
+        "type": "object",
+        "description": "Returned by every bulk-import endpoint (POST /api/companies/import, /api/employees/import, /api/employeewages/import).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        }
+      },
+      "InviteAppUserRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "firstName",
+          "lastName",
+          "language",
+          "companyId",
+          "role"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "NL",
+              "FR",
+              "EN",
+              "DE"
+            ]
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "COMPANY_USER",
+              "GROUP_USER"
+            ]
+          },
+          "engagementGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "NewcomerWebDto": {
+        "type": "object",
+        "description": "Body of POST /publicapi/employees/self-registration; returned by GET/PUT /api/newcomers/{id} and paged GET /api/newcomers. Almost identical to EmployeeWebDto.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "socialSecurityNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactWebDto"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/GenderWebDto"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "placeOfBirth": {
+            "type": "string",
+            "nullable": true
+          },
+          "countryOfBirth": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "countryOfOrigin": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EmployeeStatusWebDto"
+          },
+          "maritalStatus": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "dependentPartner": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "dependentChildren": {
+            "type": "integer",
+            "nullable": true
+          },
+          "taxLevel": {
+            "$ref": "#/components/schemas/DictionaryItemWebDto"
+          },
+          "iban": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentBalance": {
+            "$ref": "#/components/schemas/StudentBalanceWebDto"
+          },
+          "creditCardMedia": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpirableMediaWebDto"
+            }
+          },
+          "identityMedia": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpirableMediaWebDto"
+            }
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "employeeInvitationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "agreeToStatuteTerm": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationCountWebDto": {
+        "type": "object",
+        "description": "Returned by both the actuals and contracts notification-count endpoints. Wire field is 'notificationCount' (long).",
+        "properties": {
+          "notificationCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "NotificationScheduleWebDto": {
+        "type": "object",
+        "description": "Body and response of the …/schedule sub-resource on UserNotificationPreferencesController.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userNotificationPreferencesId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "notificationTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          }
+        }
+      },
+      "RegistrationReminderDto": {
+        "type": "object",
+        "x-stub": true,
+        "description": "DTO RegistrationReminderDto. Full field definitions in sources/dps-service-dtos.md."
+      },
+      "ResetPasswordRequestDto": {
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SetPasswordRequestDto": {
+        "type": "object",
+        "required": [
+          "session",
+          "username",
+          "password"
+        ],
+        "properties": {
+          "session": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "TravelAllowanceWebDto": {
+        "type": "object",
+        "description": "Returned by GET /api/travelallowance/calculate.",
+        "properties": {
+          "distanceMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "link": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UserNotificationPreferencesWebDto": {
+        "type": "object",
+        "description": "Both request and response on UserNotificationPreferencesController.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          }
+        }
+      },
+      "WageIndexationWebDto": {
+        "type": "object",
+        "description": "Body of POST /internalapi/indexations/wages/execute. Surprise: 'statutes' references the JPA entity Statute (not a WebDto); send [{\"code\":\"WHITE_COLLAR\"}, ...].",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "pcCode": {
+            "type": "string"
+          },
+          "indexationType": {
+            "type": "string",
+            "description": "Free-form string."
+          },
+          "contractsStartingFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "statutes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "JPA Statute entity reused as DTO. PoC clients can post {code: '<STATUTE_CODE>'}."
+            }
+          },
+          "coefficient": {
+            "type": "number"
+          },
+          "newMinimum": {
+            "type": "number"
+          }
+        }
+      },
+      "WorkTimeWebDto": {
+        "type": "object",
+        "description": "Mutable unit of an actual's day. Body of PATCH /api/companies/{companyId}/actuals/{actualId}/workTimes is List<WorkTimeWebDto>. Time fields use HH:mm pattern via @JsonFormat.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "pauseFromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          },
+          "pauseToTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$",
+            "nullable": true
+          },
+          "absence": {
+            "$ref": "#/components/schemas/AbsenceWebDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ActualStatusWebDto"
+          },
+          "prefilledFromTimeRegistration": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AbsenceWebDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/AbsenceTypeWebDto"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/AbsenceReasonWebDto"
+          },
+          "partialAbsenceDetails": {
+            "$ref": "#/components/schemas/PartialAbsenceDetailsWebDto"
+          }
+        }
+      },
+      "AbsenceReasonWebDto": {
+        "type": "object",
+        "description": "Returned standalone by GET /api/absenceReasons?statuteCode=...",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PartialAbsenceDetailsWebDto": {
+        "type": "object",
+        "properties": {
+          "fromTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          },
+          "toTime": {
+            "type": "string",
+            "pattern": "^[0-9]{2}:[0-9]{2}$"
+          }
+        }
+      },
+      "ConsultantWebDto": {
+        "type": "object",
+        "description": "Embedded across company / contract / wage DTOs.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        }
+      },
+      "TaxLevelDTO": {
+        "type": "object",
+        "description": "From eu.boemm.core.dto.employee.TaxLevelDTO (boemm-core shared library, not in dps-service repo). Returned by GET /api/taxLevels. Treat as black-box dictionary item unless you need to dig into the core lib.",
+        "additionalProperties": true
+      },
+      "ParitairComiteDTO": {
+        "type": "object",
+        "description": "From eu.boemm.core.dto.company.ParitairComiteDTO (boemm-core shared library). Returned by GET /api/paritaircomites. Treat as black-box dictionary item.",
+        "additionalProperties": true
+      },
+      "AppUserStatus": {
+        "type": "string",
+        "description": "eu.boemm.dps.companyuser.model.entity.AppUserStatus.",
+        "enum": [
+          "CONFIRMED",
+          "FORCE_CHANGE_PASSWORD"
+        ]
+      },
+      "CustomerRole": {
+        "type": "string",
+        "description": "Wire-level role on CompanyUserRoleDto, InviteAppUserRequest, CompanyCustomerWebDto.",
+        "enum": [
+          "COMPANY_USER",
+          "GROUP_USER"
+        ]
+      },
+      "UserRole": {
+        "type": "string",
+        "description": "Internal full role enum used on CompanyUserDto.role and UserCompanyMembershipDto.role.",
+        "enum": [
+          "FULL_ADMIN",
+          "DPS_DIRECTOR",
+          "DPS_SALES",
+          "SALES_ADMIN",
+          "CREDIT_CONTROLLER",
+          "PREVENTION_ADVISOR",
+          "SUPER_ADMIN",
+          "RECRUITER",
+          "COMPANY_USER",
+          "EMPLOYEE_USER",
+          "GROUP_USER"
+        ]
+      },
+      "CompanyStatusDto": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "BLOCKED",
+          "PROCESSING"
+        ]
+      },
+      "StatusWebDto": {
+        "type": "string",
+        "description": "Duplicate of CompanyStatusDto with the same values. Used by CompanyCreateResultWebDto and CompanyWebSearchResultWebDto.",
+        "enum": [
+          "ACTIVE",
+          "PROCESSING",
+          "BLOCKED"
+        ]
+      },
+      "SupportedStatutes": {
+        "type": "string",
+        "description": "Used by CompanyCoefficientsPerStatuteWebDto.getCoefficient(...) to switch on statute code.",
+        "enum": [
+          "WHITE_COLLAR_STUDENT",
+          "LABOUR_STUDENT",
+          "FLEX_WHITE_COLLAR",
+          "FLEX_LABOUR",
+          "WHITE_COLLAR",
+          "LABOUR",
+          "EXTRA",
+          "WHITE_COLLAR_STUDENT_WORKER",
+          "LABOUR_STUDENT_WORKER",
+          "SEASONAL"
+        ]
+      },
+      "CoefficientTypeDto": {
+        "type": "string",
+        "description": "Map keys for CompanyCoefficientsWebDto.generalCoefficientsPerStatute and holidayCoefficientsPerStatute.",
+        "enum": [
+          "DEFAULT",
+          "HOLIDAY",
+          "MINIMAL",
+          "COMPANY",
+          "BANK_HOLIDAY",
+          "MIN_ADMIN",
+          "MIN_USER"
+        ]
+      },
+      "ContractStatusWebDto": {
+        "type": "string",
+        "description": "From eu.boemm.dps.contract.model.dto. Note: source-of-truth lists 8 values, NOT the 9-value subset in the original priority list. CANCEL_VALIDATION and DELETED appear instead of OVERDUE / COMPLETED / CANCELED on this enum.",
+        "enum": [
+          "DRAFT",
+          "VALIDATION",
+          "PENDING",
+          "ACTIVE",
+          "CANCELLED",
+          "CANCEL_VALIDATION",
+          "DELETED",
+          "UNDER_REPAIR"
+        ]
+      },
+      "ContractSourceWebDto": {
+        "type": "string",
+        "description": "Tracks which subsystem originated the contract.",
+        "enum": [
+          "FLASH",
+          "COMPANY_FUNCTION",
+          "EAGLE",
+          "DPS"
+        ]
+      },
+      "ContractCreationStatus": {
+        "type": "string",
+        "enum": [
+          "SUCCESS",
+          "ERROR"
+        ]
+      },
+      "ActualStatusWebDto": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "CONFIRMED",
+          "ABSENT",
+          "CANCELLED",
+          "OVERDUE"
+        ]
+      },
+      "AbsenceTypeWebDto": {
+        "type": "string",
+        "enum": [
+          "PARTIAL",
+          "FULL"
+        ]
+      },
+      "CompensationHours": {
+        "type": "string",
+        "enum": [
+          "PAID",
+          "NOT_PAID",
+          "NONE"
+        ]
+      },
+      "EmployeeStatusWebDto": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "BLOCKED"
+        ]
+      },
+      "GenderWebDto": {
+        "type": "string",
+        "description": "Source enum lists MALE, FEMALE, OTHER. Note: the original priority list mentions 'X' but the source-of-truth enum uses OTHER.",
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
+        ]
+      },
+      "MediaTypeWebDto": {
+        "type": "string",
+        "enum": [
+          "IDENTITY",
+          "CREDIT_CARD"
+        ]
+      },
+      "EmployeeInvitationStatus": {
+        "type": "string",
+        "description": "Entity enum reused on the wire (non-WebDto package).",
+        "enum": [
+          "EXPIRED",
+          "ACTIVE",
+          "CANCELED",
+          "COMPLETED"
+        ]
+      },
+      "EmploymentReasons": {
+        "type": "string",
+        "enum": [
+          "TEMPORAL_EXTRA_WORK",
+          "SUBSTITUTION",
+          "EXCEPTION_WORK",
+          "INFLOW"
+        ]
+      },
+      "TravelAllowanceType": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "SUBSCRIPTION_PRIVATE",
+          "SUBSCRIPTION_PUBLIC",
+          "COMPANY_CAR"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "NOT_STARTED",
+          "IN_PROGRESS",
+          "FINISHED",
+          "FAILED"
+        ]
+      },
+      "EntityType": {
+        "type": "string",
+        "enum": [
+          "COMPANY",
+          "EMPLOYEE",
+          "EMPLOYEE_WAGE"
+        ]
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "ACTUALS",
+          "CONTRACT",
+          "ACTUALS_AND_CONTRACT"
+        ]
+      },
+      "DictionaryType": {
+        "type": "string",
+        "description": "Internal enum (not on the wire) — each enum value is what the URL path {resourceType} is matched against.",
+        "enum": [
+          "statutes",
+          "countries",
+          "languages",
+          "paritaircomites",
+          "naces",
+          "blockingreasons",
+          "travelallowances",
+          "cancelreasons",
+          "reasons",
+          "defaulttaxrates",
+          "compensationhours",
+          "socialsecuritycategories",
+          "transports",
+          "drivinglicenses",
+          "dependentpartners",
+          "maritalstatuses",
+          "taxlevels"
+        ]
+      },
+      "DpsUserDetailsWebDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/DpsUserWebDto"
+          },
+          "userRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Cross-company roles"
+          },
+          "companyMemberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserCompanyMembershipDto"
+            }
+          },
+          "managedEmployeeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "employeeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "DPS-internal user PK (NOT Cognito sub)"
+          }
+        }
+      },
+      "DpsUserWebDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Same as userId but as String"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "UserCompanyMembershipDto": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "COMPANY_USER",
+              "GROUP_USER"
+            ]
+          },
+          "engagementGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "lastViewedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "membershipCreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DictionaryItemWebDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "Generic dictionary item shape from boemm-core. Two fields only."
+      },
+      "LanguageItemWebDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "ISO 639-1, e.g. 'nl'"
+          },
+          "name": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean",
+            "description": "True for nl/fr/en (Belgium primaries)"
+          }
+        }
+      },
+      "StatuteItemWebDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Verified live: WHITE_COLLAR, LABOUR, FLEX_LABOUR, FLEX_WHITE_COLLAR, WHITE_COLLAR_STUDENT, LABOUR_STUDENT, EXTRA, SEASONAL_LABOUR, ..."
+          },
+          "name": {
+            "type": "string"
+          },
+          "isStudent": {
+            "type": "boolean"
+          },
+          "collar": {
+            "type": "string",
+            "enum": [
+              "WHITE",
+              "BLUE"
+            ],
+            "description": "Live values are WHITE or BLUE, NOT WHITE_COLLAR/LABOUR"
+          },
+          "genericStatute": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "JOBSTUDENT, FLEX, etc"
+              },
+              "name": {
+                "type": "string"
+              },
+              "statutes": {
+                "type": "array",
+                "items": {},
+                "description": "Empty when nested"
+              }
+            }
+          }
+        }
+      },
+      "AddressDTO": {
+        "type": "object",
+        "description": "Canonical from boemm-core-dto. NOT AddressWebDto. Note real field names.",
+        "properties": {
+          "uuid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "street": {
+            "type": "string"
+          },
+          "streetNumber": {
+            "type": "string"
+          },
+          "bus": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string",
+            "description": "ISO alpha-2"
+          },
+          "formattedAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "DictionariesHolder": {
+        "type": "object",
+        "description": "Envelope for /dictionaries?types=... response",
+        "properties": {
+          "dictionaries": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "actual"
+    },
+    {
+      "name": "audit"
+    },
+    {
+      "name": "common.security"
+    },
+    {
+      "name": "company"
+    },
+    {
+      "name": "companyuser"
+    },
+    {
+      "name": "contract"
+    },
+    {
+      "name": "employee"
+    },
+    {
+      "name": "employeeinvitation"
+    },
+    {
+      "name": "employeewage"
+    },
+    {
+      "name": "engagementgroup"
+    },
+    {
+      "name": "indexation"
+    },
+    {
+      "name": "itsmeinvite"
+    },
+    {
+      "name": "mystaffler"
+    },
+    {
+      "name": "newcomer"
+    },
+    {
+      "name": "notification"
+    },
+    {
+      "name": "usernotificationpreferences"
+    }
+  ],
+  "paths": {
+    "/api/companies/{companyId}/actuals": {
+      "get": {
+        "operationId": "getActuals",
+        "summary": "Search actuals for a company / date range",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "ActualWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "ACTUALS_VIEW_ANY",
+        "x-controller": "ActualsController",
+        "x-module": "actual"
+      }
+    },
+    "/api/companies/{companyId}/actuals/notificationCount": {
+      "get": {
+        "operationId": "getNotificationCount",
+        "summary": "Count of actuals needing attention",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationCountWebDto",
+                  "x-original-name": "NotificationCountWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "ACTUALS_VIEW_ANY",
+        "x-controller": "ActualsController",
+        "x-module": "actual"
+      }
+    },
+    "/api/companies/{companyId}/actuals/{actualId}/workTimes": {
+      "patch": {
+        "operationId": "updateActualDetails",
+        "summary": "Update work times on an actual (triggers encodage)",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkTimeWebDto",
+                    "x-original-name": "WorkTimeWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actualId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "ACTUALS_EDIT_ANY",
+        "x-controller": "ActualsController",
+        "x-module": "actual"
+      }
+    },
+    "/internalapi/actuals/updateToOverdue": {
+      "post": {
+        "operationId": "updateToOverdueActuals",
+        "summary": "Cron: flag past-due actuals as OVERDUE",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "ActualsManagementController",
+        "x-module": "actual"
+      }
+    },
+    "/internalapi/actuals/lockForPayment": {
+      "post": {
+        "operationId": "lockForPayment",
+        "summary": "Cron: lock actuals for payroll encodage",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "ActualsManagementController",
+        "x-module": "actual"
+      }
+    },
+    "/internalapi/actuals/unlockAfterPayment": {
+      "post": {
+        "operationId": "unlockAfterPayment",
+        "summary": "Cron: unlock actuals after payroll",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "ActualsManagementController",
+        "x-module": "actual"
+      }
+    },
+    "/internalapi/actuals/cancel": {
+      "post": {
+        "operationId": "cancelActuals",
+        "summary": "Cron: cancel actuals (demo cleanup)",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "ActualsManagementController",
+        "x-module": "actual"
+      }
+    },
+    "/internalapi/actuals/autoConfirm": {
+      "post": {
+        "operationId": "autoConfirmActuals",
+        "summary": "Cron: auto-confirm actuals matching time registration",
+        "tags": [
+          "actual"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "ActualsManagementController",
+        "x-module": "actual"
+      }
+    },
+    "/api/admin/audit/notifications/preferences/{id}/history": {
+      "get": {
+        "operationId": "getPreferencesHistory",
+        "summary": "Audit history of notification preferences",
+        "tags": [
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "UserNotificationPreferencesAuditController",
+        "x-module": "audit"
+      }
+    },
+    "/api/admin/audit/notifications/schedules/{id}/history": {
+      "get": {
+        "operationId": "getScheduleHistory",
+        "summary": "Audit history of notification schedules",
+        "tags": [
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "UserNotificationPreferencesAuditController",
+        "x-module": "audit"
+      }
+    },
+    "/internalapi/companies/confirmationEmail": {
+      "post": {
+        "operationId": "sendConfirmationEmail",
+        "summary": "Cron: send actuals confirmation emails",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "CompanyActualsConfirmationController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/{companyId}": {
+      "get": {
+        "operationId": "getCompany",
+        "summary": "Get company by id",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWebDto",
+                  "x-original-name": "CompanyWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_VIEW",
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/external": {
+      "get": {
+        "operationId": "searchForWebCompanies",
+        "summary": "Search Credit Safe for a company by name + postcode",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyWebSearchResultWebDto",
+                    "x-original-name": "CompanyWebSearchResultWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "postCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_SEARCH",
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/engagements": {
+      "get": {
+        "operationId": "getCompanies",
+        "summary": "List companies that an employee is engaged with",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "CompanyBaseInfoWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/{vat}": {
+      "post": {
+        "operationId": "createCompany",
+        "summary": "Onboard new company by VAT (Credit Safe lookup)",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyCreateResultWebDto",
+                  "x-original-name": "CompanyCreateResultWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "vat",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_ONBOARDING",
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/{companyId}/coefficients": {
+      "get": {
+        "operationId": "getDefaultCoefficients",
+        "summary": "Get default + per-statute coefficients for a company",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyCoefficientsWebDto",
+                  "x-original-name": "CompanyCoefficientsWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/{uuid}": {
+      "put": {
+        "operationId": "updateCompany",
+        "summary": "Update full Company",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWebDto",
+                  "x-original-name": "CompanyWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyWebDto",
+                "x-original-name": "CompanyWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkCompanyUpdate",
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/import": {
+      "post": {
+        "operationId": "importCompanies",
+        "summary": "Bulk import companies via Excel multipart",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobWebDto",
+                  "x-original-name": "ImportJobWebDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/companies/{companyId}/employees/{employeeId}": {
+      "delete": {
+        "operationId": "deleteEmployeeFromCompanyPool",
+        "summary": "Remove employee from company pool",
+        "tags": [
+          "company"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_REMOVE_USER",
+        "x-controller": "CompanyController",
+        "x-module": "company"
+      }
+    },
+    "/api/users/companies/{companyId}/invite": {
+      "post": {
+        "operationId": "registerUser",
+        "summary": "Invite a new Company User (admin)",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppUserDto",
+                  "x-original-name": "AppUserDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteAppUserRequest",
+                "x-original-name": "InviteAppUserRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_ADD_USER",
+        "x-controller": "AppUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/users/{userId}/companies/{companyId}/last-viewed": {
+      "post": {
+        "operationId": "updateLastViewedDate",
+        "summary": "Mark this membership as the user's last viewed",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USERS_VIEW_ANY",
+        "x-controller": "AppUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/companies/{companyId}/users": {
+      "get": {
+        "operationId": "getCompanyUsers",
+        "summary": "List Company Users",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "CompanyUserDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USERS_VIEW_ANY",
+        "x-controller": "CompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/companies/{companyId}/users/{userId}": {
+      "patch": {
+        "operationId": "updateUserRole",
+        "summary": "Update Company User role / groups",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyUserDto",
+                  "x-original-name": "CompanyUserDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyUserRoleDto",
+                "x-original-name": "CompanyUserRoleDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USERS_EDIT_ANY",
+        "x-controller": "CompanyUserController",
+        "x-module": "companyuser"
+      },
+      "delete": {
+        "operationId": "deleteCompanyMembership",
+        "summary": "Remove Company User membership",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USERS_EDIT_ANY",
+        "x-controller": "CompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/companies/{companyId}/users/{userId}/resendInvitation": {
+      "post": {
+        "operationId": "resendInvitation",
+        "summary": "Resend invitation to Company User",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USERS_EDIT_ANY",
+        "x-controller": "CompanyUserInvitationController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/users/logout": {
+      "get": {
+        "operationId": "logout",
+        "summary": "Cognito GlobalSignOut, invalidates refresh token",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "LogoutController",
+        "x-module": "companyuser"
+      }
+    },
+    "/publicapi/companies/users/login": {
+      "post": {
+        "operationId": "loginCustomer",
+        "summary": "Company-pool login. Returns AuthResultWebDto with skey",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultWebDto",
+                  "x-original-name": "AuthResultWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyUserLoginRequest"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicCompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/publicapi/companies/users/setPassword": {
+      "post": {
+        "operationId": "setPermanentPassword",
+        "summary": "Set permanent password (FORCE_PASSWORD_RESET flow)",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultWebDto",
+                  "x-original-name": "AuthResultWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequestDto",
+                "x-original-name": "SetPasswordRequestDto"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicCompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/publicapi/companies/users/resetPassword": {
+      "post": {
+        "operationId": "resetPassword",
+        "summary": "Trigger Cognito ForgotPassword (sends email confirmation code)",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequestDto",
+                "x-original-name": "ResetPasswordRequestDto"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicCompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/publicapi/companies/users/confirmResetPassword": {
+      "post": {
+        "operationId": "confirmResetPassword",
+        "summary": "Confirm Cognito password reset with code",
+        "tags": [
+          "companyuser"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmResetPasswordRequestDto",
+                "x-original-name": "ConfirmResetPasswordRequestDto"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicCompanyUserController",
+        "x-module": "companyuser"
+      }
+    },
+    "/api/contracts/{id}": {
+      "get": {
+        "operationId": "getContract",
+        "summary": "Get contract by id (rich shape)",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractWebDto",
+                  "x-original-name": "ContractWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      },
+      "put": {
+        "operationId": "updateContract",
+        "summary": "Update / change status of a contract",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractWebDto",
+                  "x-original-name": "ContractWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractWebDto",
+                "x-original-name": "ContractWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkContract",
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts": {
+      "post": {
+        "operationId": "createContract",
+        "summary": "Create a new contract",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractWebDto",
+                  "x-original-name": "ContractWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractWebDto",
+                "x-original-name": "ContractWebDto"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkContract",
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      },
+      "get": {
+        "operationId": "getContracts",
+        "summary": "Search contracts (paged ContractBaseWebDto)",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "ContractBaseWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activeStartDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activeEndDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts/batch": {
+      "post": {
+        "operationId": "createContractBatch",
+        "summary": "Batch create contracts (used for copy-week-to-week)",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractWebDto",
+                    "x-original-name": "ContractWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContractWebDto",
+                  "x-original-name": "ContractWebDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkListContracts",
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts/notificationCount": {
+      "get": {
+        "operationId": "getContractNotificationCount",
+        "summary": "Count of contracts needing attention (UNDER_REPAIR, etc.)",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationCountWebDto",
+                  "x-original-name": "NotificationCountWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts/shiftTemplates": {
+      "get": {
+        "operationId": "searchShiftTemplates",
+        "summary": "Search reusable shift templates for a company",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "ShiftTemplateWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nameLike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts/shiftTemplates/{id}": {
+      "delete": {
+        "operationId": "deleteShiftTemplate",
+        "summary": "Delete a named shift template",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractController",
+        "x-module": "contract"
+      }
+    },
+    "/api/contracts/{contractId}/workTimes": {
+      "post": {
+        "operationId": "handleWorkTimes",
+        "summary": "Regenerate work times from contract timetable",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractWorkTimeWebDto",
+                  "x-original-name": "ContractWorkTimeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractWorkTimeController",
+        "x-module": "contract"
+      },
+      "get": {
+        "operationId": "getWorkTimesByContractId",
+        "summary": "List computed work times of a contract",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "ContractWorkTimeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractWorkTimeController",
+        "x-module": "contract"
+      }
+    },
+    "/api/companies/{companyId}/contracts/workTimes": {
+      "get": {
+        "operationId": "getContractOverviewByDate",
+        "summary": "Cross-employee work-time overview per date range",
+        "tags": [
+          "contract"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractWorkTimeOverviewDto",
+                    "x-original-name": "ContractWorkTimeOverviewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "ContractWorkTimeOverviewController",
+        "x-module": "contract"
+      }
+    },
+    "/api/employees/{id}": {
+      "get": {
+        "operationId": "getEmployee",
+        "summary": "Get employee by id",
+        "tags": [
+          "employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWebDto",
+                  "x-original-name": "EmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_VIEW",
+        "x-controller": "EmployeeController",
+        "x-module": "employee"
+      },
+      "put": {
+        "operationId": "updateEmployee",
+        "summary": "Update employee (full replace)",
+        "tags": [
+          "employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWebDto",
+                  "x-original-name": "EmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeWebDto",
+                "x-original-name": "EmployeeWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_EDIT",
+        "x-controller": "EmployeeController",
+        "x-module": "employee"
+      }
+    },
+    "/api/employees": {
+      "get": {
+        "operationId": "getCompanyEmployees",
+        "summary": "Search employees in a company pool",
+        "tags": [
+          "employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "EmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nameLike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "baseView",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasContractFrom",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasContractUntil",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actualFrom",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actualUntil",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actualsStatuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_VIEW",
+        "x-controller": "EmployeeController",
+        "x-module": "employee"
+      }
+    },
+    "/api/employees/import": {
+      "post": {
+        "operationId": "uploadEmployees",
+        "summary": "Bulk import employees via Excel",
+        "tags": [
+          "employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobWebDto",
+                  "x-original-name": "ImportJobWebDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeController",
+        "x-module": "employee"
+      }
+    },
+    "/api/registrations/employees/{employeeId}/companies/{companyId}": {
+      "post": {
+        "operationId": "finishEmployeeRegistration",
+        "summary": "Finish employee registration (after newcomer flow)",
+        "tags": [
+          "employee"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWebDto",
+                  "x-original-name": "EmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeWebDto",
+                "x-original-name": "EmployeeWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_EDIT",
+        "x-controller": "EmployeeRegistrationController",
+        "x-module": "employee"
+      }
+    },
+    "/api/employees/invitations": {
+      "post": {
+        "operationId": "createEmployeeInvitation",
+        "summary": "Create a new employee invitation",
+        "tags": [
+          "employeeinvitation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeInvitationWebDto",
+                  "x-original-name": "EmployeeInvitationWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeInvitationWebDto",
+                "x-original-name": "EmployeeInvitationWebDto"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_CREATE_INVITATION",
+        "x-controller": "EmployeeInvitationController",
+        "x-module": "employeeinvitation"
+      },
+      "get": {
+        "operationId": "getInvitations",
+        "summary": "List employee invitations for a company",
+        "tags": [
+          "employeeinvitation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "EmployeeInvitationWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_INVITATIONS_VIEW_ANY",
+        "x-controller": "EmployeeInvitationController",
+        "x-module": "employeeinvitation"
+      }
+    },
+    "/api/employees/invitations/{id}": {
+      "patch": {
+        "operationId": "patchEmployeeInvitationStatus",
+        "summary": "Update invitation status",
+        "tags": [
+          "employeeinvitation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeInvitationWebDto",
+                  "x-original-name": "EmployeeInvitationWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeInvitationStatusWebDto",
+                "x-original-name": "EmployeeInvitationStatusWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_INVITATIONS_EDIT_STATUS",
+        "x-controller": "EmployeeInvitationController",
+        "x-module": "employeeinvitation"
+      }
+    },
+    "/publicapi/employees/invitations/{id}": {
+      "get": {
+        "operationId": "getEmployeeInvitation",
+        "summary": "Public lookup of an employee invitation by id",
+        "tags": [
+          "employeeinvitation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeInvitationWebDto",
+                  "x-original-name": "EmployeeInvitationWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-controller": "EmployeeInvitationPublicController",
+        "x-module": "employeeinvitation"
+      }
+    },
+    "/internalapi/employees/invitations/checkEmailReminder": {
+      "post": {
+        "operationId": "checkEmailReminder",
+        "summary": "Cron: send invitation reminder emails",
+        "tags": [
+          "employeeinvitation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "EmployeeRegistrationReminderController",
+        "x-module": "employeeinvitation"
+      }
+    },
+    "/api/employeewages": {
+      "post": {
+        "operationId": "create",
+        "summary": "Create employee wage (loonpakket)",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWageWebDto",
+                  "x-original-name": "EmployeeWageWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeWageWebDto",
+                "x-original-name": "EmployeeWageWebDto"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkEmployeeWage",
+        "x-controller": "EmployeeWageController",
+        "x-module": "employeewage"
+      },
+      "get": {
+        "operationId": "getEmployeeWagePage",
+        "summary": "List employee wages",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "EmployeeWageWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkEmployeeWageView",
+        "x-controller": "EmployeeWageController",
+        "x-module": "employeewage"
+      },
+      "delete": {
+        "operationId": "deleteEmployeeWage",
+        "summary": "Test-only: delete all employee wages",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeWageTestController",
+        "x-module": "employeewage"
+      }
+    },
+    "/api/employeewages/{id}": {
+      "put": {
+        "operationId": "update",
+        "summary": "Update employee wage",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWageWebDto",
+                  "x-original-name": "EmployeeWageWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeWageWebDto",
+                "x-original-name": "EmployeeWageWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "checkEmployeeWage",
+        "x-controller": "EmployeeWageController",
+        "x-module": "employeewage"
+      },
+      "delete": {
+        "operationId": "deleteEmployeeWage",
+        "summary": "Delete employee wage",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeWageController",
+        "x-module": "employeewage"
+      }
+    },
+    "/api/employeewages/import": {
+      "post": {
+        "operationId": "importEmployeeWages",
+        "summary": "Bulk import employee wages",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJobWebDto",
+                  "x-original-name": "ImportJobWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeWageController",
+        "x-module": "employeewage"
+      }
+    },
+    "/api/travelallowance/calculate": {
+      "get": {
+        "operationId": "getTravelAllowance",
+        "summary": "Calculate travel allowance between two addresses",
+        "tags": [
+          "employeewage"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TravelAllowanceWebDto",
+                  "x-original-name": "TravelAllowanceWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transportCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "TravelAllowanceController",
+        "x-module": "employeewage"
+      }
+    },
+    "/api/companies/{companyId}/groups/employees": {
+      "get": {
+        "operationId": "getEngagementGroupEmployees",
+        "summary": "List employees in engagement groups (or unassigned)",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "EngagementGroupEmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "groupIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nameLike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unassigned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeEngagementGroupController",
+        "x-module": "engagementgroup"
+      }
+    },
+    "/api/companies/{companyId}/employees/{employeeId}/groups": {
+      "post": {
+        "operationId": "updateEmployeeGroups",
+        "summary": "Replace employee's engagement groups",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EngagementGroupWebDto",
+                  "x-original-name": "EngagementGroupWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EmployeeEngagementGroupController",
+        "x-module": "engagementgroup"
+      }
+    },
+    "/api/companies/{companyId}/groups": {
+      "post": {
+        "operationId": "createEngagementGroup",
+        "summary": "Create engagement group",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementGroupWebDto",
+                  "x-original-name": "EngagementGroupWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementGroupCreateRequestWebDto",
+                "x-original-name": "EngagementGroupCreateRequestWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EngagementGroupController",
+        "x-module": "engagementgroup"
+      },
+      "get": {
+        "operationId": "searchEngagementGroups",
+        "summary": "Search engagement groups in a company",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "EngagementGroupWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeNameLike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nameLike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EngagementGroupController",
+        "x-module": "engagementgroup"
+      }
+    },
+    "/api/companies/{companyId}/groups/{groupId}": {
+      "get": {
+        "operationId": "getEngagementGroupById",
+        "summary": "Get engagement group by id",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementGroupWebDto",
+                  "x-original-name": "EngagementGroupWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EngagementGroupController",
+        "x-module": "engagementgroup"
+      },
+      "put": {
+        "operationId": "updateEngagementGroup",
+        "summary": "Update engagement group",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementGroupWebDto",
+                  "x-original-name": "EngagementGroupWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementGroupWebDto",
+                "x-original-name": "EngagementGroupWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_GROUP_EDIT",
+        "x-controller": "EngagementGroupController",
+        "x-module": "engagementgroup"
+      },
+      "delete": {
+        "operationId": "deleteGroup",
+        "summary": "Delete engagement group",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_GROUP_DELETE",
+        "x-controller": "EngagementGroupController",
+        "x-module": "engagementgroup"
+      }
+    },
+    "/api/companies/groups": {
+      "delete": {
+        "operationId": "deleteAllEngagementGroups",
+        "summary": "Test-only: delete all engagement groups",
+        "tags": [
+          "engagementgroup"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "EngagementGroupTestController",
+        "x-module": "engagementgroup"
+      }
+    },
+    "/internalapi/indexations/wages/execute": {
+      "post": {
+        "operationId": "executeIndexation",
+        "summary": "Cron: execute wage indexation",
+        "tags": [
+          "indexation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WageIndexationWebDto",
+                "x-original-name": "WageIndexationWebDto"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "WageIndexationController",
+        "x-module": "indexation"
+      }
+    },
+    "/publicapi/oauth/itsme/codeLink": {
+      "get": {
+        "operationId": "getAuthCodeLink",
+        "summary": "Get itsme OAuth2 authorization URL",
+        "tags": [
+          "itsmeinvite"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeLinkDto",
+                  "x-original-name": "CodeLinkDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-controller": "ItsMeAuthorizationController",
+        "x-module": "itsmeinvite"
+      }
+    },
+    "/publicapi/oauth/itsme/callback": {
+      "get": {
+        "operationId": "getUserInfo",
+        "summary": "itsme OAuth2 callback (redirects to SPA)",
+        "tags": [
+          "itsmeinvite"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-controller": "ItsMeAuthorizationController",
+        "x-module": "itsmeinvite"
+      }
+    },
+    "/api/companies/{companyId}/employees/{employeeId}/mystaffler/invite": {
+      "post": {
+        "operationId": "invite",
+        "summary": "Invite employee to MyStaffler app",
+        "tags": [
+          "mystaffler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_EDIT",
+        "x-controller": "MyStafflerController (root)",
+        "x-module": "mystaffler"
+      }
+    },
+    "/publicapi/employees/users/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Employee-pool login. Returns AuthResultWebDto with skey",
+        "tags": [
+          "mystaffler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultWebDto",
+                  "x-original-name": "AuthResultWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeLoginRequest",
+                "x-original-name": "EmployeeLoginRequest"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicEmployeeController (mystaffler.auth)",
+        "x-module": "mystaffler"
+      }
+    },
+    "/api/my-staffler/employees/{id}/contracts": {
+      "get": {
+        "operationId": "getEmployeeContracts",
+        "summary": "MyStaffler: get contracts for an employee",
+        "tags": [
+          "mystaffler"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeContractWebDto",
+                    "x-original-name": "EmployeeContractWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activeStartDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activeEndDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "MY_STAFFLER_VIEW_EMPLOYEE_CONTRACTS",
+        "x-controller": "EmployeeContractController (mystaffler.contract)",
+        "x-module": "mystaffler"
+      }
+    },
+    "/api/newcomers": {
+      "get": {
+        "operationId": "getNewcomerEmployees",
+        "summary": "List newcomers (verified or not) for a company",
+        "tags": [
+          "newcomer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageWebDto",
+                  "x-page-of": "NewcomerWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verifiedValues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "NewcomerController",
+        "x-module": "newcomer"
+      }
+    },
+    "/api/newcomers/{id}": {
+      "put": {
+        "operationId": "updateEmployee",
+        "summary": "Update newcomer",
+        "tags": [
+          "newcomer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewcomerWebDto",
+                  "x-original-name": "NewcomerWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewcomerWebDto",
+                "x-original-name": "NewcomerWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_EDIT",
+        "x-controller": "NewcomerController",
+        "x-module": "newcomer"
+      },
+      "get": {
+        "operationId": "getNewcomer",
+        "summary": "Get newcomer by id",
+        "tags": [
+          "newcomer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewcomerWebDto",
+                  "x-original-name": "NewcomerWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "EMPLOYEE_VIEW",
+        "x-controller": "NewcomerController",
+        "x-module": "newcomer"
+      }
+    },
+    "/api/employees/invitations/{invitationId}": {
+      "get": {
+        "operationId": "getInvitedNewcomer",
+        "summary": "Get invited newcomer's draft Employee shape",
+        "tags": [
+          "newcomer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWebDto",
+                  "x-original-name": "EmployeeWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "NewcomerSelfRegistrationController",
+        "x-module": "newcomer"
+      }
+    },
+    "/publicapi/employees/self-registration": {
+      "post": {
+        "operationId": "createNewcomer",
+        "summary": "Public self-registration (newcomer flow)",
+        "tags": [
+          "newcomer"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewcomerWebDto",
+                  "x-original-name": "NewcomerWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewcomerWebDto",
+                "x-original-name": "NewcomerWebDto"
+              }
+            }
+          }
+        },
+        "x-controller": "PublicEmployeeRegistrationController",
+        "x-module": "newcomer"
+      }
+    },
+    "/internalapi/notifications/sendNotification": {
+      "post": {
+        "operationId": "sendNotification",
+        "summary": "Cron: send scheduled group notifications",
+        "tags": [
+          "notification"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "NotificationController",
+        "x-module": "notification"
+      }
+    },
+    "/internalapi/notifications/sendMandatoryNotification": {
+      "post": {
+        "operationId": "sendMandatoryNotification",
+        "summary": "Cron: send mandatory notifications",
+        "tags": [
+          "notification"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK (no body)"
+          }
+        },
+        "security": [
+          {
+            "BoemmInternal": []
+          }
+        ],
+        "x-controller": "NotificationController",
+        "x-module": "notification"
+      }
+    },
+    "/api/users/{userId}/companies/{companyId}/notificationPreferences": {
+      "post": {
+        "operationId": "createNotificationPreferences",
+        "summary": "Create notification preferences",
+        "tags": [
+          "usernotificationpreferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationPreferencesWebDto",
+                  "x-original-name": "UserNotificationPreferencesWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserNotificationPreferencesWebDto",
+                "x-original-name": "UserNotificationPreferencesWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USER_EDIT_NOTIFICATION_PREFERENCES",
+        "x-controller": "UserNotificationPreferencesController",
+        "x-module": "usernotificationpreferences"
+      },
+      "get": {
+        "operationId": "getNotificationPreferences",
+        "summary": "Get notification preferences",
+        "tags": [
+          "usernotificationpreferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationPreferencesWebDto",
+                  "x-original-name": "UserNotificationPreferencesWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USER_VIEW_NOTIFICATION_PREFERENCES",
+        "x-controller": "UserNotificationPreferencesController",
+        "x-module": "usernotificationpreferences"
+      },
+      "put": {
+        "operationId": "updateNotificationPreferences",
+        "summary": "Update notification preferences",
+        "tags": [
+          "usernotificationpreferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationPreferencesWebDto",
+                  "x-original-name": "UserNotificationPreferencesWebDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserNotificationPreferencesWebDto",
+                "x-original-name": "UserNotificationPreferencesWebDto"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-preauthorize": "COMPANY_USER_EDIT_NOTIFICATION_PREFERENCES",
+        "x-controller": "UserNotificationPreferencesController",
+        "x-module": "usernotificationpreferences"
+      }
+    },
+    "/api/users/{userId}/companies/{companyId}/notificationPreferences/{userNotificationPreferencesId}/schedule": {
+      "get": {
+        "operationId": "getNotificationSchedule",
+        "summary": "Get notification schedule",
+        "tags": [
+          "usernotificationpreferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationScheduleWebDto",
+                    "x-original-name": "NotificationScheduleWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userNotificationPreferencesId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "UserNotificationPreferencesController",
+        "x-module": "usernotificationpreferences"
+      },
+      "put": {
+        "operationId": "updateNotificationSchedule",
+        "summary": "Update notification schedule",
+        "tags": [
+          "usernotificationpreferences"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationScheduleWebDto",
+                    "x-original-name": "NotificationScheduleWebDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NotificationScheduleWebDto",
+                  "x-original-name": "NotificationScheduleWebDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userNotificationPreferencesId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "x-controller": "UserNotificationPreferencesController",
+        "x-module": "usernotificationpreferences"
+      }
+    },
+    "/api/users/currentuser": {
+      "get": {
+        "operationId": "getCurrentUserInfo",
+        "summary": "Get current authenticated user (DpsUserDetailsWebDto)",
+        "tags": [
+          "companyuser"
+        ],
+        "security": [
+          {
+            "BoemmSkey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DpsUserDetailsWebDto"
+                }
+              }
+            }
+          }
+        },
+        "x-controller": "UserController",
+        "x-module": "common.security"
+      }
+    }
+  },
+  "x-source": {
+    "controllers": "sources/dps-service-controllers.md (45 controllers, 94 endpoints)",
+    "dtos": "sources/dps-service-dtos.md (~75 DTOs, ~24 enums)",
+    "confluence": "sources/confluence-dps-summary.md (157 pages)",
+    "extracted_at": "2026-05-09"
+  }
+}

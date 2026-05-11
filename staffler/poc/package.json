@@ -1,0 +1,27 @@
+{
+  "name": "staffler-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Externe PoC bovenop Staffler / dps-service backend. Server-side proxy om CORS-issues te vermijden, plus een minimale UI om login + employees + contracts te demonstreren.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "gen:types": "openapi-typescript ../api/openapi/openapi.json -o src/types/staffler.generated.ts"
+  },
+  "dependencies": {
+    "fastify": "^4.28.0",
+    "@fastify/static": "^7.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "openapi-typescript": "^7.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

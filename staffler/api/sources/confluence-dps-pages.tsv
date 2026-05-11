@@ -1,0 +1,157 @@
+3704324102	staffler 11/02/2026 - (FE Only)
+3608772611	DPS Hotfix Deployment Process
+3602055176	staffler release - 09/12/25
+3567714305	staffler release - 19/11/25 (enkel BE)
+3562373121	Cron jobs in staffler
+3562110977	[in progress] Reminder emails for actuals confirmation
+3459514373	Action centre staffler  - 22/09/25
+3430744074	Dimone 8h changes
+3368222725	Action Centre - Product & Technical Overview
+3349151748	Diagram
+3348856843	Missing in the Automated deployment
+3347677185	Saffler Hubspot integration PROD release  plan
+3335159811	Staffer QA
+3335061515	Deployment Staffler Hubspot integration
+3335061506	Hubspot Run Book
+3279880197	Actuals Encodage
+3278995460	DPS
+3278962728	REST API
+3278962702	Encodage
+3278962692	Flows
+3278897155	Update / Confirm Actual
+3276701701	Architecture
+3276570627	Technical Documentation
+3275128833	User Mapping Hunters DPS
+3274145794	Create companies and contacts in HubSpot
+3274047504	Company presumed start date in DPS
+3272245263	CRM Data Model
+3185737748	[in progress] Copy contracts from one week to another week
+3120824321	DPS rebranding Febr/2025
+3075964931	Emails of demo's given by sales
+3074064399	Copy contracts from one week to another - Business notes
+3072393236	(deprecated) Repeat contracts (recurrence) - Business notes
+3039526918	Who can confirm or update actuals and until when?
+3039330355	Email for actuals confirmations
+3002990599	DPS: Auto encodage of actuals confirmations
+2992275457	Actuals confirmation in DPS
+2982150154	Actuals - Business notes
+2979528713	DPS: Machine State Diagram COMPANY vs. GROUPS user
+2925330437	DPS: Manage user accounts
+2924773378	DPS: Types of company users
+2892365825	DPS: Roles and rights
+2877227027	DPS: New Time Table method
+2816507907	Invitation lifecycle
+2806644740	DPS: Group employees
+2806054922	Grouping of employees
+2805366790	Reminder mails for Itsme registration of employees
+2805006370	Demo company in DPS
+2805006360	Logout
+2798092290	Contract validations
+2797928452	Blocked companies
+2779676695	Itsme integration: source of truth of data
+2725937155	Actuals lifecycle
+2705948675	Field formats to use in migration file
+2705784834	Actuals working together with time registration
+2662170626	Mails about time registration
+2662039570	Internal mails for admins to perform checks
+2662039558	DPS: Internal and external mails
+2658304005	DPS: Time registration
+2656862305	Complete employee onboarding
+2656862242	Recurrency vs. copy/paste
+2656862230	Shift templates
+2656862219	Update and consult contracts
+2656862209	List and create contract
+2656632846	STEP 1: General info
+2656600069	DPS: Companies
+2656534623	PC code - statute validation
+2656436315	Analytically assign revenue to FIX or WT office and/or consultant
+2656403565	DPS: Address component
+2656403489	to do
+2656338016	Auth rules on employee wage list - create - update
+2656337994	Validation of employees after onboarding
+2656337978	STEP 3: Payment data
+2656337968	STEP 2: Contact data
+2656272393	Cancel contracts
+2656141415	Calculate transportation allowance
+2656141400	Employee profile
+2656141386	STEP 4: Documents
+2656075823	DPS wide: Field validations
+2656010268	Invite an employee
+2651160578	Collective time registration
+2631008269	DPS: Dependencies diagram
+2627567617	Migration: Parse import excel file
+2567210325	DPS: Re-inviting employee
+2567210282	DPS: Invoice employee registrations
+2567210155	DPS: Default revenue office + sales rep
+2567210045	DPS: Unhappy paths registration invite
+2567210017	DPS: Invitation invalid
+2567209996	DPS: Invitation already complete
+2567209814	DPS: Registration: Opening page
+2567209800	DPS: Employee invitation page
+2567209774	Cancel invitation
+2567209727	DPS: Invitation list
+2567209193	DPS: itsme TO DO
+2563244037	Employee onboarding stepper
+2563112961	Employee fields: format + validations
+2562785289	DPS: Employees
+2553380867	Libraries for DPS scheduler calendar
+2546925583	DPS: Components
+2546860053	DPS: Users: General
+2546434049	DPS: Create account external users
+2546139219	Add new company (Credit Safe)
+2546139137	DPS: Login & Forgot password
+2542665740	DPS Dimona rules
+2542534697	Filter options on planningscreen
+2542502043	Confirm actuals
+2542502030	Actuals UI
+2542272621	Filter by groups
+2541977601	DPS: Actuals
+2541879297	DPS: Contracts
+2541846529	DPS: Employee wage
+2541715477	UI of planningscreen
+2541682748	{to recheck} Select and copy contract(s) to week x
+2541682736	Company profile
+2540371969	DPS: Scheduler
+2529558538	Premiums and allowances in DPS tool
+2526085122	Dribble down of levels
+2524119041	Company onboarding
+2524053509	Release plan DPS tool
+2517893136	Hierarchy of field levels
+2517630983	Login as employee: investigation
+2515533825	Employee details: Internal info
+2515468289	Employee details: Documents
+2515206158	Employee details: Competences + Jobprofile
+2515206146	Employee details: Education
+2515075089	Employee details: General
+2514780182	Employee details: Certificates
+2514780172	Employee details: @WORK
+2514780162	Employee details: Experience
+2514518017	Contract details: Cost center
+2513371137	Contract details: Schedule
+2513207320	Contract fields
+2512355329	Contract details: Invoicing
+2512322581	Contract details: Internal info
+2512322561	Contract details: Wage
+2511863810	Admin: Contracts
+2511798279	Contract details: General
+2504720474	Admin: Employee profile
+2504589313	Company details: Coefficients
+2504556626	Company details: Documents
+2504556601	Company details: Suboffices
+2504556576	Company details: Invoicing
+2504556545	Company details: Jobprofile
+2504523829	Company details: Personal contacts
+2504523804	Company details: Credit score
+2504523777	Company details: Interim (2)
+2504491058	Company details: Online e-docs
+2504491031	Company details: Time tables
+2504491009	Company details: Interim (1)
+2503835669	Company details: General
+2502819842	Admin: Company details
+2502590465	Search a company
+2502066177	v1 Brandbook colors and logo
+2498560001	Intro DPS planningstool
+2497708066	Start
+2497576997	MPS -> DPS
+2497380578	Digital Payroll Services Home
+1807810561	Marktstudie DPS planningstool

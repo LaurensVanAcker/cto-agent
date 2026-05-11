@@ -1,0 +1,37 @@
+<h1>Employees</h1>
+
+@if (companyId(); as id) {
+  <p class="muted">Company: {{ id }}</p>
+}
+
+@if (loading()) {
+  <p><span class="spinner"></span> Laden...</p>
+}
+
+@if (error(); as e) {
+  <p class="err">{{ e }}</p>
+}
+
+@if (page(); as p) {
+  <p class="muted">{{ p.totalElements }} employees</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Voornaam</th>
+        <th>Naam</th>
+        <th>Email</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (e of p.content; track e.id) {
+        <tr>
+          <td>{{ e.firstName }}</td>
+          <td>{{ e.lastName }}</td>
+          <td>{{ e.email }}</td>
+          <td>{{ e.status }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
