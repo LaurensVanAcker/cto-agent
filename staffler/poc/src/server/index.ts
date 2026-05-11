@@ -736,6 +736,57 @@ app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
   },
 );
 
+// GET /api/my-staffler/employees/:id/contracts?startDate=&endDate=
+// Cross-company contracts for one employee — mirrors mockup MyStaffler week.
+app.get<{ Params: { id: string }; Querystring: { startDate?: string; endDate?: string } }>(
+  "/api/my-staffler/employees/:id/contracts",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.startDate || !req.query.endDate) {
+      reply.status(400);
+      return { kind: "validation", message: "startDate and endDate required" };
+    }
+    try {
+      return await clientFor(session).listEmployeeContractsCrossCompany({
+        employeeId: req.params.id,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+      });
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
+// GET /api/my-shifts?employeeId=
+// PoC-DB view: all open shifts where this employee is targeted (SELECTION,
+// ALL_POOL) plus the application status if any.
+app.get<{ Querystring: { employeeId?: string } }>(
+  "/api/my-shifts",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.employeeId) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId required" };
+    }
+    const employeeId = req.query.employeeId;
+    const allShifts = pocDb.raw().shifts;
+    const targeted = allShifts.filter(
+      (s) =>
+        s.status === "open" &&
+        (s.target_type === "ALL_POOL" ||
+          (s.target_type === "SELECTION" && s.target_employee_ids?.includes(employeeId))),
+    );
+    const apps = pocDb.listApplicationsForEmployee(employeeId);
+    const appByShift = new Map(apps.map((a) => [a.shift_id, a] as const));
+    return targeted.map((s) => ({ shift: s, application: appByShift.get(s.id) ?? null }));
+  },
+);
+
 // POST /api/employees/:id/mystaffler-mark-active?companyId=
 // Test/demo helper — flips the PoC-DB status to "active" so the Pool overview
 // shows the green "Account active" badge without needing the employee to

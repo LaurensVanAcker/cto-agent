@@ -123,6 +123,23 @@ export class StafflerClient {
     return this.authedCall<unknown[]>("GET", `/api/companies/${companyId}/groups`);
   }
 
+  // -- MyStaffler (employee-side cross-company queries) --
+
+  async listEmployeeContractsCrossCompany(params: {
+    employeeId: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<unknown[]> {
+    const qs = this.buildQS({
+      startDate: params.startDate,
+      endDate: params.endDate,
+    });
+    return this.authedCall<unknown[]>(
+      "GET",
+      `/api/my-staffler/employees/${params.employeeId}/contracts${qs}`,
+    );
+  }
+
   // -- employees --
 
   async listEmployees(params: {

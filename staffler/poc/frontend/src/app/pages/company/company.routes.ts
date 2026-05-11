@@ -67,6 +67,13 @@ export const COMPANY_ROUTES: Routes = [
             m => m.PLANNING_POC_ROUTES,
           ),
       },
+      {
+        path: CompanyRouteEnum.MYSTAFFLER_PREVIEW,
+        loadChildren: () =>
+          import('./modules/mystaffler-preview/mystaffler-preview.routes').then(
+            m => m.MYSTAFFLER_PREVIEW_ROUTES,
+          ),
+      },
       { path: '**', redirectTo: CompanyRouteEnum.PLANNING },
     ],
   },

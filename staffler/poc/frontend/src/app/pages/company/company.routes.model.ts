@@ -9,6 +9,7 @@ export enum CompanyRouteEnum {
   GROUPS = 'groups',
   POOL = 'pool',
   LOCATIONS = 'locations',
+  MYSTAFFLER_PREVIEW = 'mystaffler-preview',
 }
 
 export enum CompanyRoutePathParam {

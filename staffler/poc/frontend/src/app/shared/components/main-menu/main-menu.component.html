@@ -115,6 +115,19 @@
     ></span>
     <span class="link-text">{{ 'COMPANY_SIDENAV.PLANNING_POC' | translate }}</span>
   </a>
+
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.MYSTAFFLER_PREVIEW' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.MYSTAFFLER_PREVIEW]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span
+      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.MYSTAFFLER_PREVIEW] }}"
+    ></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.MYSTAFFLER_PREVIEW' | translate }}</span>
+  </a>
 </div>
 
 @if (isMobileScreen() && isMenuExpanded()) {

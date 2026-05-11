@@ -1,0 +1,174 @@
+<header class="flex align-items-center gap-3 flex-wrap">
+  <div>
+    <h1 class="text-2xl font-semibold m-0">MyStaffler preview</h1>
+    <p class="text-color-secondary mt-2 mb-0">
+      Bekijk wat een uitzendkracht ziet op zijn MyStaffler-telefoon.
+    </p>
+  </div>
+  <span class="flex-1"></span>
+  <p-select
+    [options]="employeeOptions()"
+    [formControl]="employeeControl"
+    optionLabel="label"
+    optionValue="value"
+    placeholder="Kies een medewerker"
+    styleClass="w-15rem"
+  />
+</header>
+
+<p-toast position="bottom-right" />
+
+<div class="flex justify-content-center flex-auto overflow-auto">
+  <div class="phone-shell">
+    <div class="phone-screen">
+      <!-- Header -->
+      <div class="phone-header">
+        <div class="phone-header-row">
+          <h2 class="phone-greeting">
+            @if (employeeControl.value) {
+              Hallo!
+            } @else {
+              <em>Kies een medewerker</em>
+            }
+          </h2>
+          <button type="button" class="phone-icon-btn" (click)="today()" pTooltip="Vandaag">
+            <span class="dps-icon dps-icon-event-note"></span>
+          </button>
+        </div>
+
+        <div class="phone-tabs">
+          <button
+            type="button"
+            class="phone-tab"
+            [class.active]="tab() === 'planning'"
+            (click)="setTab('planning')"
+          >
+            Planning
+          </button>
+          <button
+            type="button"
+            class="phone-tab"
+            [class.active]="tab() === 'shifts'"
+            (click)="setTab('shifts')"
+          >
+            Open shifts
+            @if (openShifts().length > 0) {
+              <span class="badge">{{ openShifts().length }}</span>
+            }
+          </button>
+          <button
+            type="button"
+            class="phone-tab"
+            [class.active]="tab() === 'availability'"
+            (click)="setTab('availability')"
+          >
+            Beschikbaar
+          </button>
+        </div>
+
+        <div class="phone-week-nav">
+          <button type="button" class="phone-icon-btn" (click)="previousWeek()">
+            <span class="dps-icon dps-icon-chevron rotate-180"></span>
+          </button>
+          <span class="phone-week-label">{{ weekLabel() }}</span>
+          <button type="button" class="phone-icon-btn" (click)="nextWeek()">
+            <span class="dps-icon dps-icon-chevron"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="phone-body">
+        @if (!employeeControl.value) {
+          <div class="phone-empty">
+            Kies een medewerker uit de dropdown bovenaan.
+          </div>
+        } @else {
+          @switch (tab()) {
+            @case ('planning') {
+              @for (day of days(); track day.iso) {
+                <div class="day-row">
+                  <div class="day-head">
+                    <span class="day-name">{{ day.weekdayLabel }}</span>
+                    <span class="day-date">{{ day.dateLabel }}</span>
+                  </div>
+                  <div class="day-blocks">
+                    @for (c of day.contracts; track c.id) {
+                      <div class="block block-contract">
+                        <span class="block-title">{{ c.position }}</span>
+                        <span class="block-times">
+                          {{ c.timetable.schedule[0]?.fromTime }}
+                          →
+                          {{ c.timetable.schedule[0]?.toTime }}
+                        </span>
+                      </div>
+                    }
+                    @if (day.contracts.length === 0) {
+                      <div class="block block-empty">Geen contracten</div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+            @case ('shifts') {
+              @if (openShifts().length === 0) {
+                <div class="phone-empty">Geen open shifts deze week.</div>
+              } @else {
+                @for (row of openShifts(); track row.shift.id) {
+                  <div class="shift-card" [class.applied]="row.application">
+                    <div class="shift-card-title">
+                      Open shift × {{ row.shift.capacity }}
+                    </div>
+                    <div class="shift-card-meta">
+                      {{ row.shift.date_from }} · {{ row.shift.from_time }} →
+                      {{ row.shift.to_time }}
+                    </div>
+                    @if (row.application) {
+                      <div class="shift-card-status">
+                        Status: {{ row.application.status }}
+                      </div>
+                    }
+                    @if (!row.application) {
+                      <button type="button" class="shift-cta" (click)="apply(row)">
+                        Kandidaat stellen
+                      </button>
+                    }
+                  </div>
+                }
+              }
+            }
+            @case ('availability') {
+              @for (day of days(); track day.iso) {
+                <div class="day-row">
+                  <div class="day-head">
+                    <span class="day-name">{{ day.weekdayLabel }}</span>
+                    <span class="day-date">{{ day.dateLabel }}</span>
+                  </div>
+                  <div class="day-blocks">
+                    @if (day.availability) {
+                      <div class="block block-availability">
+                        Beschikbaar
+                        <span class="block-times">
+                          {{ day.availability.from_time }} →
+                          {{ day.availability.to_time }}
+                        </span>
+                      </div>
+                    } @else {
+                      <button
+                        type="button"
+                        class="block block-empty as-button"
+                        (click)="createAvailability(day, '09:00', '17:00')"
+                      >
+                        + Beschikbaar (09:00 → 17:00)
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>
