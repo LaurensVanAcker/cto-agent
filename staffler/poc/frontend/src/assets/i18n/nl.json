@@ -88,7 +88,7 @@
     "COMPANY_SELECTOR_LABEL": "Bedrijf",
     "COMPANY_PROFILE": "Bedrijfsprofiel",
     "USER_ACCOUNTS": "Gebruikersaccounts",
-    "GROUPS": "Groepen",
+    "GROUPS": "Pool",
     "PLANNING": "Planning",
     "ACTUALS": "Prestaties",
     "TIME_REGISTRATION": "Prikklok",
@@ -205,7 +205,7 @@
     "SOCIAL_SECURITY_CATEGORY": "RSZ-categorie",
     "DEFAULT_REVENUE_SALES_REP": "Standaard omzet sales rep",
     "ADDITIONAL_FEATURES": "Extra opties",
-    "USES_GROUPS": "Gebruikt groepen",
+    "USES_GROUPS": "Gebruikt vestigingen",
     "USES_TIME_REGISTRATION": "Gebruikt de prikklok",
     "USES_ACTUALS": "Gebruikt prestatiebevestigingen",
     "BLOCK_CONTRACTS_FOR_LATE_ACTUALS": "Contracten blokkeren bij te late prestaties",
@@ -390,7 +390,7 @@
     "PREVIOUS_STEP_BUTTON": "Stap {{stepNumber}}",
     "CANCEL_BUTTON": "Annuleren",
     "WAGE_TOGGLE_INFO": "Als je baremaloon niet kent, duidt dan baremaloon aan. Wij zetten het loon dan eerst op {{minWage}} euro en passen nadien aan naar juiste baremaloon.",
-    "ASSIGN_TO_GROUP_LABEL": "Toewijzen aan groep"
+    "ASSIGN_TO_GROUP_LABEL": "Toewijzen aan vestiging"
   },
   "AUTH": {
     "EMAIL_LABEL": "E-mailadres",
@@ -528,34 +528,34 @@
     "PAGINATOR_REPORT_TEMPLATE": "Toon {first}-{last} van de {totalRecords}",
     "NO_INVITATIONS": "Er zijn geen openstaande uitnodigingen gevonden",
     "CONFIRM_CANCELLATION_INVITATION": "Ben je zeker dat je deze uitnodiging wil annuleren?",
-    "NO_ACCESS_TO_GROUPS_YET": "Je hebt nog geen toegang tot medewerkersgroepen. Contacteer de beheerder om jou toegang te verlenen."
+    "NO_ACCESS_TO_GROUPS_YET": "Je hebt nog geen toegang tot medewerkersvestigingen. Contacteer de beheerder om jou toegang te verlenen."
   },
   "COMPANY_GROUPS": {
-    "TITLE": "Groepen",
-    "CREATE_NEW_GROUP_BUTTON": "Nieuwe groep maken",
+    "TITLE": "Pool",
+    "CREATE_NEW_GROUP_BUTTON": "Nieuwe vestiging maken",
     "COLUMNS": {
       "EMPLOYEE": "Medewerker",
-      "ASSIGNED_GROUPS": "Toegewezen groepen"
+      "ASSIGNED_GROUPS": "Toegewezen vestigingen"
     },
-    "ASSIGN_GROUPS": "Groepen toewijzen",
-    "ASSIGN_GROUPS_TO_EMPLOYEE": "Wijs groepen toe aan <span class='text-primary'>{{employeeFullName}}</span>",
+    "ASSIGN_GROUPS": "Vestigingen toewijzen",
+    "ASSIGN_GROUPS_TO_EMPLOYEE": "Wijs vestigingen toe aan <span class='text-primary'>{{employeeFullName}}</span>",
     "SEARCH_EMPLOYEE_PLACEHOLDER": "Zoek op medewerker",
-    "FILTER_BY_GROUP_PLACEHOLDER": "Filter op groep",
+    "FILTER_BY_GROUP_PLACEHOLDER": "Filter op vestiging",
     "SHOW_UNASSIGNED_EMPLOYEES": "Toon enkel niet toegewezen medewerkers",
-    "NO_GROUPS_TO_ASSIGN": "Geen groepen meer",
+    "NO_GROUPS_TO_ASSIGN": "Geen vestigingen meer",
     "NO_EMPLOYEES_FOUND": "Geen medewerkers gevonden",
     "PAGINATION_REPORT_TEMPLATE": "Medewerkers {first}-{last}/{totalRecords}",
-    "EMPLOYEE_NOT_ASSIGNED_TO_GROUPS": "Nog niet toegewezen aan een groep",
-    "SEARCH_A_GROUP": "Zoek een groep",
-    "UPDATE_GROUP_NAME": "Wijzig groepsnaam",
-    "REMOVE_GROUP": "Verwijder groep",
-    "CONFIRM_GROUP_REMOVAL": "Ben je zeker dat je <span class='text-primary'>{{groupName}}</span> groep wil verwijderen?"
+    "EMPLOYEE_NOT_ASSIGNED_TO_GROUPS": "Nog niet toegewezen aan een vestiging",
+    "SEARCH_A_GROUP": "Zoek een vestiging",
+    "UPDATE_GROUP_NAME": "Wijzig vestigingsnaam",
+    "REMOVE_GROUP": "Verwijder vestiging",
+    "CONFIRM_GROUP_REMOVAL": "Ben je zeker dat je <span class='text-primary'>{{groupName}}</span> vestiging wil verwijderen?"
   },
   "CREATE_COMPANY_GROUP": {
-    "TITLE": "Nieuwe groep",
-    "INFO_TEXT": "Geef een naam aan jouw nieuwe groep en selecteer de medewerkers dat je aan deze groep wil toewijzen.",
-    "GROUP_NAME_LABEL": "Groepsnaam",
-    "GROUP_NAME_IS_TOO_SHORT_OR_LONG_ERROR": "Groepsnaam is te kort of te lang",
+    "TITLE": "Nieuwe vestiging",
+    "INFO_TEXT": "Geef een naam aan jouw nieuwe vestiging en selecteer de medewerkers dat je aan deze vestiging wil toewijzen.",
+    "GROUP_NAME_LABEL": "Vestigingsnaam",
+    "GROUP_NAME_IS_TOO_SHORT_OR_LONG_ERROR": "Vestigingsnaam is te kort of te lang",
     "SEARCH_EMPLOYEE_PLACEHOLDER": "Zoek op medewerker",
     "NO_EMPLOYEES": "Geen resultaten",
     "TOTAL_ASSIGNED_EMPLOYEES": "Aantal geselecteerde medewerkers",
@@ -571,16 +571,16 @@
     "RESTRICT_RIGHTS_FOR_USER": "Beperk, indien gewenst, de toegangsrechten van deze gebruiker:",
     "GENERAL_ACCESS_RIGHTS": "Algemene toegang",
     "SPECIFIC_ACCESS_RIGHTS": "Specifieke toegang",
-    "GROUPS_SELECT_LABEL": "Groepen",
-    "NO_GROUPS_CREATED_YET": "Nog geen groepen aangemaakt",
+    "GROUPS_SELECT_LABEL": "Vestigingen",
+    "NO_GROUPS_CREATED_YET": "Nog geen vestigingen aangemaakt",
     "TABLE_COLUMNS": {
       "USER": "Gebruiker",
-      "ACCESS_TO_EMPLOYEES_GROUPS": "Toegang tot groepen van medewerkers",
+      "ACCESS_TO_EMPLOYEES_GROUPS": "Toegang tot vestigingen van medewerkers",
       "LAST_LOGIN": "Laatst ingelogd"
     },
-    "ASSIGN_GROUPS": "Groepen toewijzen",
-    "ACCESS_TO_ALL_GROUPS": "Toegang tot alle groepen",
-    "NO_ACCESS_TO_GROUPS": "Nog geen toegang tot medewerkersgroepen",
+    "ASSIGN_GROUPS": "Vestigingen toewijzen",
+    "ACCESS_TO_ALL_GROUPS": "Toegang tot alle vestigingen",
+    "NO_ACCESS_TO_GROUPS": "Nog geen toegang tot medewerkersvestigingen",
     "USER_ACCOUNT_MENU": {
       "LIMIT_ACCESS_RIGHTS": "Toegangsrechten limiteren",
       "EXPAND_ACCESS_RIGHTS": "Algemene toegang geven",
@@ -588,8 +588,8 @@
       "RESEND_INVITATION": "Uitnodiging opnieuw versturen",
       "REMOVE_ACCOUNT": "Account verwijderen"
     },
-    "CONFIRM_USER_ACCOUNT_LIMIT_ACCESS_CHANGE": "Ben je zeker dat je voor <span class='text-primary'>{{email}}</span> de toegang wil aanpassen tot enkele groepen?",
-    "CONFIRM_USER_ACCOUNT_EXPAND_ACCESS_CHANGE": "Ben je zeker dat je voor <span class='text-primary'>{{email}}</span> de toegang wil openzetten tot alle groepen en medewerkers?",
+    "CONFIRM_USER_ACCOUNT_LIMIT_ACCESS_CHANGE": "Ben je zeker dat je voor <span class='text-primary'>{{email}}</span> de toegang wil aanpassen tot enkele vestigingen?",
+    "CONFIRM_USER_ACCOUNT_EXPAND_ACCESS_CHANGE": "Ben je zeker dat je voor <span class='text-primary'>{{email}}</span> de toegang wil openzetten tot alle vestigingen en medewerkers?",
     "CONFIRM_USER_ACCOUNT_RESET": "Ben je zeker dat je het account van <span class='text-primary'>{{email}}</span> wil resetten?",
     "CONFIRM_USER_ACCOUNT_REMOVAL": "Weet u zeker dat u de toegang van deze gebruiker <span class='text-primary'>{{email}}</span> tot dit bedrijf wilt intrekken?",
     "CONFIRM_USER_ACCOUNT_REMOVAL_INFO": "Indien dezelfde persoon ook toegang zou hebben tot andere bedrijven, blijft die toegang daar nog behouden.",
@@ -598,7 +598,7 @@
     "NOT_LOGGED_IN": "Nog nooit ingelogd",
     "NO_USERS": "Nog geen gebruikersaccounts uitgenodigd",
     "PAGINATION_REPORT_TEMPLATE": "Accounts {first}-{last}/{totalRecords}",
-    "ASSIGN_GROUPS_TO_ACCOUNT": "Wijs groepen toe aan <span class='text-primary'>{{account}}</span>",
+    "ASSIGN_GROUPS_TO_ACCOUNT": "Wijs vestigingen toe aan <span class='text-primary'>{{account}}</span>",
     "ASSIGN_GROUPS_SAVE_BUTTON": "Opslaan"
   },
   "COMPANY_ACTUALS": {

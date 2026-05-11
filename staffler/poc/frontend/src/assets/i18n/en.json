@@ -88,7 +88,7 @@
     "CUSTOMER": "Customer",
     "COMPANY_PROFILE": "Company profile",
     "USER_ACCOUNTS": "User accounts",
-    "GROUPS": "Groups",
+    "GROUPS": "Pool",
     "PLANNING": "Planning",
     "ACTUALS": "Actuals",
     "TIME_REGISTRATION": "Time registration",
@@ -205,7 +205,7 @@
     "SOCIAL_SECURITY_CATEGORY": "Social security category",
     "DEFAULT_REVENUE_SALES_REP": "Default revenue sales rep",
     "ADDITIONAL_FEATURES": "Additional options",
-    "USES_GROUPS": "Uses groups",
+    "USES_GROUPS": "Uses locations",
     "USES_TIME_REGISTRATION": "Uses time registration",
     "USES_ACTUALS": "Uses actuals confirmations",
     "BLOCK_CONTRACTS_FOR_LATE_ACTUALS": "Block contracts for late actuals confirmations",
@@ -390,7 +390,7 @@
     "PREVIOUS_STEP_BUTTON": "Step {{stepNumber}}",
     "CANCEL_BUTTON": "Cancel",
     "WAGE_TOGGLE_INFO": "Don't know the wage? Then click on 'Choose minimum wage' and we will first set the wage at {{minWage}} euros and then adjust to correct minimum wage.",
-    "ASSIGN_TO_GROUP_LABEL": "Assign to group"
+    "ASSIGN_TO_GROUP_LABEL": "Assign to location"
   },
   "AUTH": {
     "EMAIL_LABEL": "Email",
@@ -528,34 +528,34 @@
     "PAGINATOR_REPORT_TEMPLATE": "Showing {first}-{last} out of {totalRecords}",
     "NO_INVITATIONS": "There are no open invitations",
     "CONFIRM_CANCELLATION_INVITATION": "Are you sure you wat to cancel this invitation?",
-    "NO_ACCESS_TO_GROUPS_YET": "You don't have access yet to any groups of employees. Contact the administrator to grant you access."
+    "NO_ACCESS_TO_GROUPS_YET": "You don't have access yet to any locations of employees. Contact the administrator to grant you access."
   },
   "COMPANY_GROUPS": {
-    "TITLE": "Groups",
-    "CREATE_NEW_GROUP_BUTTON": "Create new group",
+    "TITLE": "Pool",
+    "CREATE_NEW_GROUP_BUTTON": "Create new location",
     "COLUMNS": {
       "EMPLOYEE": "Employee",
-      "ASSIGNED_GROUPS": "Assigned groups"
+      "ASSIGNED_GROUPS": "Assigned locations"
     },
-    "ASSIGN_GROUPS": "Assign groups",
-    "ASSIGN_GROUPS_TO_EMPLOYEE": "Assign groups to <span class='text-primary'>{{employeeFullName}}</span>",
+    "ASSIGN_GROUPS": "Assign locations",
+    "ASSIGN_GROUPS_TO_EMPLOYEE": "Assign locations to <span class='text-primary'>{{employeeFullName}}</span>",
     "SEARCH_EMPLOYEE_PLACEHOLDER": "Search on employee",
-    "FILTER_BY_GROUP_PLACEHOLDER": "Filter by group",
+    "FILTER_BY_GROUP_PLACEHOLDER": "Filter by location",
     "SHOW_UNASSIGNED_EMPLOYEES": "Only show not assigned employees",
-    "NO_GROUPS_TO_ASSIGN": "No more groups to assign",
+    "NO_GROUPS_TO_ASSIGN": "No more locations to assign",
     "NO_EMPLOYEES_FOUND": "No employees found",
     "PAGINATION_REPORT_TEMPLATE": "Employees {first}-{last}/{totalRecords}",
-    "EMPLOYEE_NOT_ASSIGNED_TO_GROUPS": "Not assigned to a group yet",
-    "SEARCH_A_GROUP": "Search a group",
-    "UPDATE_GROUP_NAME": "Update name of group",
-    "REMOVE_GROUP": "Remove group",
-    "CONFIRM_GROUP_REMOVAL": "Are you sure you want to remove group <span class='text-primary'>{{groupName}}</span>?"
+    "EMPLOYEE_NOT_ASSIGNED_TO_GROUPS": "Not assigned to a location yet",
+    "SEARCH_A_GROUP": "Search a location",
+    "UPDATE_GROUP_NAME": "Update name of location",
+    "REMOVE_GROUP": "Remove location",
+    "CONFIRM_GROUP_REMOVAL": "Are you sure you want to remove location <span class='text-primary'>{{groupName}}</span>?"
   },
   "CREATE_COMPANY_GROUP": {
-    "TITLE": "New group",
-    "INFO_TEXT": "Name your new group and select the employees that you want to assign to this group.",
-    "GROUP_NAME_LABEL": "Name of the group",
-    "GROUP_NAME_IS_TOO_SHORT_OR_LONG_ERROR": "Name of the group is too short or too long",
+    "TITLE": "New location",
+    "INFO_TEXT": "Name your new location and select the employees that you want to assign to this location.",
+    "GROUP_NAME_LABEL": "Name of the location",
+    "GROUP_NAME_IS_TOO_SHORT_OR_LONG_ERROR": "Name of the location is too short or too long",
     "SEARCH_EMPLOYEE_PLACEHOLDER": "Search an employee",
     "NO_EMPLOYEES": "No results",
     "TOTAL_ASSIGNED_EMPLOYEES": "Total assigned employees",
@@ -571,16 +571,16 @@
     "RESTRICT_RIGHTS_FOR_USER": "If desired, restrict the access rights of this user:",
     "GENERAL_ACCESS_RIGHTS": "General access",
     "SPECIFIC_ACCESS_RIGHTS": "Specific access",
-    "GROUPS_SELECT_LABEL": "Groups",
-    "NO_GROUPS_CREATED_YET": "No groups created yet",
+    "GROUPS_SELECT_LABEL": "Locations",
+    "NO_GROUPS_CREATED_YET": "No locations created yet",
     "TABLE_COLUMNS": {
       "USER": "User",
-      "ACCESS_TO_EMPLOYEES_GROUPS": "Access to groups of employees",
+      "ACCESS_TO_EMPLOYEES_GROUPS": "Access to locations of employees",
       "LAST_LOGIN": "Last logged in"
     },
-    "ASSIGN_GROUPS": "Assign groups",
-    "ACCESS_TO_ALL_GROUPS": "Access to all groups",
-    "NO_ACCESS_TO_GROUPS": "No access to groups of employees yet",
+    "ASSIGN_GROUPS": "Assign locations",
+    "ACCESS_TO_ALL_GROUPS": "Access to all locations",
+    "NO_ACCESS_TO_GROUPS": "No access to locations of employees yet",
     "USER_ACCOUNT_MENU": {
       "LIMIT_ACCESS_RIGHTS": "Limit access rights",
       "EXPAND_ACCESS_RIGHTS": "Give general access",
@@ -588,8 +588,8 @@
       "RESEND_INVITATION": "Resend invitation",
       "REMOVE_ACCOUNT": "Remove account"
     },
-    "CONFIRM_USER_ACCOUNT_LIMIT_ACCESS_CHANGE": "Are you sure you want to change the access of <span class='text-primary'>{{email}}</span> to some groups?",
-    "CONFIRM_USER_ACCOUNT_EXPAND_ACCESS_CHANGE": "Are you sure you want to extend the access of <span class='text-primary'>{{email}}</span> to all groups and employees?",
+    "CONFIRM_USER_ACCOUNT_LIMIT_ACCESS_CHANGE": "Are you sure you want to change the access of <span class='text-primary'>{{email}}</span> to some locations?",
+    "CONFIRM_USER_ACCOUNT_EXPAND_ACCESS_CHANGE": "Are you sure you want to extend the access of <span class='text-primary'>{{email}}</span> to all locations and employees?",
     "CONFIRM_USER_ACCOUNT_RESET": "Are you sure you want to reset the account of <span class='text-primary'>{{email}}</span>?",
     "CONFIRM_USER_ACCOUNT_REMOVAL": "Are you sure you want to revoke the user’s <span class='text-primary'>{{email}}</span> access to this company?",
     "CONFIRM_USER_ACCOUNT_REMOVAL_INFO": "Their access to other companies will remain if this is the case.",
@@ -598,7 +598,7 @@
     "NOT_LOGGED_IN": "Not logged in yet",
     "NO_USERS": "No user accounts invited yet",
     "PAGINATION_REPORT_TEMPLATE": "Accounts {first}-{last}/{totalRecords}",
-    "ASSIGN_GROUPS_TO_ACCOUNT": "Assign groups to <span class='text-primary'>{{account}}</span>",
+    "ASSIGN_GROUPS_TO_ACCOUNT": "Assign locations to <span class='text-primary'>{{account}}</span>",
     "ASSIGN_GROUPS_SAVE_BUTTON": "Save"
   },
   "COMPANY_ACTUALS": {
