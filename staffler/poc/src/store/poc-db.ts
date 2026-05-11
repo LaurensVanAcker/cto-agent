@@ -430,6 +430,84 @@ class PocDb {
   raw(): DbShape {
     return this.data;
   }
+
+  /** Wipe all PoC-DB tables. Used by the /api/poc-reset endpoint for
+   *  demo / test runs. Does NOT affect the DPS gateway in any way. */
+  reset(): void {
+    this.data = emptyDb();
+    this.save();
+  }
+
+  /** Seed a minimal PoC dataset for a given company (called from the demo
+   *  endpoint). Idempotent-ish: skips creation if the company already has
+   *  service-groups or permanent employees. Takes an optional list of DPS
+   *  engagement-group ids so the seeded service-locations point at real
+   *  vestigingen. */
+  seedDemo(input: {
+    companyId: string;
+    branchGroupIds: string[];
+  }): {
+    created: {
+      serviceGroups: ServiceGroup[];
+      permanentEmployees: PermanentEmployee[];
+    };
+    skipped: boolean;
+  } {
+    const existingServiceGroups = this.listServiceGroups(input.companyId);
+    const existingPermanentEmployees = this.listPermanentEmployees(input.companyId);
+    if (existingServiceGroups.length > 0 || existingPermanentEmployees.length > 0) {
+      return {
+        created: { serviceGroups: [], permanentEmployees: [] },
+        skipped: true,
+      };
+    }
+    const branch = input.branchGroupIds[0] ?? "";
+    const serviceGroups: ServiceGroup[] = [
+      this.createServiceGroup({
+        company_id: input.companyId,
+        branch_group_id: branch,
+        name: "Toog",
+        address_line1: "Dok Noord 4F",
+        address_line2: null,
+        postal_code: "9000",
+        city: "Gent",
+      }),
+      this.createServiceGroup({
+        company_id: input.companyId,
+        branch_group_id: branch,
+        name: "Kassa",
+        address_line1: "Dok Noord 4F",
+        address_line2: null,
+        postal_code: "9000",
+        city: "Gent",
+      }),
+      this.createServiceGroup({
+        company_id: input.companyId,
+        branch_group_id: branch,
+        name: "Terras",
+        address_line1: "Dok Noord 4F",
+        address_line2: null,
+        postal_code: "9000",
+        city: "Gent",
+      }),
+    ];
+    const permanentEmployees: PermanentEmployee[] = [
+      this.createPermanentEmployee({
+        company_id: input.companyId,
+        first_name: "Jeff",
+        last_name: "Callebaut",
+      }),
+      this.createPermanentEmployee({
+        company_id: input.companyId,
+        first_name: "Joke",
+        last_name: "Carton",
+      }),
+    ];
+    return {
+      created: { serviceGroups, permanentEmployees },
+      skipped: false,
+    };
+  }
 }
 
 export const pocDb = new PocDb();

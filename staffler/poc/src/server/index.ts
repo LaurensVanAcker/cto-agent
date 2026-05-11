@@ -314,6 +314,44 @@ app.get<{ Params: { id: string } }>(
   },
 );
 
+// ── PoC-DB admin / seed ───────────────────────────────────────────────────
+
+// POST /api/poc-seed-demo?companyId= → create a small starter dataset
+// (3 service-groups + 2 permanent employees) for demos.
+app.post<{ Querystring: { companyId?: string } }>(
+  "/api/poc-seed-demo",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    let branchGroupIds: string[] = [];
+    try {
+      const groups = (await clientFor(session).listCompanyGroups(
+        req.query.companyId,
+      )) as { id: string }[];
+      branchGroupIds = groups.map((g) => g.id);
+    } catch {
+      // Soldier on with an empty list; the seed still creates rows but
+      // their `branch_group_id` will be empty until the operator picks one.
+    }
+    return pocDb.seedDemo({
+      companyId: req.query.companyId,
+      branchGroupIds,
+    });
+  },
+);
+
+// POST /api/poc-reset → wipe the PoC-DB. Only for local dev.
+app.post("/api/poc-reset", async (req, reply) => {
+  const session = pickSession(req);
+  if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+  pocDb.reset();
+  return { ok: true };
+});
+
 // ── PoC-DB endpoints ──────────────────────────────────────────────────────
 
 // Service groups (= sub-row under a vestiging, e.g. "Toog Gent", "Bar Sluizeken")

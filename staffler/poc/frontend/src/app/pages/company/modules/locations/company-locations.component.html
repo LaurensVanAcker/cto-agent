@@ -6,12 +6,22 @@
       je hier in de PoC-DB.
     </p>
   </div>
-  <p-button
-    icon="dps-icon dps-icon-add"
-    label="Nieuwe service location"
-    [disabled]="branches().length === 0"
-    (onClick)="openCreate()"
-  />
+  <div class="flex gap-2">
+    <p-button
+      label="Demo-data laden"
+      icon="dps-icon dps-icon-flash"
+      severity="secondary"
+      [text]="true"
+      pTooltip="Maak een set service-locations + vaste medewerkers aan voor demo-doeleinden"
+      (onClick)="seedDemo()"
+    />
+    <p-button
+      icon="dps-icon dps-icon-add"
+      label="Nieuwe service location"
+      [disabled]="branches().length === 0"
+      (onClick)="openCreate()"
+    />
+  </div>
 </div>
 
 <div class="grid">

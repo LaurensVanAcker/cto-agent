@@ -10,6 +10,8 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngxs/store';
 import { filter, take } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@dps/env';
 
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -90,6 +92,7 @@ export class CompanyLocationsComponent {
   private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
   private readonly permanentAssignmentsApi = inject(PermanentAssignmentApiService);
   private readonly dialogService = inject(DialogService);
+  private readonly http = inject(HttpClient);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -260,6 +263,19 @@ export class CompanyLocationsComponent {
   protected permanentEmployeeName(id: string): string {
     const e = this.permanentEmployees().find(x => x.id === id);
     return e ? `${e.first_name} ${e.last_name}` : id;
+  }
+
+  protected seedDemo(): void {
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return;
+    this.http
+      .post<{ skipped?: boolean }>(
+        `${environment.apiBaseUrl}/poc-seed-demo?companyId=${encodeURIComponent(company.id)}`,
+        {},
+      )
+      .subscribe({
+        next: () => this.refreshAll(company.id),
+      });
   }
 
   protected canAddPermanent(): boolean {
