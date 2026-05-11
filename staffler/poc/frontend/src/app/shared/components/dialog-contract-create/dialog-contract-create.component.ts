@@ -173,8 +173,10 @@ export class DialogContractCreateComponent {
         dimonaCost: 0,
         defaultTaxRate: { code: '', name: '' },
       },
-      companyHoursPerWeek: 0,
-      employeeHoursPerWeek: 0,
+      // Sensible defaults; DPS rejects 0/null here and the planner can
+      // tune them per-contract in the production /planning edit dialog.
+      companyHoursPerWeek: 40,
+      employeeHoursPerWeek: 40,
       cancelReason: null,
       cancelExtraInfo: null,
       result: null,

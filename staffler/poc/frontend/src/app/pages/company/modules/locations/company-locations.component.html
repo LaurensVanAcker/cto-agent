@@ -98,6 +98,56 @@
   </div>
 </div>
 
+<section class="mt-4">
+  <h2 class="text-lg font-medium m-0 mb-2">Vaste medewerkers</h2>
+  <p class="text-color-secondary mt-0 mb-3 text-sm">
+    Vaste medewerkers leven 100% in PoC-DB en triggeren geen Dimona. Ze
+    verschijnen als <strong>Vast</strong>-blokjes op de planning.
+  </p>
+
+  <div class="flex gap-2 align-items-end mb-3 flex-wrap">
+    <label class="flex flex-column gap-1">
+      <span class="text-sm">Voornaam</span>
+      <input pInputText [(ngModel)]="permanentForm.firstName" />
+    </label>
+    <label class="flex flex-column gap-1">
+      <span class="text-sm">Achternaam</span>
+      <input pInputText [(ngModel)]="permanentForm.lastName" />
+    </label>
+    <p-button
+      label="Vaste medewerker toevoegen"
+      icon="dps-icon dps-icon-add"
+      [disabled]="!canAddPermanent()"
+      [loading]="addingPermanent()"
+      (onClick)="addPermanent()"
+    />
+  </div>
+
+  <p-table [value]="permanentEmployees()" [scrollable]="true" scrollHeight="auto">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Naam</th>
+        <th>Toegevoegd op</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ row.first_name }} {{ row.last_name }}</td>
+        <td class="text-color-secondary text-sm">{{ row.created_at }}</td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="2">
+          <span class="text-color-secondary font-italic">
+            Nog geen vaste medewerkers aangemaakt.
+          </span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
 <p-dialog
   [visible]="dialogVisible()"
   (onHide)="closeDialog()"

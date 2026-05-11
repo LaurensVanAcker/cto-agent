@@ -28,6 +28,10 @@ import {
   EngagementGroupApiService,
   EngagementGroupModel,
 } from '@dps/core/api/engagement-group/engagement-group.api.service';
+import {
+  PermanentEmployeeApiService,
+  PermanentEmployeeModel,
+} from '@dps/core/api/permanent-employee/permanent-employee.api.service';
 
 interface ServiceGroupForm {
   id: string | null;
@@ -76,15 +80,20 @@ function emptyForm(): ServiceGroupForm {
 export class CompanyLocationsComponent {
   private readonly serviceGroupsApi = inject(ServiceGroupApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
+  private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly branches = signal<EngagementGroupModel[]>([]);
   protected readonly serviceGroups = signal<ServiceGroupModel[]>([]);
+  protected readonly permanentEmployees = signal<PermanentEmployeeModel[]>([]);
   protected readonly loading = signal(false);
   protected readonly dialogVisible = signal(false);
   protected readonly saving = signal(false);
   protected form: ServiceGroupForm = emptyForm();
+
+  protected permanentForm = { firstName: '', lastName: '' };
+  protected readonly addingPermanent = signal(false);
 
   protected readonly branchOptions = computed(() =>
     this.branches().map(b => ({ label: b.name ?? b.id, value: b.id })),
@@ -196,5 +205,41 @@ export class CompanyLocationsComponent {
         this.loading.set(false);
       },
     });
+    this.permanentEmployeesApi.list(companyId).subscribe({
+      next: rows => {
+        this.permanentEmployees.set(rows ?? []);
+        this.cdr.markForCheck();
+      },
+      error: () => this.permanentEmployees.set([]),
+    });
+  }
+
+  protected canAddPermanent(): boolean {
+    return (
+      !!this.permanentForm.firstName.trim() &&
+      !!this.permanentForm.lastName.trim() &&
+      !this.addingPermanent()
+    );
+  }
+
+  protected addPermanent(): void {
+    if (!this.canAddPermanent()) return;
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return;
+    this.addingPermanent.set(true);
+    this.permanentEmployeesApi
+      .create({
+        companyId: company.id,
+        firstName: this.permanentForm.firstName.trim(),
+        lastName: this.permanentForm.lastName.trim(),
+      })
+      .subscribe({
+        next: () => {
+          this.permanentForm = { firstName: '', lastName: '' };
+          this.addingPermanent.set(false);
+          this.refreshAll(company.id);
+        },
+        error: () => this.addingPermanent.set(false),
+      });
   }
 }
