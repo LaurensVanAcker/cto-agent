@@ -104,6 +104,19 @@
       {{ 'COMPANY_SIDENAV.PLANNING' | translate }}
     </span>
   </a>
+
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.PLANNING_POC' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.PLANNING_POC]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span
+      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PLANNING_POC] }}"
+    ></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.PLANNING_POC' | translate }}</span>
+  </a>
 </div>
 
 @if (isMobileScreen() && isMenuExpanded()) {

@@ -219,7 +219,44 @@ class PocDb {
     return row;
   }
 
-  // -- shifts (stub for later steps) --
+  // -- permanent_assignments --
+
+  listPermanentAssignments(params: {
+    companyId: string;
+    serviceGroupId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): PermanentAssignment[] {
+    const knownServiceGroupIds = new Set(
+      this.data.service_groups
+        .filter((g) => g.company_id === params.companyId)
+        .map((g) => g.id),
+    );
+    return this.data.permanent_assignments.filter((a) => {
+      if (!knownServiceGroupIds.has(a.service_group_id)) return false;
+      if (params.serviceGroupId && a.service_group_id !== params.serviceGroupId) return false;
+      if (params.dateTo && a.valid_from > params.dateTo) return false;
+      if (params.dateFrom && a.valid_to && a.valid_to < params.dateFrom) return false;
+      return true;
+    });
+  }
+
+  createPermanentAssignment(
+    input: Omit<PermanentAssignment, "id" | "created_at" | "updated_at">,
+  ): PermanentAssignment {
+    const now = new Date().toISOString();
+    const row: PermanentAssignment = {
+      id: randomUUID(),
+      created_at: now,
+      updated_at: now,
+      ...input,
+    };
+    this.data.permanent_assignments.push(row);
+    this.save();
+    return row;
+  }
+
+  // -- shifts --
 
   listShifts(companyId: string, dateFrom: string, dateTo: string): Shift[] {
     return this.data.shifts.filter(
@@ -236,6 +273,96 @@ class PocDb {
       ...input,
     };
     this.data.shifts.push(row);
+    this.save();
+    return row;
+  }
+
+  publishShift(id: string): Shift | null {
+    const row = this.data.shifts.find((s) => s.id === id);
+    if (!row) return null;
+    row.status = "open";
+    row.published_at = new Date().toISOString();
+    row.updated_at = row.published_at;
+    this.save();
+    return row;
+  }
+
+  // -- shift_applications --
+
+  listApplicationsForEmployee(employeeId: string): ShiftApplication[] {
+    return this.data.shift_applications.filter((a) => a.employee_id === employeeId);
+  }
+
+  listApplicationsForShift(shiftId: string): ShiftApplication[] {
+    return this.data.shift_applications.filter((a) => a.shift_id === shiftId);
+  }
+
+  applyToShift(shiftId: string, employeeId: string, note?: string): ShiftApplication {
+    const existing = this.data.shift_applications.find(
+      (a) =>
+        a.shift_id === shiftId &&
+        a.employee_id === employeeId &&
+        (a.status === "candidate" || a.status === "selected"),
+    );
+    if (existing) return existing;
+    const row: ShiftApplication = {
+      id: randomUUID(),
+      shift_id: shiftId,
+      employee_id: employeeId,
+      status: "candidate",
+      applied_at: new Date().toISOString(),
+      decided_at: null,
+      contract_id: null,
+      note: note ?? null,
+    };
+    this.data.shift_applications.push(row);
+    this.save();
+    return row;
+  }
+
+  withdrawApplication(shiftId: string, employeeId: string): boolean {
+    const row = this.data.shift_applications.find(
+      (a) => a.shift_id === shiftId && a.employee_id === employeeId && a.status === "candidate",
+    );
+    if (!row) return false;
+    row.status = "withdrawn";
+    row.decided_at = new Date().toISOString();
+    this.save();
+    return true;
+  }
+
+  selectApplication(applicationId: string, contractId: string): ShiftApplication | null {
+    const row = this.data.shift_applications.find((a) => a.id === applicationId);
+    if (!row) return null;
+    row.status = "selected";
+    row.contract_id = contractId;
+    row.decided_at = new Date().toISOString();
+    this.save();
+    return row;
+  }
+
+  // -- availabilities --
+
+  listAvailabilities(employeeId: string, from?: string, to?: string): Availability[] {
+    return this.data.availabilities.filter((a) => {
+      if (a.employee_id !== employeeId) return false;
+      if (from && a.date < from) return false;
+      if (to && a.date > to) return false;
+      return true;
+    });
+  }
+
+  createAvailability(
+    input: Omit<Availability, "id" | "created_at" | "updated_at">,
+  ): Availability {
+    const now = new Date().toISOString();
+    const row: Availability = {
+      id: randomUUID(),
+      created_at: now,
+      updated_at: now,
+      ...input,
+    };
+    this.data.availabilities.push(row);
     this.save();
     return row;
   }

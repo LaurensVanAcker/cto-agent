@@ -5,4 +5,5 @@ export const COMPANY_ROUTES_ICONS_MAP: Partial<Record<CompanyRouteEnum, string>>
   [CompanyRouteEnum.LOCATIONS]: 'building',
   [CompanyRouteEnum.INVITATIONS]: 'person_add',
   [CompanyRouteEnum.PLANNING]: 'event-note',
+  [CompanyRouteEnum.PLANNING_POC]: 'event-note',
 };

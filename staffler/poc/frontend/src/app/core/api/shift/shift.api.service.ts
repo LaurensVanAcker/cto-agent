@@ -1,0 +1,71 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+
+import { environment } from '@dps/env';
+
+export type ShiftTargetType = 'ALL_POOL' | 'SELECTION' | 'GROUP' | 'NONE';
+export type ShiftStatus = 'draft' | 'open' | 'closed' | 'fulfilled' | 'cancelled';
+
+/** PoC-DB shift (an open Niveau-2 request for temporary invulling). */
+export interface ShiftModel {
+  id: string;
+  company_id: string;
+  service_group_id: string;
+  date_from: string;
+  date_to: string;
+  from_time: string;
+  to_time: string;
+  pause_from: string | null;
+  pause_to: string | null;
+  capacity: number;
+  deadline: string | null;
+  target_type: ShiftTargetType;
+  target_employee_ids: string[];
+  target_group_ids: string[];
+  status: ShiftStatus;
+  published_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateShiftPayload {
+  companyId: string;
+  serviceGroupId: string;
+  dateFrom: string;
+  dateTo: string;
+  fromTime: string;
+  toTime: string;
+  pauseFrom?: string;
+  pauseTo?: string;
+  capacity?: number;
+  deadline?: string;
+  targetType?: ShiftTargetType;
+  targetEmployeeIds?: string[];
+  targetGroupIds?: string[];
+  status?: 'draft' | 'open';
+}
+
+@Injectable({ providedIn: 'root' })
+export class ShiftApiService {
+  private readonly http = inject(HttpClient);
+  private readonly url = `${environment.apiBaseUrl}/shifts`;
+
+  list(companyId: string, dateFrom: string, dateTo: string): Observable<ShiftModel[]> {
+    const qs = `companyId=${encodeURIComponent(companyId)}&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`;
+    return this.http.get<ShiftModel[]>(`${this.url}?${qs}`);
+  }
+
+  create(payload: CreateShiftPayload): Observable<ShiftModel> {
+    return this.http.post<ShiftModel>(this.url, payload);
+  }
+
+  publish(id: string): Observable<ShiftModel> {
+    return this.http.post<ShiftModel>(`${this.url}/${id}/publish`, {});
+  }
+
+  apply(id: string, employeeId: string, note?: string): Observable<unknown> {
+    return this.http.post<unknown>(`${this.url}/${id}/apply`, { employeeId, note });
+  }
+}

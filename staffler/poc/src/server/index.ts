@@ -410,6 +410,285 @@ app.delete<{ Params: { id: string } }>(
   },
 );
 
+// Permanent assignments (Vast blokken op het planscherm)
+app.get<{
+  Querystring: { companyId?: string; serviceGroupId?: string; dateFrom?: string; dateTo?: string };
+}>(
+  "/api/permanent-assignments",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.listPermanentAssignments({
+      companyId: req.query.companyId,
+      serviceGroupId: req.query.serviceGroupId,
+      dateFrom: req.query.dateFrom,
+      dateTo: req.query.dateTo,
+    });
+  },
+);
+
+app.post<{
+  Body: {
+    serviceGroupId: string;
+    permanentEmployeeId: string;
+    weekdayPattern: Record<string, { from: string; to: string; pauseFrom?: string; pauseTo?: string }>;
+    validFrom: string;
+    validTo?: string;
+    note?: string;
+  };
+}>(
+  "/api/permanent-assignments",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.serviceGroupId || !b?.permanentEmployeeId || !b?.weekdayPattern || !b?.validFrom) {
+      reply.status(400);
+      return { kind: "validation", message: "serviceGroupId, permanentEmployeeId, weekdayPattern, validFrom required" };
+    }
+    return pocDb.createPermanentAssignment({
+      service_group_id: b.serviceGroupId,
+      permanent_employee_id: b.permanentEmployeeId,
+      weekday_pattern: b.weekdayPattern,
+      valid_from: b.validFrom,
+      valid_to: b.validTo ?? null,
+      note: b.note ?? null,
+    });
+  },
+);
+
+// Permanent employees (vaste medewerker, leeft niet in DPS)
+app.get<{ Querystring: { companyId?: string } }>(
+  "/api/permanent-employees",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.listPermanentEmployees(req.query.companyId);
+  },
+);
+
+app.post<{
+  Body: { companyId: string; firstName: string; lastName: string };
+}>(
+  "/api/permanent-employees",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.companyId || !b?.firstName || !b?.lastName) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId, firstName, lastName required" };
+    }
+    return pocDb.createPermanentEmployee({
+      company_id: b.companyId,
+      first_name: b.firstName,
+      last_name: b.lastName,
+    });
+  },
+);
+
+// Shifts (PoC-DB; open vraag voor temporary invulling)
+app.get<{ Querystring: { companyId?: string; dateFrom?: string; dateTo?: string } }>(
+  "/api/shifts",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId || !req.query.dateFrom || !req.query.dateTo) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId, dateFrom, dateTo required" };
+    }
+    return pocDb.listShifts(req.query.companyId, req.query.dateFrom, req.query.dateTo);
+  },
+);
+
+app.post<{
+  Body: {
+    companyId: string;
+    serviceGroupId: string;
+    dateFrom: string;
+    dateTo: string;
+    fromTime: string;
+    toTime: string;
+    pauseFrom?: string;
+    pauseTo?: string;
+    capacity?: number;
+    deadline?: string;
+    targetType?: "ALL_POOL" | "SELECTION" | "GROUP" | "NONE";
+    targetEmployeeIds?: string[];
+    targetGroupIds?: string[];
+    status?: "draft" | "open";
+    createdByUserId?: string;
+  };
+}>(
+  "/api/shifts",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.companyId || !b?.serviceGroupId || !b?.dateFrom || !b?.fromTime || !b?.toTime) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId, serviceGroupId, dateFrom, fromTime, toTime required" };
+    }
+    return pocDb.createShift({
+      company_id: b.companyId,
+      service_group_id: b.serviceGroupId,
+      date_from: b.dateFrom,
+      date_to: b.dateTo ?? b.dateFrom,
+      from_time: b.fromTime,
+      to_time: b.toTime,
+      pause_from: b.pauseFrom ?? null,
+      pause_to: b.pauseTo ?? null,
+      capacity: b.capacity ?? 1,
+      deadline: b.deadline ?? null,
+      target_type: b.targetType ?? "NONE",
+      target_employee_ids: b.targetEmployeeIds ?? [],
+      target_group_ids: b.targetGroupIds ?? [],
+      status: b.status ?? "draft",
+      published_at: null,
+      created_by_user_id: b.createdByUserId ?? null,
+    });
+  },
+);
+
+app.post<{ Params: { id: string } }>(
+  "/api/shifts/:id/publish",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const updated = pocDb.publishShift(req.params.id);
+    if (!updated) { reply.status(404); return { kind: "not_found" }; }
+    return updated;
+  },
+);
+
+// Shift applications (uitzendkracht-strook)
+app.post<{ Params: { id: string }; Body: { employeeId: string; note?: string } }>(
+  "/api/shifts/:id/apply",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.body?.employeeId) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId required" };
+    }
+    return pocDb.applyToShift(req.params.id, req.body.employeeId, req.body.note);
+  },
+);
+
+app.delete<{ Params: { id: string }; Body: { employeeId: string } }>(
+  "/api/shifts/:id/apply",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.body?.employeeId) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId required" };
+    }
+    const ok = pocDb.withdrawApplication(req.params.id, req.body.employeeId);
+    if (!ok) { reply.status(404); return { kind: "not_found" }; }
+    return { ok: true };
+  },
+);
+
+// Niveau 2 kandidaat-selectie → maakt Contract aan in DPS (Dimona!)
+app.post<{
+  Params: { id: string };
+  Body: { applicationId: string; contract: ContractWebDto };
+}>(
+  "/api/shifts/:id/select",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.applicationId || !b?.contract) {
+      reply.status(400);
+      return { kind: "validation", message: "applicationId and contract required" };
+    }
+    try {
+      const created = await clientFor(session).createContract(b.contract);
+      const contractId = (created as { id?: string }).id ?? "";
+      pocDb.selectApplication(b.applicationId, contractId);
+      return { contract: created, applicationId: b.applicationId };
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
+// Availabilities
+app.get<{ Querystring: { employeeId?: string; from?: string; to?: string } }>(
+  "/api/availabilities",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.employeeId) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId required" };
+    }
+    return pocDb.listAvailabilities(req.query.employeeId, req.query.from, req.query.to);
+  },
+);
+
+app.post<{
+  Body: { employeeId: string; date: string; fromTime: string; toTime: string };
+}>(
+  "/api/availabilities",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.employeeId || !b?.date || !b?.fromTime || !b?.toTime) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId, date, fromTime, toTime required" };
+    }
+    return pocDb.createAvailability({
+      employee_id: b.employeeId,
+      date: b.date,
+      from_time: b.fromTime,
+      to_time: b.toTime,
+      status: "open",
+      locked_by_contract_id: null,
+    });
+  },
+);
+
+// Pool: MyStaffler invite (BCJ-19425)
+app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
+  "/api/employees/:id/mystaffler-invite",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const companyId = req.query.companyId;
+    if (!companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    // Proxy naar de bestaande DPS endpoint. In v0 simuleren we het
+    // resultaat als de upstream call mislukt, zodat de PoC-flow blijft
+    // doorlopen voor de demo.
+    try {
+      return await clientFor(session).rawAuthed<unknown>(
+        "POST",
+        `/api/companies/${companyId}/employees/${req.params.id}/mystaffler/invite`,
+      );
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
 // ── static serving (alleen als Angular gebouwd is) ──────────────────────
 
 const distRoot = join(__dirname, "..", "..", "dist", "frontend", "browser");

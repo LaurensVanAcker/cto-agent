@@ -91,6 +91,7 @@
     "GROUPS": "Pool",
     "LOCATIONS": "Manage locations",
     "PLANNING": "Planning",
+    "PLANNING_POC": "Planning (PoC)",
     "ACTUALS": "Actuals",
     "TIME_REGISTRATION": "Time registration",
     "SEARCH_COMPANY": "Search company",

@@ -3,6 +3,7 @@ import { ContractsListRequestParamsModel } from '@dps/core/api/contract/contract
 export enum CompanyRouteEnum {
   ONBOARDING = 'onboarding',
   PLANNING = 'planning',
+  PLANNING_POC = 'planning-poc',
   NEWCOMERS = 'newcomers',
   INVITATIONS = 'invitations',
   GROUPS = 'groups',

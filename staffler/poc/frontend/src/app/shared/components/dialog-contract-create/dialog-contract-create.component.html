@@ -1,0 +1,53 @@
+<div class="flex flex-column gap-3">
+  <p class="text-color-secondary m-0">
+    Niveau 1 — directe toewijzing aan een temporary medewerker. Skeleton:
+    de echte <code>POST /api/contracts</code> (Dimona!) volgt in stap 6 van
+    de PoC.
+  </p>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Medewerker (id)</span>
+    <input pInputText [(ngModel)]="form.employeeId" placeholder="employee uuid" />
+  </label>
+
+  <div class="grid">
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Datum</span>
+      <input pInputText type="date" [(ngModel)]="form.date" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Van</span>
+      <input pInputText type="time" [(ngModel)]="form.fromTime" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Tot</span>
+      <input pInputText type="time" [(ngModel)]="form.toTime" />
+    </label>
+  </div>
+
+  <div class="grid">
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Pauze van</span>
+      <input pInputText type="time" [(ngModel)]="form.pauseFromTime" />
+    </label>
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Pauze tot</span>
+      <input pInputText type="time" [(ngModel)]="form.pauseToTime" />
+    </label>
+  </div>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Loonpakket (employeeWage id)</span>
+    <input pInputText [(ngModel)]="form.wageId" placeholder="wage uuid (todo: dropdown uit /api/employeewages)" />
+  </label>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Plaats tewerkstelling</span>
+    <input pInputText [(ngModel)]="form.employmentAddress" />
+  </label>
+</div>
+
+<div class="flex justify-content-end gap-2 mt-3">
+  <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
+  <p-button label="Bevestigen" (onClick)="confirm()" [loading]="inProgress()" />
+</div>

@@ -1,0 +1,58 @@
+<div class="flex flex-column gap-3">
+  <p class="text-color-secondary m-0">
+    Niveau 2 — open shift broadcasten. Skeleton: maakt een
+    <code>shifts</code> rij aan in PoC-DB en publiceert direct. De
+    kandidaat-flow + DPS contract-create bij selectie volgt later.
+  </p>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Service location (id)</span>
+    <input pInputText [(ngModel)]="form.serviceGroupId" placeholder="service group uuid" />
+  </label>
+
+  <div class="grid">
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Datum van</span>
+      <input pInputText type="date" [(ngModel)]="form.dateFrom" />
+    </label>
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Datum tot</span>
+      <input pInputText type="date" [(ngModel)]="form.dateTo" />
+    </label>
+  </div>
+
+  <div class="grid">
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Van</span>
+      <input pInputText type="time" [(ngModel)]="form.fromTime" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Tot</span>
+      <input pInputText type="time" [(ngModel)]="form.toTime" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Capaciteit</span>
+      <input pInputText type="number" min="1" [(ngModel)]="form.capacity" />
+    </label>
+  </div>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Target</span>
+    <p-select
+      [options]="targetOptions"
+      [(ngModel)]="form.targetType"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </label>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Deadline (optioneel)</span>
+    <input pInputText type="datetime-local" [(ngModel)]="form.deadline" />
+  </label>
+</div>
+
+<div class="flex justify-content-end gap-2 mt-3">
+  <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
+  <p-button label="Aanmaken en publiceren" [loading]="saving()" (onClick)="confirmAndPublish()" />
+</div>

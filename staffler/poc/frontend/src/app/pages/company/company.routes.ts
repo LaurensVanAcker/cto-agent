@@ -56,6 +56,13 @@ export const COMPANY_ROUTES: Routes = [
             m => m.COMPANY_LOCATIONS_ROUTES,
           ),
       },
+      {
+        path: CompanyRouteEnum.PLANNING_POC,
+        loadChildren: () =>
+          import('./modules/planning-poc/planning-poc.routes').then(
+            m => m.PLANNING_POC_ROUTES,
+          ),
+      },
       { path: '**', redirectTo: CompanyRouteEnum.PLANNING },
     ],
   },

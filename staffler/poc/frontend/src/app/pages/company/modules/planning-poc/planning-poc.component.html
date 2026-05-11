@@ -1,0 +1,93 @@
+<header class="flex align-items-center gap-3 flex-wrap">
+  <h1 class="text-2xl font-semibold m-0">Planning (PoC)</h1>
+
+  <p-selectButton
+    [options]="viewOptions"
+    [(ngModel)]="view"
+    optionLabel="label"
+    optionValue="value"
+  />
+
+  <span class="flex-1"></span>
+
+  <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige week">
+    <span class="dps-icon dps-icon-chevron rotate-180"></span>
+  </button>
+  <span class="font-medium">{{ weekLabel() }}</span>
+  <button type="button" class="p-link" (click)="nextWeek()" pTooltip="Volgende week">
+    <span class="dps-icon dps-icon-chevron"></span>
+  </button>
+  <p-button label="Vandaag" severity="secondary" [text]="true" (onClick)="today()" />
+  <p-button
+    icon="dps-icon dps-icon-add"
+    label="Nieuwe shift"
+    (onClick)="openShiftBatchDialog()"
+  />
+</header>
+
+@if (view() === 'names') {
+  <section class="poc-grid">
+    <div class="grid-header">
+      <div class="grid-corner">Medewerker</div>
+      @for (day of days(); track day.iso) {
+        <div class="grid-day" [class.weekend]="day.isWeekend">{{ day.label }}</div>
+      }
+    </div>
+
+    @if (employees().length === 0) {
+      <div class="grid-empty">
+        Geen medewerkers in de pool — log in met een geldig QA-account of voeg
+        medewerkers toe via Staffler.
+      </div>
+    } @else {
+      @for (emp of employees(); track emp.id) {
+        <div class="grid-row">
+          <div class="grid-name">{{ emp.name }}</div>
+          @for (day of days(); track day.iso) {
+            <button
+              type="button"
+              class="grid-cell"
+              [class.weekend]="day.isWeekend"
+              (click)="openContractDialog(emp.id, day.iso)"
+              [attr.aria-label]="emp.name + ' — ' + day.label"
+            ></button>
+          }
+        </div>
+      }
+    }
+
+    @if (shifts().length > 0) {
+      <p class="text-color-secondary mt-3 mb-0">
+        Open shifts deze week: {{ shifts().length }} (rendering nog te doen,
+        wired aan {{ '/api/shifts' }})
+      </p>
+    }
+  </section>
+}
+
+@if (view() === 'vsl') {
+  <section class="placeholder-card">
+    <h2>V+SL view (mockup 11)</h2>
+    <p>
+      Vestiging > Service location rijen. Reuses dezelfde cell-renderer als
+      de Namen-view, maar groepeert rijen onder vestigingen uit
+      <code>/api/companies/:id/groups</code> en service-groups uit
+      <code>/api/service-groups</code>.
+    </p>
+    <p class="text-color-secondary">
+      Service groups geladen: <strong>{{ serviceGroups().length }}</strong> ·
+      Permanent-assignments deze week: <strong>{{ permanentAssignments().length }}</strong>
+    </p>
+  </section>
+}
+
+@if (view() === 'day') {
+  <section class="placeholder-card">
+    <h2>Dag view (mockup 13)</h2>
+    <p>
+      Verticale tijd-as. Kolommen = service locations, blokjes gepositioneerd
+      op <code>from_time</code> → <code>to_time</code>. Implementatie
+      gepland in v1 met Bryntum scheduler verticaal.
+    </p>
+  </section>
+}
