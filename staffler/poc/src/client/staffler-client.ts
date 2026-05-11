@@ -117,6 +117,12 @@ export class StafflerClient {
     return this.authedCall<CompanyWebDto>("GET", `/api/companies/${companyId}`);
   }
 
+  // -- engagement groups (= vestigingen in PoC terminology) --
+
+  async listCompanyGroups(companyId: string): Promise<unknown[]> {
+    return this.authedCall<unknown[]>("GET", `/api/companies/${companyId}/groups`);
+  }
+
   // -- employees --
 
   async listEmployees(params: {

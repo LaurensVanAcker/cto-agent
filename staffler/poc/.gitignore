@@ -4,3 +4,5 @@ dist/
 .env.local
 *.log
 .DS_Store
+# PoC in-memory store snapshot — local data only
+data/

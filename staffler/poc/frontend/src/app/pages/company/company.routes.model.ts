@@ -6,6 +6,7 @@ export enum CompanyRouteEnum {
   NEWCOMERS = 'newcomers',
   INVITATIONS = 'invitations',
   GROUPS = 'groups',
+  LOCATIONS = 'locations',
 }
 
 export enum CompanyRoutePathParam {

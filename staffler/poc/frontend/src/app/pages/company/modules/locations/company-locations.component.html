@@ -1,0 +1,159 @@
+<div class="flex align-items-center justify-content-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold m-0">Beheer locaties</h1>
+    <p class="text-color-secondary mt-2 mb-0">
+      Vestigingen komen uit Staffler (alleen-lezen). Service locations beheer
+      je hier in de PoC-DB.
+    </p>
+  </div>
+  <p-button
+    icon="dps-icon dps-icon-add"
+    label="Nieuwe service location"
+    [disabled]="branches().length === 0"
+    (onClick)="openCreate()"
+  />
+</div>
+
+<div class="grid">
+  <div class="col-12 md:col-5">
+    <h2 class="text-lg font-medium m-0 mb-2">Vestigingen</h2>
+    <p-table [value]="branches()" [scrollable]="true" scrollHeight="auto" styleClass="surface-50">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Naam vestiging</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td>{{ row.name ?? row.id }}</td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td>Geen vestigingen gevonden voor dit bedrijf.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="col-12 md:col-7">
+    <h2 class="text-lg font-medium m-0 mb-2">Service locations</h2>
+    <p-table [value]="serviceGroups()" [scrollable]="true" scrollHeight="auto" styleClass="surface-50">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Naam</th>
+          <th>Vestiging</th>
+          <th>Adres</th>
+          <th class="w-6rem text-right">Acties</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td class="font-medium">{{ row.name }}</td>
+          <td>{{ branchName(row.branch_group_id) }}</td>
+          <td>
+            @if (row.address_line1 || row.city) {
+              <span>
+                {{ row.address_line1 }}
+                @if (row.postal_code || row.city) {
+                  <span class="text-color-secondary">
+                    {{ row.postal_code }} {{ row.city }}
+                  </span>
+                }
+              </span>
+            } @else {
+              <span class="text-color-secondary font-italic">—</span>
+            }
+          </td>
+          <td class="text-right">
+            <button
+              type="button"
+              class="p-link"
+              pTooltip="Bewerk"
+              (click)="openEdit(row)"
+            >
+              <span class="dps-icon dps-icon-settings"></span>
+            </button>
+            <button
+              type="button"
+              class="p-link ml-2"
+              pTooltip="Verwijder"
+              (click)="remove(row)"
+            >
+              <span class="dps-icon dps-icon-trash"></span>
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="4">
+            <span class="text-color-secondary font-italic">
+              Nog geen service locations aangemaakt voor dit bedrijf.
+            </span>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<p-dialog
+  [visible]="dialogVisible()"
+  (onHide)="closeDialog()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-30rem"
+  [closable]="!saving()"
+>
+  <ng-template pTemplate="header">
+    <span class="text-lg font-medium">
+      {{ form.id ? 'Service location bewerken' : 'Nieuwe service location' }}
+    </span>
+  </ng-template>
+
+  <div class="flex flex-column gap-3">
+    <label class="flex flex-column gap-1">
+      <span class="text-sm">Vestiging</span>
+      <p-select
+        [options]="branchOptions()"
+        [(ngModel)]="form.branchGroupId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies een vestiging"
+      />
+    </label>
+
+    <label class="flex flex-column gap-1">
+      <span class="text-sm">Naam locatie</span>
+      <input pInputText [(ngModel)]="form.name" placeholder="vb. Toog, Bar, Kassa" />
+    </label>
+
+    <label class="flex flex-column gap-1">
+      <span class="text-sm">Adres</span>
+      <input pInputText [(ngModel)]="form.addressLine1" placeholder="Straat en huisnummer" />
+    </label>
+
+    <div class="grid">
+      <label class="col-4 flex flex-column gap-1">
+        <span class="text-sm">Postcode</span>
+        <input pInputText [(ngModel)]="form.postalCode" />
+      </label>
+      <label class="col-8 flex flex-column gap-1">
+        <span class="text-sm">Gemeente</span>
+        <input pInputText [(ngModel)]="form.city" />
+      </label>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="closeDialog()" />
+    <p-button
+      label="Opslaan"
+      [loading]="saving()"
+      [disabled]="!canSave()"
+      (onClick)="save()"
+    />
+  </ng-template>
+</p-dialog>

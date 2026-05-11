@@ -82,6 +82,17 @@
   </a>
 
   <a
+    [pTooltip]="'COMPANY_SIDENAV.LOCATIONS' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.LOCATIONS]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.LOCATIONS] }}"></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.LOCATIONS' | translate }}</span>
+  </a>
+
+  <a
     [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"
     [tooltipDisabled]="isMenuExpanded()"
     [routerLink]="[companyRouteEnum.PLANNING]"

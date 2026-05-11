@@ -31,6 +31,7 @@ import { existsSync } from "node:fs";
 
 import { StafflerClient, StafflerError, gatewayFor, type StafflerEnv } from "../client/staffler-client.js";
 import type { ContractWebDto } from "../types/staffler.js";
+import { pocDb } from "../store/poc-db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -296,6 +297,118 @@ app.post<{ Body: ContractWebDto }>("/api/contracts", async (req, reply) => {
     return e.body;
   }
 });
+
+// GET /api/companies/:id/groups   (= engagement groups = vestigingen)
+app.get<{ Params: { id: string } }>(
+  "/api/companies/:id/groups",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    try {
+      return await clientFor(session).listCompanyGroups(req.params.id);
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
+// ── PoC-DB endpoints ──────────────────────────────────────────────────────
+
+// Service groups (= sub-row under a vestiging, e.g. "Toog Gent", "Bar Sluizeken")
+
+// GET /api/service-groups?companyId=
+app.get<{ Querystring: { companyId?: string } }>(
+  "/api/service-groups",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const companyId = req.query.companyId;
+    if (!companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.listServiceGroups(companyId);
+  },
+);
+
+// POST /api/service-groups
+app.post<{
+  Body: {
+    companyId: string;
+    branchGroupId: string;
+    name: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    postalCode?: string;
+    city?: string;
+  };
+}>(
+  "/api/service-groups",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.companyId || !b?.branchGroupId || !b?.name) {
+      reply.status(400);
+      return {
+        kind: "validation",
+        message: "companyId, branchGroupId and name are required",
+      };
+    }
+    return pocDb.createServiceGroup({
+      company_id: b.companyId,
+      branch_group_id: b.branchGroupId,
+      name: b.name,
+      address_line1: b.addressLine1 ?? null,
+      address_line2: b.addressLine2 ?? null,
+      postal_code: b.postalCode ?? null,
+      city: b.city ?? null,
+    });
+  },
+);
+
+// PUT /api/service-groups/:id
+app.put<{
+  Params: { id: string };
+  Body: {
+    name?: string;
+    branchGroupId?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    postalCode?: string;
+    city?: string;
+  };
+}>(
+  "/api/service-groups/:id",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const patch: Parameters<typeof pocDb.updateServiceGroup>[1] = {};
+    if (req.body.name !== undefined) patch.name = req.body.name;
+    if (req.body.branchGroupId !== undefined) patch.branch_group_id = req.body.branchGroupId;
+    if (req.body.addressLine1 !== undefined) patch.address_line1 = req.body.addressLine1 || null;
+    if (req.body.addressLine2 !== undefined) patch.address_line2 = req.body.addressLine2 || null;
+    if (req.body.postalCode !== undefined) patch.postal_code = req.body.postalCode || null;
+    if (req.body.city !== undefined) patch.city = req.body.city || null;
+    const updated = pocDb.updateServiceGroup(req.params.id, patch);
+    if (!updated) { reply.status(404); return { kind: "not_found" }; }
+    return updated;
+  },
+);
+
+// DELETE /api/service-groups/:id (soft delete)
+app.delete<{ Params: { id: string } }>(
+  "/api/service-groups/:id",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const ok = pocDb.softDeleteServiceGroup(req.params.id);
+    if (!ok) { reply.status(404); return { kind: "not_found" }; }
+    return { ok: true };
+  },
+);
 
 // ── static serving (alleen als Angular gebouwd is) ──────────────────────
 
