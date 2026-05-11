@@ -1,0 +1,1217 @@
+<dps-page-header
+  [title]="'COMPANY.ONBOARDING' | translate"
+  [subtitle]="(company$ | async)?.name"
+></dps-page-header>
+
+<main class="flex-1 px-4 py-3 overflow-auto mb-8">
+  @if (isLoading$ | async) {
+    <div class="flex align-items-center justify-content-center h-full">
+      <p-progressSpinner></p-progressSpinner>
+    </div>
+  } @else {
+    @if (isBlocked) {
+      <p-message
+        styleClass="mb-3"
+        severity="error"
+        icon="dps-icon dps-icon-block text-2xl w-auto h-auto"
+      >
+        <span
+          [innerHTML]="
+            'COMPANY.BLOCKED_STATUS_MESSAGE' | translate: { phoneNumber: financePhoneNumber }
+          "
+        ></span>
+      </p-message>
+    }
+
+    <p-stepper [value]="1" [linear]="true">
+      <p-step-list>
+        <p-step [value]="1">{{ 'COMPANY.GENERAL' | translate }}</p-step>
+        <p-step [value]="2">{{ 'COMPANY.CONTACT_DATA' | translate }}</p-step>
+        <p-step [value]="3">{{ 'COMPANY.COMMERCIAL_AGREEMENT' | translate }}</p-step>
+        <p-step [value]="4">{{ 'COMPANY.WAGE_POLICY' | translate }}</p-step>
+      </p-step-list>
+
+      <p-step-panels>
+        <p-step-panel [value]="1">
+          <ng-template #content let-activateCallback="activateCallback">
+            <ng-container
+              [ngTemplateOutlet]="generalStepTemplate"
+              [ngTemplateOutletContext]="{ activateCallback }"
+            ></ng-container>
+          </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="2">
+          <ng-template #content let-activateCallback="activateCallback">
+            <ng-container
+              [ngTemplateOutlet]="contactStepTemplate"
+              [ngTemplateOutletContext]="{ activateCallback }"
+            ></ng-container>
+          </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="3">
+          <ng-template #content let-activateCallback="activateCallback">
+            <ng-container
+              [ngTemplateOutlet]="commercialAgreementStepTemplate"
+              [ngTemplateOutletContext]="{ activateCallback }"
+            ></ng-container>
+          </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="4">
+          <ng-template #content let-activateCallback="activateCallback">
+            <ng-container
+              [ngTemplateOutlet]="wagePolicyStepTemplate"
+              [ngTemplateOutletContext]="{ activateCallback }"
+            ></ng-container>
+          </ng-template>
+        </p-step-panel>
+      </p-step-panels>
+    </p-stepper>
+  }
+</main>
+
+<footer
+  class="flex justify-content-between absolute bottom-0 left-0 w-full py-3 px-4 border-top-1 border-300"
+>
+  <p-button
+    [label]="'COMPANY.CANCEL' | translate"
+    [text]="true"
+    [plain]="true"
+    [dpsNavigateBackButton]="defaultBackRoute"
+  ></p-button>
+</footer>
+
+<ng-template #generalStepTemplate let-activateCallback="activateCallback">
+  <div class="flex gap-6 flex-column md:flex-row">
+    <div class="flex col-5 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="name">{{ 'COMPANY.SEARCH_NAME' | translate }}</label>
+        <input pInputText id="name" [formControl]="basicData.controls.name" class="w-full" />
+        <dps-field-validation-errors [control]="basicData.controls.name">
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COMPANY.LEGAL_NAME' | translate }}
+        </label>
+        <input
+          pInputText
+          id="nickName"
+          [formControl]="basicData.controls.nickName"
+          class="w-full"
+        />
+        <dps-field-validation-errors [control]="basicData.controls.nickName">
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="vat">{{ 'COMPANY.VAT_NR' | translate }}</label>
+        <input
+          pInputText
+          id="vat"
+          [disabled]="true"
+          [value]="basicData.controls.vat.value | vatMask"
+          class="w-full"
+        />
+      </div>
+      <div class="flex flex-column">
+        <dps-address-autocomplete-field
+          [label]="'COMPANY.COMPANY_ADDRESS' | translate"
+          [control]="basicData.controls.address"
+        ></dps-address-autocomplete-field>
+      </div>
+    </div>
+
+    <div class="flex col-5 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="pcCodes">
+          {{ 'COMPANY.JOINT_COMMITTEE' | translate }}
+        </label>
+        <p-multiSelect
+          inputId="pcCodes"
+          display="chip"
+          scrollHeight="400px"
+          [maxSelectedLabels]="null"
+          [autoOptionFocus]="false"
+          [showToggleAll]="false"
+          [resetFilterOnHide]="true"
+          [filterBy]="pcCodesFilterBy"
+          [overlayOptions]="pcCodesOverlayOptions"
+          [dataKey]="dictionaryItemOptionValue"
+          [optionLabel]="dictionaryItemOptionValue"
+          [options]="(pcCodes$ | async) || []"
+          [formControl]="basicData.controls.paritairComites"
+          #pcCodesMultiSelect
+        >
+          <ng-template let-pcCode pTemplate="item">
+            <div class="flex align-items-center gap-3 white-space-normal">
+              <span>{{ pcCode.code }}</span>
+              <span>{{ pcCode.name }}</span>
+            </div>
+          </ng-template>
+          <ng-template #footer>
+            <div class="flex justify-content-end p-2">
+              <p-button
+                [label]="'GENERAL.CLOSE' | translate"
+                severity="secondary"
+                [text]="true"
+                (onClick)="pcCodesMultiSelect.hide()"
+              />
+            </div>
+          </ng-template>
+        </p-multiSelect>
+        <dps-field-validation-errors
+          [control]="basicData.controls.paritairComites"
+        ></dps-field-validation-errors>
+      </div>
+
+      @if (isConstructionCompany()) {
+        <div class="flex flex-column">
+          <label class="mb-1" for="socialSecurityCategory">
+            {{ 'COMPANY.SOCIAL_SECURITY_CATEGORY' | translate }}
+          </label>
+          <p-select
+            inputId="socialSecurityCategory"
+            [options]="(socialSecurityCategories$ | async) || []"
+            [formControl]="basicData.controls.socialSecurityCategory"
+          >
+            <ng-template let-ssCategory #selectedItem>
+              <ng-container
+                [ngTemplateOutlet]="socialSecurityCategoryOptionTemplate"
+                [ngTemplateOutletContext]="{ ssCategory }"
+              ></ng-container>
+            </ng-template>
+            <ng-template let-ssCategory #item>
+              <ng-container
+                [ngTemplateOutlet]="socialSecurityCategoryOptionTemplate"
+                [ngTemplateOutletContext]="{ ssCategory }"
+              ></ng-container>
+            </ng-template>
+          </p-select>
+          <dps-field-validation-errors [control]="basicData.controls.socialSecurityCategory">
+          </dps-field-validation-errors>
+        </div>
+      }
+
+      <div class="flex flex-column">
+        <label class="mb-1" for="revenueConsultant">
+          {{ 'COMPANY.DEFAULT_REVENUE_SALES_REP' | translate }}
+        </label>
+        <p-select
+          [options]="(consultants$ | async) || []"
+          dataKey="id"
+          [autoOptionFocus]="false"
+          inputId="revenueConsultant"
+          styleClass="w-full"
+          [formControl]="basicData.controls.revenueConsultant"
+        >
+          <ng-template pTemplate="selectedItem">
+            <ng-container
+              [ngTemplateOutlet]="revenueConsultantOptionTemplate"
+              [ngTemplateOutletContext]="{
+                revConsultant: basicData.controls.revenueConsultant.value,
+              }"
+            ></ng-container>
+          </ng-template>
+
+          <ng-template let-revConsultant pTemplate="item">
+            <ng-container
+              [ngTemplateOutlet]="revenueConsultantOptionTemplate"
+              [ngTemplateOutletContext]="{ revConsultant }"
+            ></ng-container>
+          </ng-template>
+        </p-select>
+        <dps-field-validation-errors
+          [control]="basicData.controls.revenueConsultant"
+        ></dps-field-validation-errors>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex pt-4 justify-content-end absolute bottom-0 right-0 m-3 z-5">
+    <p-button
+      [label]="'COMPANY.NEXT_STEP' | translate"
+      iconPos="right"
+      [disabled]="basicData.invalid"
+      icon="dps-icon dps-icon-right rotate-180 dps-icon-arrow_back"
+      (onClick)="activateCallback(2)"
+    />
+  </div>
+</ng-template>
+
+<ng-template #contactStepTemplate let-activateCallback="activateCallback">
+  <div class="flex gap-3 flex-column md:flex-row">
+    <div class="flex col-4 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="communicationLanguage">
+          {{ 'COMPANY.COMMUNICATION_LANGUAGE' | translate }}
+        </label>
+        <p-select
+          [options]="(languages$ | async) || []"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [dataKey]="dictionaryItemOptionValue"
+          [autoOptionFocus]="false"
+          [formControl]="communicationFormGroup.controls.language"
+          inputId="communicationLanguage"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+      <div class="flex flex-column">
+        <dps-phone-number-field
+          [labelTranslationKey]="'COMPANY.GENERAL_PHONE_NUMBER'"
+          [control]="communicationFormGroup.controls.phoneNumber"
+        ></dps-phone-number-field>
+      </div>
+      <div class="flex flex-column">
+        <dps-phone-number-field
+          [labelTranslationKey]="'COMPANY.RAPPEL_SMS_NUMBER'"
+          [control]="communicationFormGroup.controls.invoicePhoneNumber"
+        ></dps-phone-number-field>
+      </div>
+      <div class="flex flex-column">
+        <dps-email-field
+          [labelTranslationKey]="'COMPANY.GENERAL_MAIL_ADDRESS'"
+          [control]="communicationFormGroup.controls.email"
+        ></dps-email-field>
+        @if (communicationFormGroup.controls.email.valid) {
+          <div class="mt-1 line-height-2 text-right">
+            <small class="cursor-pointer underline text-primary" (click)="addMailForAll()">
+              {{ 'COMPANY.COMPLETE_SUGGESTION' | translate }}
+            </small>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex col-4 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="selfServiceEmails">
+          {{ 'COMPANY.ONLINE_ACTUALS' | translate }}
+        </label>
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="selfServiceEmails" class="flex flex-column gap-2">
+            @for (selfServiceEmails of selfServiceEmailsForm.controls; track $index) {
+              <p-inputGroup>
+                <input
+                  type="email"
+                  id="selfServiceEmails-{{ $index }}"
+                  pInputText
+                  [formControlName]="$index"
+                />
+                <p-inputgroup-addon>
+                  <p-button
+                    icon="dps-icon dps-icon-delete"
+                    [text]="true"
+                    severity="danger"
+                    (click)="selfServiceEmailsForm.removeAt($index)"
+                  ></p-button>
+                </p-inputgroup-addon>
+              </p-inputGroup>
+
+              <dps-field-validation-errors
+                [control]="communicationFormGroup.controls.selfServiceEmails.at($index)"
+              >
+                @if (
+                  communicationFormGroup.controls.selfServiceEmails
+                    .at($index)
+                    .hasError(invalidEmailError)
+                ) {
+                  <small class="text-red-500">
+                    {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                  </small>
+                }
+              </dps-field-validation-errors>
+            }
+          </div>
+        </form>
+
+        <p-button
+          class="mt-2"
+          icon="dps-icon dps-icon-add"
+          [text]="true"
+          [disabled]="!!selfServiceEmailsForm.controls.length && selfServiceEmailsForm.invalid"
+          [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+          (onClick)="addEmail(selfServiceEmailsForm)"
+        >
+        </p-button>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="einvoicesEmails">
+          {{ 'COMPANY.E-INVOICES' | translate }}
+        </label>
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="einvoicesEmails" class="flex flex-column gap-2">
+            @for (einvoicesEmails of einvoicesEmailsForm.controls; track $index) {
+              <div class="flex flex-column">
+                <p-inputGroup>
+                  <input
+                    id="einvoicesEmails-{{ $index }}"
+                    pInputText
+                    type="email"
+                    class="w-full"
+                    [formControlName]="$index"
+                  />
+                  <p-inputgroup-addon>
+                    <p-button
+                      icon="dps-icon dps-icon-delete"
+                      severity="danger"
+                      [text]="true"
+                      (click)="einvoicesEmailsForm.removeAt($index)"
+                    ></p-button>
+                  </p-inputgroup-addon>
+                </p-inputGroup>
+
+                <dps-field-validation-errors
+                  [control]="communicationFormGroup.controls.einvoicesEmails.at($index)"
+                >
+                  @if (
+                    communicationFormGroup.controls.einvoicesEmails
+                      .at($index)
+                      .hasError(invalidEmailError)
+                  ) {
+                    <small class="text-red-500">
+                      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                    </small>
+                  }
+                </dps-field-validation-errors>
+              </div>
+            }
+          </div>
+        </form>
+
+        <p-button
+          class="mt-2"
+          icon="dps-icon dps-icon-add"
+          [text]="true"
+          [disabled]="!!einvoicesEmailsForm.controls.length && einvoicesEmailsForm.invalid"
+          [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+          (onClick)="addEmail(einvoicesEmailsForm)"
+        >
+        </p-button>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="eremindersEmails">{{ 'COMPANY.E-RAPPELS' | translate }}</label>
+
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="eremindersEmails" class="flex flex-column gap-2">
+            @for (eremindersEmails of eremindersEmailsForm.controls; track $index) {
+              <div class="flex flex-column">
+                <p-inputGroup>
+                  <input
+                    id="eremindersEmails-{{ $index }}"
+                    pInputText
+                    type="email"
+                    class="w-full"
+                    [formControlName]="$index"
+                  />
+                  <p-inputgroup-addon>
+                    <p-button
+                      icon="dps-icon dps-icon-delete"
+                      [text]="true"
+                      severity="danger"
+                      (click)="eremindersEmailsForm.removeAt($index)"
+                    ></p-button>
+                  </p-inputgroup-addon>
+                </p-inputGroup>
+
+                <dps-field-validation-errors
+                  [control]="communicationFormGroup.controls.eremindersEmails.at($index)"
+                >
+                  @if (
+                    communicationFormGroup.controls.eremindersEmails
+                      .at($index)
+                      .hasError(invalidEmailError)
+                  ) {
+                    <small class="text-red-500">
+                      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                    </small>
+                  }
+                </dps-field-validation-errors>
+              </div>
+            }
+          </div>
+        </form>
+
+        <p-button
+          class="mt-2"
+          icon="dps-icon dps-icon-add"
+          [text]="true"
+          [disabled]="!!eremindersEmailsForm.controls.length && eremindersEmailsForm.invalid"
+          [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+          (onClick)="addEmail(eremindersEmailsForm)"
+        >
+        </p-button>
+      </div>
+    </div>
+
+    <div class="flex col-4 flex-column pr-4">
+      <label class="mb-1">{{ 'COMPANY.CONTACT_PERSON' | translate }}</label>
+      <div class="flex gap-4 flex-column">
+        @for (personalContactForm of personalContactsForm.controls; track $index) {
+          <p-card styleClass="relative">
+            <p-button
+              class="absolute top-0 right-0"
+              icon="dps-icon dps-icon-delete"
+              severity="danger"
+              [text]="true"
+              (onClick)="removeContactPerson($index)"
+            ></p-button>
+
+            <div class="flex flex-column mb-3">
+              <label class="mb-1" for="fullName">
+                {{ 'COMPANY.FIRST_AND_LAST_NAME' | translate }}
+              </label>
+              <input
+                pInputText
+                class="w-full"
+                [formControl]="personalContactForm.controls.fullName"
+              />
+              <dps-field-validation-errors
+                [control]="personalContactForm.controls.fullName"
+              ></dps-field-validation-errors>
+            </div>
+
+            <div class="flex flex-column mb-3">
+              <label class="mb-1" for="position">
+                {{ 'COMPANY.FUNCTION' | translate }}
+              </label>
+              <input
+                pInputText
+                class="w-full"
+                [formControl]="personalContactForm.controls.position"
+              />
+              <dps-field-validation-errors
+                [control]="personalContactForm.controls.position"
+              ></dps-field-validation-errors>
+            </div>
+
+            <dps-email-field
+              class="mb-3"
+              labelTranslationKey="COMPANY.EMAIL"
+              [control]="personalContactForm.controls.email"
+            ></dps-email-field>
+            <dps-phone-number-field
+              labelTranslationKey="COMPANY.MOBILE"
+              [control]="personalContactForm.controls.phoneNumber"
+            ></dps-phone-number-field>
+          </p-card>
+        }
+      </div>
+
+      <p-button
+        class="mt-2"
+        icon="dps-icon dps-icon-add"
+        [text]="true"
+        [label]="'COMPANY.ADD_CONTACT_PERSON' | translate"
+        (onClick)="addContactPerson()"
+      >
+      </p-button>
+    </div>
+  </div>
+
+  <div class="flex pt-4 justify-content-end absolute bottom-0 right-0 m-3 z-5">
+    <p-button
+      class="mr-3"
+      [text]="true"
+      [plain]="true"
+      [label]="('COMPANY.STEP' | translate: { index: 1 }) + ('COMPANY.GENERAL' | translate)"
+      iconPos="left"
+      icon="dps-icon dps-icon-right dps-icon-arrow_back"
+      (onClick)="activateCallback(1)"
+    />
+
+    <p-button
+      [label]="'COMPANY.NEXT_STEP' | translate"
+      [disabled]="contactData.invalid"
+      iconPos="right"
+      icon="dps-icon dps-icon-right rotate-180 dps-icon-arrow_back"
+      (onClick)="activateCallback(3)"
+    />
+  </div>
+</ng-template>
+
+<ng-template #commercialAgreementStepTemplate let-activateCallback="activateCallback">
+  <div class="flex justify-content-between">
+    <div class="flex col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_WHITE_COLLAR' | translate }}
+        </label>
+        <p-inputNumber
+          mode="decimal"
+          [minFractionDigits]="4"
+          inputId="coefficientWhiteCollar"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_LABOUR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientBlueCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientBlueCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientBlueCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_LABOUR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_STUDENT_WHITE_COLLAR' | translate }}
+        </label>
+
+        <p-inputNumber
+          inputId="coefficientWhiteCollarJobStudent"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : { fieldLabel: 'COEFFICIENTS.COEFFICIENT_STUDENT_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_STUDENT_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientBlueCollarJobStudent"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_STUDENT_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+    <div class="flex col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_FLEX_WHITE_COLLAR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientFlextimeWhiteCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : { fieldLabel: 'COEFFICIENTS.COEFFICIENT_FLEX_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_FLEX_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientFlextimeBlueCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_FLEX_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">{{ 'COEFFICIENTS.COEFFICIENT_EXTRA' | translate }}</label>
+        <p-inputNumber
+          inputId="coefficientExtra"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientExtra"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientExtra"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientExtra.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientExtra.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_EXTRA' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_SEASON_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientSeasonalWorker"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_SEASON_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+    <div class="flex col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_TRANSPORTATION_ALLOWANCE' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="coefficientTravelAllowance"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientTravelAllowance"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsForm.controls.coefficientTravelAllowance"
+        >
+          @if (
+            coefficientsForm.controls.coefficientTravelAllowance.errors?.['min'] ||
+            coefficientsForm.controls.coefficientTravelAllowance.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_TRANSPORTATION_ALLOWANCE' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_MEALVOUCHERS' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="coefficientMealVouchers"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientMealVouchers"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.coefficientMealVouchers">
+          @if (
+            coefficientsForm.controls.coefficientMealVouchers.errors?.['min'] ||
+            coefficientsForm.controls.coefficientMealVouchers.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_MEALVOUCHERS' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_ECOVOUCHERS' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="coefficientEcoVouchers"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientEcoVouchers"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.coefficientEcoVouchers">
+          @if (
+            coefficientsForm.controls.coefficientEcoVouchers.errors?.['min'] ||
+            coefficientsForm.controls.coefficientEcoVouchers.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_ECOVOUCHERS' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_WORKER' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="coefficientConstructionWorker"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientConstructionWorker"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientConstructionWorker"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientConstructionWorker.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientConstructionWorker.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_WORKER' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+    <div class="flex col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_JOB_STUDENT' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="coefficientConstructionJobStudent"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_JOB_STUDENT' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">{{ 'COEFFICIENTS.DIMONACOST' | translate }}</label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="dimonaCost"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="4"
+          [formControl]="coefficientsForm.controls.dimonaCost"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.dimonaCost">
+          @if (
+            coefficientsForm.controls.dimonaCost.errors?.['min'] ||
+            coefficientsForm.controls.dimonaCost.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.DIMONACOST' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="defaultTaxRate">
+          {{ 'COEFFICIENTS.STANDARD_TAX_TARIFF' | translate }}
+        </label>
+        <p-select
+          inputId="defaultTaxRate"
+          styleClass="w-full"
+          [options]="(defaultTaxRates$ | async) || []"
+          [dataKey]="dictionaryItemOptionValue"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [formControl]="coefficientsForm.controls.defaultTaxRate"
+          [readonly]="!canUpdateNonStandardCoefficients"
+        ></p-select>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.defaultTaxRate">
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.DIMONA_ADDON' | translate }}
+        </label>
+        <p-inputNumber
+          [readonly]="!canUpdateNonStandardCoefficients"
+          inputId="dimonaAddon"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="4"
+          [formControl]="coefficientsForm.controls.dimonaAddon"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.dimonaAddon">
+          @if (
+            coefficientsForm.controls.dimonaAddon.errors?.['min'] ||
+            coefficientsForm.controls.dimonaAddon.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.DIMONA_ADDON' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex pt-4 justify-content-end absolute bottom-0 right-0 m-3 z-5">
+    <p-button
+      class="mr-3"
+      [text]="true"
+      [plain]="true"
+      [label]="('COMPANY.STEP' | translate: { index: 2 }) + ('COMPANY.CONTACT_DATA' | translate)"
+      iconPos="left"
+      icon="dps-icon dps-icon-right dps-icon-arrow_back"
+      (onClick)="activateCallback(2)"
+    />
+    <p-button
+      [label]="'COMPANY.NEXT_STEP' | translate"
+      [disabled]="paymentData.invalid"
+      iconPos="right"
+      icon="dps-icon dps-icon-right rotate-180 dps-icon-arrow_back"
+      (onClick)="activateCallback(4)"
+    />
+  </div>
+</ng-template>
+
+<ng-template #wagePolicyStepTemplate let-activateCallback="activateCallback">
+  <div class="flex gap-6 flex-column md:flex-row">
+    <div class="flex col-5 flex-column gap-3">
+      <div class="flex flex-column">
+        <dps-toggle-card
+          [title]="'COMPANY.MEALVUOCHERS' | translate"
+          [toggled]="mealVoucherForm.controls.isEnabled.value"
+          (toggleChange)="mealVoucherForm.controls.isEnabled.setValue($event)"
+        >
+          <div class="flex flex-column gap-3">
+            <div class="flex flex-column">
+              <label class="mb-1" for="mealVouchersTotal">
+                {{ 'COMPANY.MEALVUOCHERS_TOTAL' | translate }}
+              </label>
+              <p-inputNumber
+                inputId="mealVouchersTotal"
+                mode="currency"
+                currency="EUR"
+                [minFractionDigits]="2"
+                styleClass="w-full"
+                [formControl]="mealVoucherForm.controls.shareTotal"
+              >
+              </p-inputNumber>
+              <dps-field-validation-errors [control]="mealVoucherForm.controls.shareTotal">
+                @if (mealVoucherForm.controls.shareTotal.errors?.['min']; as minErrorObj) {
+                  <small class="text-red-500">
+                    {{
+                      'VALIDATION_ERRORS.MEAL_VOUCHERS_TOTAL_MIN'
+                        | translate
+                          : {
+                              min: minErrorObj.min | currency,
+                            }
+                    }}
+                  </small>
+                }
+                @if (mealVoucherForm.controls.shareTotal.errors?.['max']; as maxErrorObj) {
+                  <small class="text-red-500">
+                    {{
+                      'VALIDATION_ERRORS.MEAL_VOUCHERS_TOTAL_MAX'
+                        | translate
+                          : {
+                              max: maxErrorObj.max | currency,
+                            }
+                    }}
+                  </small>
+                }
+              </dps-field-validation-errors>
+            </div>
+            <div class="flex flex-column">
+              <label class="mb-1" for="shareCompany">
+                {{ 'COMPANY.EMPLOYERS_SHARE' | translate }}
+              </label>
+              <p-inputNumber
+                inputId="shareCompany"
+                mode="currency"
+                currency="EUR"
+                [minFractionDigits]="2"
+                styleClass="w-full"
+                [formControl]="mealVoucherForm.controls.shareCompany"
+              >
+              </p-inputNumber>
+              <dps-field-validation-errors
+                [control]="mealVoucherForm.controls.shareCompany"
+              ></dps-field-validation-errors>
+            </div>
+            <div class="flex flex-column">
+              <label class="mb-1" for="shareEmployee">
+                {{ 'COMPANY.EMPLOYEES_SHARE' | translate }}
+              </label>
+              <p-inputNumber
+                inputId="shareEmployee"
+                mode="currency"
+                currency="EUR"
+                [minFractionDigits]="2"
+                styleClass="w-full"
+                [formControl]="mealVoucherForm.controls.shareEmployee"
+              >
+              </p-inputNumber>
+              <dps-field-validation-errors [control]="mealVoucherForm.controls.shareEmployee">
+                @if (mealVoucherForm.controls.shareEmployee.errors?.['min']; as minErrorObj) {
+                  <small class="text-red-500">
+                    {{
+                      'VALIDATION_ERRORS.MEAL_VOUCHERS_EMPLOYEE_MIN'
+                        | translate
+                          : {
+                              min: minErrorObj.min | currency,
+                            }
+                    }}
+                  </small>
+                }
+              </dps-field-validation-errors>
+            </div>
+            <div class="flex flex-column">
+              <label class="mb-1" for="minWorkedHours">
+                {{ 'COMPANY.MIN_WORKED_HOURS' | translate }}
+              </label>
+              <p-inputNumber
+                minFractionDigits="1"
+                maxFractionDigits="1"
+                inputId="minWorkedHours"
+                [formControl]="mealVoucherForm.controls.minimumHours"
+              >
+              </p-inputNumber>
+            </div>
+          </div>
+        </dps-toggle-card>
+      </div>
+      <div class="flex flex-column">
+        <div class="flex justify-content-between align-items-center">
+          <label for="ecoVouchers">{{ 'COMPANY.ECOVUOCHERS' | translate }}</label>
+          <p-toggleswitch
+            inputId="ecoVouchers"
+            [formControl]="invoiceForm.controls.invoiceEcoWeekly"
+          ></p-toggleswitch>
+        </div>
+      </div>
+      <div class="flex flex-column">
+        <div class="flex justify-content-between align-items-center">
+          <label for="travelAllowanceEnabled">
+            {{ 'COMPANY.TRANSPORTATION_ALLOWANCE' | translate }}
+          </label>
+          <p-toggleswitch
+            inputId="travelAllowanceEnabled"
+            [formControl]="travelAllowanceForm.controls.isEnabled"
+          ></p-toggleswitch>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex col-5 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="compensationHours">
+          {{ 'COMPANY.COMPENSATION_HOURS' | translate }}
+        </label>
+        <p-select
+          [options]="(compensationHours$ | async) || []"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [dataKey]="dictionaryItemOptionValue"
+          [autoOptionFocus]="false"
+          inputId="compensationHours"
+          styleClass="w-full"
+          [formControl]="invoiceForm.controls.compensationHours"
+        ></p-select>
+        <dps-field-validation-errors
+          [control]="invoiceForm.controls.compensationHours"
+        ></dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <div class="flex flex-column">
+          <label class="mb-1" for="companyHoursPerWeek">
+            {{ 'COMPANY.STANDARD_FULLTIME_WEEK' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="companyHoursPerWeek"
+            styleClass="w-full"
+            [minFractionDigits]="2"
+            [suffix]="'CONTRACT.HOURS_WEEKLY_SUFFIX' | translate"
+            [formControl]="invoiceForm.controls.companyHoursPerWeek"
+          >
+          </p-inputNumber>
+          <dps-field-validation-errors [control]="invoiceForm.controls.companyHoursPerWeek">
+            @if (invoiceForm.controls.companyHoursPerWeek.hasError('max')) {
+              <small class="text-red-500">
+                {{
+                  'VALIDATION_ERRORS.COMPANY_WORK_SCHEDULE_MAX'
+                    | translate
+                      : {
+                          maxHours: companyHoursPerWeekMax,
+                        }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex pt-4 justify-content-end absolute bottom-0 right-0 m-3 z-5">
+    <p-button
+      [label]="
+        ('COMPANY.STEP' | translate: { index: 3 }) + ('COMPANY.COMMERCIAL_AGREEMENT' | translate)
+      "
+      [text]="true"
+      [plain]="true"
+      iconPos="left"
+      icon="dps-icon dps-icon-right dps-icon-arrow_back"
+      (onClick)="activateCallback(3)"
+    />
+    <p-button
+      [label]="'COMPANY.COMPLETE_ONBOARDING' | translate"
+      [disabled]="wageData.invalid"
+      (onClick)="updateCompany()"
+    />
+  </div>
+</ng-template>
+
+<ng-template #socialSecurityCategoryOptionTemplate let-ssCategory="ssCategory">
+  @if (ssCategory) {
+    {{ ssCategory.code }} - {{ ssCategory.name }}
+  }
+</ng-template>
+
+<ng-template let-revConsultant="revConsultant" #revenueConsultantOptionTemplate>
+  @if (revConsultant) {
+    <span>{{ revConsultant.firstName }}</span>
+    <span>&nbsp;</span>
+    <span>{{ revConsultant.lastName }}</span>
+  }
+</ng-template>

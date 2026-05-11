@@ -1,0 +1,32 @@
+dps-media-card {
+  display: flex;
+  width: 100%;
+  max-width: 350px;
+
+  .p-card {
+    &-header {
+      img {
+        width: 100%;
+      }
+      .file-header-placeholder {
+        min-height: 150px;
+      }
+    }
+
+    &-subtitle {
+      text-align: center;
+    }
+
+    &-content {
+      padding: 0;
+    }
+  }
+
+  p-card {
+    &.p-draggable-enter {
+      .p-card {
+        border: 2px dashed var(--p-primary-color);
+      }
+    }
+  }
+}

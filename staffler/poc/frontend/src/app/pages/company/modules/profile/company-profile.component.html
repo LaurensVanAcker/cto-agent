@@ -1,0 +1,1474 @@
+<dps-page-header
+  [title]="'COMPANY.COMPANY_PROFILE' | translate"
+  [subtitle]="(company$ | async)?.name"
+>
+  @if (isMobileScreen()) {
+    <p-overlaybadge styleClass="mt-2 mr-2" class="ml-auto" [badgeDisabled]="!companyActualsCount()">
+      <p-button
+        icon="dps-icon dps-icon-menu"
+        text
+        plain
+        rounded
+        class="z-1"
+        (click)="showSidenav()"
+      ></p-button>
+    </p-overlaybadge>
+  } @else {
+    <app-action-center-dialog class="ml-auto"></app-action-center-dialog>
+  }
+</dps-page-header>
+
+<main class="flex flex-column overflow-y-auto flex-1 p-3">
+  @if (isLoading()) {
+    <div class="flex align-items-center justify-content-center h-full">
+      <p-progressSpinner></p-progressSpinner>
+    </div>
+  } @else {
+    @if (isBlocked) {
+      <p-message
+        styleClass="mb-3"
+        severity="error"
+        icon="dps-icon dps-icon-block text-2xl w-auto h-auto"
+      >
+        <span
+          [innerHTML]="
+            'COMPANY.BLOCKED_STATUS_MESSAGE' | translate: { phoneNumber: financePhoneNumber }
+          "
+        ></span>
+      </p-message>
+    }
+
+    <p-tabs class="flex-1" [value]="1" [lazy]="true" scrollable>
+      <p-tablist>
+        <p-tab [value]="1">{{ 'COMPANY.GENERAL' | translate }}</p-tab>
+        <p-tab [value]="2">{{ 'COMPANY.CONTACT_DATA' | translate }}</p-tab>
+
+        @if (!hasCustomerUserRole()) {
+          <p-tab [value]="3">{{ 'COMPANY.COMMERCIAL_AGREEMENT' | translate }}</p-tab>
+          <p-tab [value]="4">{{ 'COMPANY.WAGE_POLICY' | translate }}</p-tab>
+        }
+      </p-tablist>
+
+      <p-tabpanels class="px-0">
+        <p-tabpanel [value]="1">
+          <ng-container [ngTemplateOutlet]="generalTabTemplate"></ng-container>
+        </p-tabpanel>
+
+        <p-tabpanel [value]="2">
+          <ng-container [ngTemplateOutlet]="contactTabTemplate"></ng-container>
+        </p-tabpanel>
+
+        <p-tabpanel [value]="3">
+          <ng-container [ngTemplateOutlet]="commercialAgreementTabTemplate"></ng-container>
+        </p-tabpanel>
+
+        <p-tabpanel [value]="4">
+          <ng-container [ngTemplateOutlet]="wagePolicyTabTemplate"></ng-container>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+
+    @if (!hasCustomerUserRole()) {
+      <footer class="flex justify-content-end">
+        <p-button
+          [label]="'COMPANY.SAVE_UPDATES' | translate"
+          [loading]="isUpdating()"
+          [disabled]="form.invalid"
+          (onClick)="updateCompany()"
+        ></p-button>
+      </footer>
+    }
+  }
+</main>
+
+<ng-template #generalTabTemplate>
+  <div class="grid">
+    <div class="flex col-12 md:col-6 lg:col-5 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="name">{{ 'COMPANY.SEARCH_NAME' | translate }}</label>
+        <input pInputText id="name" [formControl]="form.controls.name" class="w-full" />
+        <dps-field-validation-errors [control]="form.controls.name"></dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COMPANY.LEGAL_NAME' | translate }}
+        </label>
+        <input pInputText id="nickName" [formControl]="form.controls.nickName" class="w-full" />
+        <dps-field-validation-errors [control]="form.controls.nickName">
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="vat">{{ 'COMPANY.VAT_NR' | translate }}</label>
+        <input
+          pInputText
+          id="vat"
+          [disabled]="true"
+          [value]="form.controls.vat.value | vatMask"
+          class="w-full"
+        />
+      </div>
+      <div class="flex flex-column">
+        <dps-address-autocomplete-field
+          [label]="'COMPANY.COMPANY_ADDRESS' | translate"
+          [control]="form.controls.address"
+        ></dps-address-autocomplete-field>
+      </div>
+    </div>
+
+    <div class="flex col-12 md:col-6 lg:col-5 lg:col-offset-1 flex-column gap-3">
+      <div class="flex flex-column">
+        <label
+          class="mb-1"
+          for="pcCodes"
+          [ngClass]="{
+            'text-gray-400': !form.controls.presumedStartDate.value,
+            'text-gray-900': form.controls.presumedStartDate.value,
+          }"
+        >
+          {{ 'COMPANY.PRESUMED_START_DATE' | translate }}
+        </label>
+        <p-calendar [formControl]="form.controls.presumedStartDate" [showIcon]="true"> </p-calendar>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="pcCodes">
+          {{ 'COMPANY.JOINT_COMMITTEE' | translate }}
+        </label>
+        <p-multiSelect
+          inputId="pcCodes"
+          display="chip"
+          scrollHeight="400px"
+          [maxSelectedLabels]="null"
+          [autoOptionFocus]="false"
+          [showToggleAll]="false"
+          [resetFilterOnHide]="true"
+          [filterBy]="pcCodesFilterBy"
+          [overlayOptions]="pcCodesOverlayOptions"
+          [dataKey]="dictionaryItemOptionValue"
+          [optionLabel]="dictionaryItemOptionValue"
+          [options]="(pcCodes$ | async) || []"
+          [formControl]="form.controls.paritairComites"
+          #pcCodesMultiSelect
+        >
+          <ng-template let-pcCode pTemplate="item">
+            <div class="flex align-items-center gap-3 white-space-normal">
+              <span>{{ pcCode.code }}</span>
+              <span>{{ pcCode.name }}</span>
+            </div>
+          </ng-template>
+          <ng-template #footer>
+            <div class="flex justify-content-end p-2">
+              <p-button
+                [label]="'GENERAL.CLOSE' | translate"
+                severity="secondary"
+                [text]="true"
+                (onClick)="pcCodesMultiSelect.hide()"
+              />
+            </div>
+          </ng-template>
+        </p-multiSelect>
+        <dps-field-validation-errors
+          [control]="form.controls.paritairComites"
+        ></dps-field-validation-errors>
+      </div>
+
+      @if (isConstructionCompany()) {
+        <div class="flex flex-column">
+          <label class="mb-1" for="socialSecurityCategory">
+            {{ 'COMPANY.SOCIAL_SECURITY_CATEGORY' | translate }}
+          </label>
+          <p-select
+            inputId="socialSecurityCategory"
+            [options]="(socialSecurityCategories$ | async) || []"
+            [formControl]="form.controls.socialSecurityCategory"
+          >
+            <ng-template let-ssCategory #selectedItem>
+              <ng-container
+                [ngTemplateOutlet]="socialSecurityCategoryOptionTemplate"
+                [ngTemplateOutletContext]="{ ssCategory }"
+              ></ng-container>
+            </ng-template>
+            <ng-template let-ssCategory #item>
+              <ng-container
+                [ngTemplateOutlet]="socialSecurityCategoryOptionTemplate"
+                [ngTemplateOutletContext]="{ ssCategory }"
+              ></ng-container>
+            </ng-template>
+          </p-select>
+          <dps-field-validation-errors [control]="form.controls.socialSecurityCategory">
+          </dps-field-validation-errors>
+        </div>
+      }
+
+      @if (!hasCustomerUserRole()) {
+        <div class="flex flex-column">
+          <label class="mb-1" for="revenueConsultant">
+            {{ 'COMPANY.DEFAULT_REVENUE_SALES_REP' | translate }}
+          </label>
+          <p-select
+            [options]="(consultants$ | async) || []"
+            dataKey="id"
+            [autoOptionFocus]="false"
+            inputId="revenueConsultant"
+            styleClass="w-full"
+            [formControl]="form.controls.revenueConsultant"
+          >
+            <ng-template pTemplate="selectedItem">
+              <ng-container
+                [ngTemplateOutlet]="revenueConsultantOptionTemplate"
+                [ngTemplateOutletContext]="{
+                  revConsultant: form.controls.revenueConsultant.value,
+                }"
+              ></ng-container>
+            </ng-template>
+
+            <ng-template let-revConsultant pTemplate="item">
+              <ng-container
+                [ngTemplateOutlet]="revenueConsultantOptionTemplate"
+                [ngTemplateOutletContext]="{ revConsultant }"
+              ></ng-container>
+            </ng-template>
+          </p-select>
+          <dps-field-validation-errors
+            [control]="form.controls.revenueConsultant"
+          ></dps-field-validation-errors>
+        </div>
+      }
+
+      @if (!hasCustomerUserRole()) {
+        <p-fieldset [legend]="'COMPANY.ADDITIONAL_FEATURES' | translate">
+          <div class="flex flex-column gap-3">
+            <div class="flex align-items-center gap-2">
+              <p-checkbox
+                inputId="isGroupsEnabled"
+                [binary]="true"
+                [formControl]="form.controls.isGroupsEnabled"
+              ></p-checkbox>
+              <label for="isGroupsEnabled"> {{ 'COMPANY.USES_GROUPS' | translate }}</label>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+              <p-checkbox
+                inputId="isTimeRegistrationEnabled"
+                [binary]="true"
+                [formControl]="form.controls.isTimeRegistrationEnabled"
+              ></p-checkbox>
+              <label for="isTimeRegistrationEnabled">
+                {{ 'COMPANY.USES_TIME_REGISTRATION' | translate }}
+              </label>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+              <p-checkbox
+                inputId="isActualsEnabled"
+                [binary]="true"
+                [formControl]="form.controls.isActualsEnabled"
+              ></p-checkbox>
+              <label for="isActualsEnabled">
+                {{ 'COMPANY.USES_ACTUALS' | translate }}
+              </label>
+            </div>
+
+            @if (canUpdateBlockContractForLateActuals && form.controls.isActualsEnabled.value) {
+              <div class="flex align-items-center gap-2">
+                <p-checkbox
+                  inputId="actualsBlockEnabled"
+                  [binary]="true"
+                  [formControl]="form.controls.actualsBlockEnabled"
+                ></p-checkbox>
+                <label for="actualsBlockEnabled">
+                  {{ 'COMPANY.BLOCK_CONTRACTS_FOR_LATE_ACTUALS' | translate }}
+                </label>
+              </div>
+            }
+          </div>
+        </p-fieldset>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #contactTabTemplate>
+  <div class="grid">
+    <div class="flex col-12 lg:col-4 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="communicationLanguage">
+          {{ 'COMPANY.COMMUNICATION_LANGUAGE' | translate }}
+        </label>
+        <p-select
+          [options]="(languages$ | async) || []"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [dataKey]="dictionaryItemOptionValue"
+          [autoOptionFocus]="false"
+          [formControl]="communicationFormGroup.controls.language"
+          inputId="communicationLanguage"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+      <div class="flex flex-column">
+        <dps-phone-number-field
+          [labelTranslationKey]="'COMPANY.GENERAL_PHONE_NUMBER'"
+          [control]="communicationFormGroup.controls.phoneNumber"
+        ></dps-phone-number-field>
+      </div>
+      <div class="flex flex-column">
+        <dps-phone-number-field
+          [labelTranslationKey]="'COMPANY.RAPPEL_SMS_NUMBER'"
+          [control]="communicationFormGroup.controls.invoicePhoneNumber"
+        ></dps-phone-number-field>
+      </div>
+      <div class="flex flex-column">
+        <dps-email-field
+          [labelTranslationKey]="'COMPANY.GENERAL_MAIL_ADDRESS'"
+          [control]="communicationFormGroup.controls.email"
+        ></dps-email-field>
+        @if (communicationFormGroup.controls.email.valid && !hasCustomerUserRole()) {
+          <div class="line-height-2 text-right">
+            <small class="cursor-pointer underline text-primary" (click)="addMailForAll()">
+              {{ 'COMPANY.COMPLETE_SUGGESTION' | translate }}
+            </small>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex col-12 lg:col-4 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="selfServiceEmails">
+          {{ 'COMPANY.ONLINE_ACTUALS' | translate }}
+        </label>
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="selfServiceEmails" class="flex flex-column gap-2">
+            @for (selfServiceEmails of selfServiceEmailsForm.controls; track $index) {
+              <div class="flex flex-column">
+                <p-inputGroup>
+                  <input
+                    id="selfServiceEmails-{{ $index }}"
+                    pInputText
+                    class="w-full"
+                    [formControlName]="$index"
+                  />
+                  @if (!hasCustomerUserRole()) {
+                    <p-inputgroup-addon>
+                      <p-button
+                        icon="dps-icon dps-icon-delete"
+                        [text]="true"
+                        severity="danger"
+                        (click)="selfServiceEmailsForm.removeAt($index)"
+                      ></p-button>
+                    </p-inputgroup-addon>
+                  }
+                </p-inputGroup>
+
+                <dps-field-validation-errors [control]="selfServiceEmailsForm.at($index)">
+                  @if (selfServiceEmailsForm.at($index).hasError(invalidEmailError)) {
+                    <small class="text-red-500">
+                      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                    </small>
+                  }
+                </dps-field-validation-errors>
+              </div>
+            }
+          </div>
+        </form>
+
+        @if (!hasCustomerUserRole()) {
+          <p-button
+            class="mt-2"
+            icon="dps-icon dps-icon-add"
+            [text]="true"
+            [disabled]="!!selfServiceEmailsForm.controls.length && selfServiceEmailsForm.invalid"
+            [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+            (onClick)="addEmail(selfServiceEmailsForm)"
+          >
+          </p-button>
+        }
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="einvoicesEmails">
+          {{ 'COMPANY.E-INVOICES' | translate }}
+        </label>
+
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="einvoicesEmails" class="flex flex-column gap-2">
+            @for (einvoicesEmails of einvoicesEmailsForm.controls; track $index) {
+              <div class="flex flex-column">
+                <p-inputGroup>
+                  <input
+                    id="einvoicesEmails-{{ $index }}"
+                    pInputText
+                    class="w-full"
+                    [formControlName]="$index"
+                  />
+                  @if (!hasCustomerUserRole()) {
+                    <p-inputgroup-addon>
+                      <p-button
+                        icon="dps-icon dps-icon-delete"
+                        severity="danger"
+                        [text]="true"
+                        (click)="einvoicesEmailsForm.removeAt($index)"
+                      ></p-button>
+                    </p-inputgroup-addon>
+                  }
+                </p-inputGroup>
+                <dps-field-validation-errors [control]="einvoicesEmailsForm.at($index)">
+                  @if (einvoicesEmailsForm.at($index).hasError(invalidEmailError)) {
+                    <small class="text-red-500">
+                      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                    </small>
+                  }
+                </dps-field-validation-errors>
+              </div>
+            }
+          </div>
+        </form>
+
+        @if (!hasCustomerUserRole()) {
+          <p-button
+            class="mt-2"
+            icon="dps-icon dps-icon-add"
+            [text]="true"
+            [disabled]="!!einvoicesEmailsForm.controls.length && einvoicesEmailsForm.invalid"
+            [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+            (onClick)="addEmail(einvoicesEmailsForm)"
+          >
+          </p-button>
+        }
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="eremindersEmails">{{ 'COMPANY.E-RAPPELS' | translate }}</label>
+
+        <form [formGroup]="communicationFormGroup">
+          <div formArrayName="eremindersEmails" class="flex flex-column gap-2">
+            @for (eremindersEmails of eremindersEmailsForm.controls; track $index) {
+              <div class="flex flex-column">
+                <p-inputGroup>
+                  <input
+                    id="eremindersEmails-{{ $index }}"
+                    pInputText
+                    class="w-full"
+                    [formControlName]="$index"
+                  />
+                  @if (!hasCustomerUserRole()) {
+                    <p-inputgroup-addon>
+                      <p-button
+                        icon="dps-icon dps-icon-delete"
+                        [text]="true"
+                        severity="danger"
+                        (click)="eremindersEmailsForm.removeAt($index)"
+                      ></p-button>
+                    </p-inputgroup-addon>
+                  }
+                </p-inputGroup>
+
+                <dps-field-validation-errors [control]="eremindersEmailsForm.at($index)">
+                  @if (eremindersEmailsForm.at($index).hasError(invalidEmailError)) {
+                    <small class="text-red-500">
+                      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+                    </small>
+                  }
+                </dps-field-validation-errors>
+              </div>
+            }
+          </div>
+        </form>
+
+        @if (!hasCustomerUserRole()) {
+          <p-button
+            class="mt-2"
+            icon="dps-icon dps-icon-add"
+            [text]="true"
+            [disabled]="!!eremindersEmailsForm.controls.length && eremindersEmailsForm.invalid"
+            [label]="'COMPANY.ADD_MAIL_ADDRESS' | translate"
+            (onClick)="addEmail(eremindersEmailsForm)"
+          >
+          </p-button>
+        }
+      </div>
+    </div>
+
+    <div class="flex col-12 lg:col-4 flex-column">
+      <label class="mb-1">{{ 'COMPANY.CONTACT_PERSON' | translate }}</label>
+      <div class="flex gap-4 flex-column">
+        @for (personalContactForm of personalContactsForm.controls; track $index) {
+          <p-card styleClass="relative">
+            @if (!hasCustomerUserRole()) {
+              <p-button
+                class="absolute top-0 right-0"
+                icon="dps-icon dps-icon-delete"
+                severity="danger"
+                [text]="true"
+                (onClick)="removeContactPerson($index)"
+              ></p-button>
+            }
+
+            <div class="flex flex-column mb-3">
+              <label class="mb-1" for="fullName">
+                {{ 'COMPANY.FIRST_AND_LAST_NAME' | translate }}
+              </label>
+              <input
+                pInputText
+                class="w-full"
+                [formControl]="personalContactForm.controls.fullName"
+              />
+              <dps-field-validation-errors
+                [control]="personalContactForm.controls.fullName"
+              ></dps-field-validation-errors>
+            </div>
+
+            <div class="flex flex-column mb-3">
+              <label class="mb-1" for="position">
+                {{ 'COMPANY.FUNCTION' | translate }}
+              </label>
+              <input
+                pInputText
+                class="w-full"
+                [formControl]="personalContactForm.controls.position"
+              />
+              <dps-field-validation-errors
+                [control]="personalContactForm.controls.position"
+              ></dps-field-validation-errors>
+            </div>
+
+            <dps-email-field
+              class="mb-3"
+              labelTranslationKey="COMPANY.EMAIL"
+              [control]="personalContactForm.controls.email"
+            ></dps-email-field>
+
+            <dps-phone-number-field
+              labelTranslationKey="COMPANY.MOBILE"
+              [control]="personalContactForm.controls.phoneNumber"
+            ></dps-phone-number-field>
+          </p-card>
+        }
+      </div>
+
+      @if (!hasCustomerUserRole()) {
+        <p-button
+          class="mt-2"
+          icon="dps-icon dps-icon-add"
+          [text]="true"
+          [label]="'COMPANY.ADD_CONTACT_PERSON' | translate"
+          (onClick)="addContactPerson()"
+        >
+        </p-button>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #commercialAgreementTabTemplate>
+  <div class="grid">
+    <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_WHITE_COLLAR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientWhiteCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_LABOUR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientBlueCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientBlueCollar"
+          class="w-full"
+        >
+        </p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientBlueCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_LABOUR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_STUDENT_WHITE_COLLAR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientWhiteCollarJobStudent"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : { fieldLabel: 'COEFFICIENTS.COEFFICIENT_STUDENT_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_STUDENT_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientBlueCollarJobStudent"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_STUDENT_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+
+    <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_FLEX_WHITE_COLLAR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientFlextimeWhiteCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : { fieldLabel: 'COEFFICIENTS.COEFFICIENT_FLEX_WHITE_COLLAR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_FLEX_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientFlextimeBlueCollar"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_FLEX_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">{{ 'COEFFICIENTS.COEFFICIENT_EXTRA' | translate }}</label>
+        <p-inputNumber
+          inputId="coefficientExtra"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientExtra"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientExtra"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientExtra.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientExtra.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_EXTRA' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_SEASON_LABOR' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientSeasonalWorker"
+          mode="decimal"
+          [minFractionDigits]="4"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate: { fieldLabel: 'COEFFICIENTS.COEFFICIENT_SEASON_LABOR' | translate }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+
+    <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_TRANSPORTATION_ALLOWANCE' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientTravelAllowance"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientTravelAllowance"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsForm.controls.coefficientTravelAllowance"
+        >
+          @if (
+            coefficientsForm.controls.coefficientTravelAllowance.errors?.['min'] ||
+            coefficientsForm.controls.coefficientTravelAllowance.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_TRANSPORTATION_ALLOWANCE' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="nickName">
+          {{ 'COEFFICIENTS.COEFFICIENT_MEALVOUCHERS' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientMealVouchers"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientMealVouchers"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.coefficientMealVouchers">
+          @if (
+            coefficientsForm.controls.coefficientMealVouchers.errors?.['min'] ||
+            coefficientsForm.controls.coefficientMealVouchers.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_MEALVOUCHERS' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_WORKER' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientConstructionWorker"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientConstructionWorker"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientConstructionWorker"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientConstructionWorker.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientConstructionWorker.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_WORKER' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_JOB_STUDENT' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientConstructionJobStudent"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors
+          [control]="coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent"
+        >
+          @if (
+            coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent.errors?.['min'] ||
+            coefficientsPerStatuteForm.controls.coefficientConstructionJobStudent.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_CONSTRUCTION_JOB_STUDENT' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+
+    <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.COEFFICIENT_ECOVOUCHERS' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="coefficientEcoVouchers"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [formControl]="coefficientsForm.controls.coefficientEcoVouchers"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.coefficientEcoVouchers">
+          @if (
+            coefficientsForm.controls.coefficientEcoVouchers.errors?.['min'] ||
+            coefficientsForm.controls.coefficientEcoVouchers.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.COEFFICIENT_ECOVOUCHERS' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1" for="defaultTaxRate">
+          {{ 'COEFFICIENTS.STANDARD_TAX_TARIFF' | translate }}
+        </label>
+        <p-select
+          inputId="defaultTaxRate"
+          styleClass="w-full"
+          [options]="(defaultTaxRates$ | async) || []"
+          [dataKey]="dictionaryItemOptionValue"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [formControl]="coefficientsForm.controls.defaultTaxRate"
+        ></p-select>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.defaultTaxRate">
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">
+          {{ 'COEFFICIENTS.DIMONA_ADDON' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="dimonaAddon"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="4"
+          [formControl]="coefficientsForm.controls.dimonaAddon"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.dimonaAddon">
+          @if (
+            coefficientsForm.controls.dimonaAddon.errors?.['min'] ||
+            coefficientsForm.controls.dimonaAddon.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.DIMONA_ADDON' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+      <div class="flex flex-column">
+        <label class="mb-1">{{ 'COEFFICIENTS.DIMONACOST' | translate }}</label>
+        <p-inputNumber
+          inputId="dimonaCost"
+          mode="decimal"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="4"
+          [formControl]="coefficientsForm.controls.dimonaCost"
+          class="w-full"
+        ></p-inputNumber>
+        <dps-field-validation-errors [control]="coefficientsForm.controls.dimonaCost">
+          @if (
+            coefficientsForm.controls.dimonaCost.errors?.['min'] ||
+            coefficientsForm.controls.dimonaCost.errors?.['max']
+          ) {
+            <small class="text-red-500">
+              {{
+                'COEFFICIENTS.MIN_MAX_VALIDATION'
+                  | translate
+                    : {
+                        fieldLabel: 'COEFFICIENTS.DIMONACOST' | translate,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+  </div>
+
+  @if (isAdmin) {
+    <p-divider></p-divider>
+
+    <div class="grid">
+      <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientWhiteCollar">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_WHITE_COLLAR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientWhiteCollar"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollar"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['min'] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollar.errors?.['max']
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_WHITE_COLLAR' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientBlueCollar">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_LABOUR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientBlueCollar"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollar"
+          >
+          </p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollar"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['min'] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollar.errors?.['max']
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_LABOUR' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientWhiteCollarJobStudent">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_STUDENT_WHITE_COLLAR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientWhiteCollarJobStudent"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="
+              holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent
+            "
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.[
+                'min'
+              ] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientWhiteCollarJobStudent.errors?.[
+                'max'
+              ]
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : {
+                          fieldLabel:
+                            'COEFFICIENTS.HOLIDAY_COEFFICIENT_STUDENT_WHITE_COLLAR' | translate,
+                        }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientBlueCollarJobStudent">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_STUDENT_LABOR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientBlueCollarJobStudent"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="
+              holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent
+            "
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.[
+                'min'
+              ] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientBlueCollarJobStudent.errors?.[
+                'max'
+              ]
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_STUDENT_LABOR' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+      </div>
+      <div class="flex col-12 md:col-6 lg:col-3 flex-column gap-3">
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientFlextimeWhiteCollar">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_FLEX_WHITE_COLLAR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientFlextimeWhiteCollar"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="
+              holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar
+            "
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.[
+                'min'
+              ] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeWhiteCollar.errors?.[
+                'max'
+              ]
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : {
+                          fieldLabel:
+                            'COEFFICIENTS.HOLIDAY_COEFFICIENT_FLEX_WHITE_COLLAR' | translate,
+                        }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientFlextimeBlueCollar">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_FLEX_LABOR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientFlextimeBlueCollar"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.[
+                'min'
+              ] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientFlextimeBlueCollar.errors?.[
+                'max'
+              ]
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_FLEX_LABOR' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientExtra">{{
+            'COEFFICIENTS.HOLIDAY_COEFFICIENT_EXTRA' | translate
+          }}</label>
+          <p-inputNumber
+            inputId="holidayCoefficientExtra"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="holidayCoefficientsPerStatuteForm.controls.coefficientExtra"
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientExtra"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientExtra.errors?.['min'] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientExtra.errors?.['max']
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_EXTRA' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+        <div class="flex flex-column">
+          <label class="mb-1" for="holidayCoefficientSeasonalWorker">
+            {{ 'COEFFICIENTS.HOLIDAY_COEFFICIENT_SEASON_LABOR' | translate }}
+          </label>
+          <p-inputNumber
+            inputId="holidayCoefficientSeasonalWorker"
+            mode="decimal"
+            [minFractionDigits]="4"
+            [formControl]="holidayCoefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+          ></p-inputNumber>
+          <dps-field-validation-errors
+            [control]="holidayCoefficientsPerStatuteForm.controls.coefficientSeasonalWorker"
+          >
+            @if (
+              holidayCoefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.[
+                'min'
+              ] ||
+              holidayCoefficientsPerStatuteForm.controls.coefficientSeasonalWorker.errors?.['max']
+            ) {
+              <small class="text-red-500">
+                {{
+                  'COEFFICIENTS.MIN_MAX_VALIDATION'
+                    | translate
+                      : { fieldLabel: 'COEFFICIENTS.HOLIDAY_COEFFICIENT_SEASON_LABOR' | translate }
+                }}
+              </small>
+            }
+          </dps-field-validation-errors>
+        </div>
+      </div>
+    </div>
+  }
+</ng-template>
+
+<ng-template #wagePolicyTabTemplate>
+  <div class="grid">
+    <div class="flex col-12 md:col-6 lg:col-5 flex-column gap-3">
+      <dps-toggle-card
+        [title]="'COMPANY.MEALVUOCHERS' | translate"
+        [toggled]="mealVoucherForm.controls.isEnabled.value"
+        (toggleChange)="mealVoucherForm.controls.isEnabled.setValue($event)"
+      >
+        <div class="flex flex-column gap-3">
+          <div class="flex flex-column">
+            <label class="mb-1" for="mealVouchersTotal">
+              {{ 'COMPANY.MEALVUOCHERS_TOTAL' | translate }}
+            </label>
+            <p-inputNumber
+              inputId="mealVouchersTotal"
+              mode="currency"
+              currency="EUR"
+              [minFractionDigits]="2"
+              styleClass="w-full"
+              [formControl]="mealVoucherForm.controls.shareTotal"
+            >
+            </p-inputNumber>
+            <dps-field-validation-errors [control]="mealVoucherForm.controls.shareTotal">
+              @if (mealVoucherForm.controls.shareTotal.errors?.['min']; as minErrorObj) {
+                <small class="text-red-500">{{
+                  'VALIDATION_ERRORS.MEAL_VOUCHERS_TOTAL_MIN'
+                    | translate
+                      : {
+                          min: minErrorObj.min | currency,
+                        }
+                }}</small>
+              }
+              @if (mealVoucherForm.controls.shareTotal.errors?.['max']; as maxErrorObj) {
+                <small class="text-red-500">{{
+                  'VALIDATION_ERRORS.MEAL_VOUCHERS_TOTAL_MAX'
+                    | translate
+                      : {
+                          max: maxErrorObj.max | currency,
+                        }
+                }}</small>
+              }
+            </dps-field-validation-errors>
+          </div>
+          <div class="flex flex-column">
+            <label class="mb-1" for="shareCompany">
+              {{ 'COMPANY.EMPLOYERS_SHARE' | translate }}
+            </label>
+            <p-inputNumber
+              inputId="shareCompany"
+              mode="currency"
+              currency="EUR"
+              [minFractionDigits]="2"
+              styleClass="w-full"
+              [formControl]="mealVoucherForm.controls.shareCompany"
+            >
+            </p-inputNumber>
+            <dps-field-validation-errors
+              [control]="mealVoucherForm.controls.shareCompany"
+            ></dps-field-validation-errors>
+          </div>
+          <div class="flex flex-column">
+            <label class="mb-1" for="shareEmployee">
+              {{ 'COMPANY.EMPLOYEES_SHARE' | translate }}
+            </label>
+            <p-inputNumber
+              inputId="shareEmployee"
+              mode="currency"
+              currency="EUR"
+              [minFractionDigits]="2"
+              styleClass="w-full"
+              [formControl]="mealVoucherForm.controls.shareEmployee"
+            >
+            </p-inputNumber>
+            <dps-field-validation-errors [control]="mealVoucherForm.controls.shareEmployee">
+              @if (mealVoucherForm.controls.shareEmployee.errors?.['min']; as minErrorObj) {
+                <small class="text-red-500">
+                  {{
+                    'VALIDATION_ERRORS.MEAL_VOUCHERS_EMPLOYEE_MIN'
+                      | translate
+                        : {
+                            min: minErrorObj.min | currency,
+                          }
+                  }}
+                </small>
+              }
+            </dps-field-validation-errors>
+          </div>
+          <div class="flex flex-column">
+            <label class="mb-1" for="minWorkedHours">
+              {{ 'COMPANY.MIN_WORKED_HOURS' | translate }}
+            </label>
+            <p-inputNumber
+              minFractionDigits="1"
+              maxFractionDigits="1"
+              inputId="minWorkedHours"
+              [formControl]="mealVoucherForm.controls.minimumHours"
+            >
+            </p-inputNumber>
+          </div>
+        </div>
+      </dps-toggle-card>
+
+      <div class="flex justify-content-between align-items-center">
+        <label for="ecoVouchers">{{ 'COMPANY.ECOVUOCHERS' | translate }}</label>
+        <p-toggleswitch
+          inputId="ecoVouchers"
+          [formControl]="invoiceForm.controls.invoiceEcoWeekly"
+        ></p-toggleswitch>
+      </div>
+
+      <div class="flex justify-content-between align-items-center">
+        <label for="ecoVouchers">
+          {{ 'COMPANY.TRANSPORTATION_ALLOWANCE' | translate }}
+        </label>
+        <p-toggleswitch
+          inputId="ecoVouchers"
+          [formControl]="travelAllowanceForm.controls.isEnabled"
+        ></p-toggleswitch>
+      </div>
+
+      @if (!hasCustomerUserRole()) {
+        <div class="flex justify-content-between align-items-center">
+          <label for="invoiceSickness">
+            {{ 'COMPANY.INVOICE_SICKNESS' | translate }}
+          </label>
+          <p-toggleswitch
+            inputId="invoiceSickness"
+            [formControl]="invoiceForm.controls.isSickInvoicingEnabled"
+          ></p-toggleswitch>
+        </div>
+
+        <div class="flex justify-content-between align-items-center">
+          <label for="invoiceHoliday">
+            {{ 'COMPANY.INVOICE_HOLIDAYS' | translate }}
+          </label>
+          <p-toggleswitch
+            inputId="invoiceHoliday"
+            [formControl]="invoiceForm.controls.holidayInvoicingEnabled"
+          ></p-toggleswitch>
+        </div>
+      }
+    </div>
+
+    <div class="flex col-12 md:col-6 lg:col-5 lg:col-offset-1 flex-column gap-3">
+      <div class="flex flex-column">
+        <label class="mb-1" for="compensationHours">
+          {{ 'COMPANY.COMPENSATION_HOURS' | translate }}
+        </label>
+        <p-select
+          [options]="(compensationHours$ | async) || []"
+          [optionLabel]="dictionaryItemOptionLabel"
+          [dataKey]="dictionaryItemOptionValue"
+          [autoOptionFocus]="false"
+          inputId="compensationHours"
+          styleClass="w-full"
+          [formControl]="invoiceForm.controls.compensationHours"
+        ></p-select>
+        <dps-field-validation-errors
+          [control]="invoiceForm.controls.compensationHours"
+        ></dps-field-validation-errors>
+      </div>
+
+      <div class="flex flex-column">
+        <label class="mb-1" for="companyHoursPerWeek">
+          {{ 'COMPANY.STANDARD_FULLTIME_WEEK' | translate }}
+        </label>
+        <p-inputNumber
+          inputId="companyHoursPerWeek"
+          styleClass="w-full"
+          [minFractionDigits]="2"
+          [suffix]="'CONTRACT.HOURS_WEEKLY_SUFFIX' | translate"
+          [formControl]="invoiceForm.controls.companyHoursPerWeek"
+        >
+        </p-inputNumber>
+        <dps-field-validation-errors [control]="invoiceForm.controls.companyHoursPerWeek">
+          @if (invoiceForm.controls.companyHoursPerWeek.hasError('max')) {
+            <small class="text-red-500">
+              {{
+                'VALIDATION_ERRORS.COMPANY_WORK_SCHEDULE_MAX'
+                  | translate
+                    : {
+                        maxHours: companyHoursPerWeekMax,
+                      }
+              }}
+            </small>
+          }
+        </dps-field-validation-errors>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template let-revConsultant="revConsultant" #revenueConsultantOptionTemplate>
+  @if (revConsultant) {
+    <span>{{ revConsultant.firstName }}</span>
+    <span>&nbsp;</span>
+    <span>{{ revConsultant.lastName }}</span>
+  }
+</ng-template>
+
+<ng-template #socialSecurityCategoryOptionTemplate let-ssCategory="ssCategory">
+  @if (ssCategory) {
+    {{ ssCategory.code }} - {{ ssCategory.name }}
+  }
+</ng-template>
+
+<p-toast> </p-toast>

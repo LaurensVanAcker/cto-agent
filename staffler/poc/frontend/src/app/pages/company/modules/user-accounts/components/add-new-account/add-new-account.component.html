@@ -1,0 +1,76 @@
+<input
+  type="email"
+  pInputText
+  autofocus
+  [placeholder]="'COMPANY_USER_ACCOUNTS.INVITE_CUSTOMER_EMAIL_PLACEHOLDER' | translate"
+  [formControl]="inviteUserForm.controls.email"
+  (keyup.enter)="inviteUser()"
+/>
+
+@if (isCompanyGroupsEnabled()) {
+  <span>
+    {{ 'COMPANY_USER_ACCOUNTS.RESTRICT_RIGHTS_FOR_USER' | translate }}
+  </span>
+
+  <p-selectButton
+    [allowEmpty]="false"
+    [options]="accessRolesOptions"
+    [formControl]="inviteUserForm.controls.role"
+    styleClass="w-full"
+  >
+    <ng-template let-accessRoleOption #item>
+      <span class="text-center">{{ accessRoleOption.labelTranslationKey | translate }}</span>
+    </ng-template>
+  </p-selectButton>
+
+  @if (inviteUserForm.controls.role.value === userRolesEnum.GROUP_USER) {
+    @if (companyGroups$ | async; as companyGroups) {
+      <p-listbox
+        optionLabel="name"
+        dataKey="id"
+        appendTo="body"
+        styleClass="w-full"
+        [options]="companyGroups"
+        [formControl]="inviteUserForm.controls.accessGroups"
+        [emptyMessage]="'COMPANY_USER_ACCOUNTS.NO_GROUPS_CREATED_YET' | translate"
+        [multiple]="true"
+        [checkbox]="true"
+        [showToggleAll]="false"
+        [filter]="true"
+      >
+        <ng-template pTemplate="filter">
+          <p-iconField class="w-full">
+            <p-inputIcon styleClass="dps-icon dps-icon-search" />
+            <input
+              class="w-full"
+              pInputText
+              [placeholder]="'COMPANY_GROUPS.SEARCH_A_GROUP' | translate"
+              [formControl]="searchGroupControl"
+            />
+            @if (searchGroupControl.value.length) {
+              <p-inputIcon
+                styleClass="dps-icon dps-icon-close left-auto right-0 mr-1 cursor-pointer bg-white"
+                (click)="searchGroupControl.reset()"
+              />
+            }
+          </p-iconField>
+        </ng-template>
+      </p-listbox>
+    } @else {
+      <div class="flex flex-column gap-2">
+        <p-skeleton styleClass="h-2rem"></p-skeleton>
+        <p-skeleton styleClass="h-2rem"></p-skeleton>
+        <p-skeleton styleClass="h-2rem"></p-skeleton>
+      </div>
+    }
+  }
+}
+
+<p-button
+  class="align-self-center"
+  styleClass="w-10rem"
+  [label]="'COMPANY_USER_ACCOUNTS.SEND_USER_INVITATION_BUTTON' | translate"
+  [loading]="isInvitingUser()"
+  [disabled]="inviteUserForm.invalid"
+  (onClick)="inviteUser()"
+></p-button>

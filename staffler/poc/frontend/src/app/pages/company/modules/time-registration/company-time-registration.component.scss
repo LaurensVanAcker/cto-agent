@@ -1,0 +1,23 @@
+:host {
+  --p-datatable-header-background: var(--p-surface-0);
+  --p-datatable-header-border-width: 0 0 1px 0;
+}
+
+section {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    background-image: url('/assets/images/logo-icon.svg');
+    background-size: auto 90%;
+    background-repeat: no-repeat;
+    background-position: 95% center;
+    opacity: 0.1;
+    z-index: -1;
+  }
+}

@@ -1,0 +1,97 @@
+@import '@bryntum/scheduler/scheduler.material.min.css';
+@import 'functions';
+
+.b-widget {
+  font-family: inherit;
+}
+
+.scheduler-banner {
+  display: flex;
+  border: 1px solid currentColor;
+  border-bottom: 0;
+  border-radius: var(--p-border-radius-md) var(--p-border-radius-md) 0 0;
+  padding: 1rem;
+  background-color: #{transparentizeColor(currentColor, 0.2)};
+  gap: 1rem;
+
+  .icon-wrapper {
+    background-color: currentColor;
+    padding: 1rem;
+    border-radius: var(--p-border-radius-md);
+    & > .dps-icon {
+      color: white;
+    }
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+
+    .title {
+      margin: 0;
+    }
+
+    .subtitle {
+      color: initial;
+    }
+  }
+}
+
+.b-scheduler {
+  .b-grid-header-container {
+    background-color: var(--surface-a);
+
+    .b-sch-timeaxiscolumn {
+      background-color: inherit;
+    }
+  }
+
+  .b-sch-header-row {
+    pointer-events: none;
+
+    &-0,
+    &-1 {
+      .b-sch-header-timeaxis-cell {
+        color: var(--p-text-color);
+      }
+    }
+
+    &-0 .b-sch-header-timeaxis-cell {
+      font-size: 1.5rem;
+      justify-content: end;
+      font-weight: normal;
+    }
+  }
+
+  .b-sch-range {
+    &.today-range {
+      background-color: #{transparentizeColor(var(--p-primary-color))};
+      cursor: default;
+    }
+    &.b-nonworkingtime {
+      z-index: 0;
+    }
+  }
+
+  .b-grid-header .b-sch-timerange {
+    &.today-range,
+    &.b-nonworkingtime {
+      border-top-left-radius: var(--p-border-radius-lg);
+      border-top-right-radius: var(--p-border-radius-lg);
+    }
+    &.today-range {
+      background-color: var(--p-primary-color);
+
+      label {
+        font-size: 1rem;
+        font-weight: 500;
+        overflow: visible;
+      }
+    }
+  }
+
+  .b-grid-header-text {
+    padding: 0.5rem;
+  }
+}

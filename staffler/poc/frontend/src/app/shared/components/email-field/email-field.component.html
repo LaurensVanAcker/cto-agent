@@ -1,0 +1,18 @@
+<label class="mb-1" for="email">{{ labelTranslationKey() | translate }}</label>
+
+<input
+  type="email"
+  pInputText
+  id="email"
+  [pKeyFilter]="allowedCharRegExp"
+  [formControl]="control()"
+  [readonly]="isReadonly()"
+/>
+
+<dps-field-validation-errors [control]="control()">
+  @if (control().hasError(invalidEmailError)) {
+    <small class="text-red-500">
+      {{ 'VALIDATION_ERRORS.EMAIL_INVALID' | translate }}
+    </small>
+  }
+</dps-field-validation-errors>

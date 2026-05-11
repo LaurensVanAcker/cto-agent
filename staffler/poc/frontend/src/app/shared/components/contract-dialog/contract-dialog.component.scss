@@ -1,0 +1,20 @@
+dps-contract-dialog {
+  min-height: 300px;
+
+  section {
+    p-button.copy-schedule {
+      position: absolute;
+      bottom: 2.25rem;
+      right: 0;
+      display: none;
+    }
+
+    &.can-copy-schedule {
+      padding-right: 2.5rem !important;
+
+      p-button.copy-schedule {
+        display: inline-block;
+      }
+    }
+  }
+}

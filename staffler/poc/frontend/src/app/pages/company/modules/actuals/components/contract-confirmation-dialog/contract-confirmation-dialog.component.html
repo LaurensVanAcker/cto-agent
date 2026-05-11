@@ -1,0 +1,253 @@
+<header class="flex align-items-center gap-3">
+  <h3 class="flex-1 m-0 font-medium">
+    {{
+      (isConfirmed
+        ? 'CONTRACT_CONFIRMATION.CONFIRMED_ACTUALS_FOR'
+        : 'CONTRACT_CONFIRMATION.CONFIRM_ACTUALS_FOR'
+      ) | translate
+    }}
+    <span class="text-primary">{{ data.employee.name }}</span>
+  </h3>
+
+  <p-button
+    text
+    plain
+    rounded
+    icon="dps-icon dps-icon-close"
+    (onClick)="dialogRef.close()"
+  ></p-button>
+</header>
+
+@if (!isSingleDayContract) {
+  <p-progressBar
+    showValue
+    [value]="(100 / data.contractConfirmation.workTime.length) * (selectedScheduleDayIndex() + 1)"
+    styleClass="h-1rem"
+  >
+    <ng-template pTemplate="content" let-value>
+      <span class="text-xs">
+        {{ selectedScheduleDayIndex() + 1 }} / {{ data.contractConfirmation.workTime.length }}
+      </span>
+    </ng-template>
+  </p-progressBar>
+}
+
+<div class="flex align-items-center justify-content-center gap-2">
+  <p-button
+    text
+    plain
+    rounded
+    icon="dps-icon dps-icon-chevron rotate-180"
+    [style.visibility]="isSingleDayContract || isFirstScheduleDaySelected() ? 'hidden' : 'visible'"
+    (onClick)="selectedScheduleDayIndex.set(selectedScheduleDayIndex() - 1)"
+  ></p-button>
+  <h3 class="m-0 text-center">{{ selectedScheduleFormattedDate() }}</h3>
+  <p-button
+    text
+    plain
+    rounded
+    icon="dps-icon dps-icon-chevron"
+    [style.visibility]="isSingleDayContract || isLastScheduleDaySelected() ? 'hidden' : 'visible'"
+    (onClick)="selectedScheduleDayIndex.set(selectedScheduleDayIndex() + 1)"
+  ></p-button>
+</div>
+
+<div class="flex flex-column gap-2">
+  <div class="flex align-items-center gap-2">
+    <p-radiobutton
+      name="employeeWorked"
+      [value]="null"
+      [formControl]="selectedScheduleDayForm().controls.absence.controls.type"
+      inputId="employeeWorkedOption"
+    />
+    <label for="employeeWorkedOption">
+      {{ 'CONTRACT_CONFIRMATION.OPTIONS_TREE.EMPLOYEE_WORKED' | translate }}
+    </label>
+  </div>
+
+  <div class="flex align-items-center gap-2">
+    <p-radiobutton
+      name="employeeWorked"
+      [value]="absenceTypeEnum.FULL"
+      [formControl]="selectedScheduleDayForm().controls.absence.controls.type"
+      inputId="employeeAbsentOption"
+    />
+    <label for="employeeAbsentOption">
+      {{ 'CONTRACT_CONFIRMATION.OPTIONS_TREE.EMPLOYEE_ABSENT' | translate }}
+    </label>
+  </div>
+
+  <div class="flex align-items-center gap-2">
+    <p-radiobutton
+      name="employeeWorked"
+      [value]="absenceTypeEnum.PARTIAL"
+      [formControl]="selectedScheduleDayForm().controls.absence.controls.type"
+      inputId="employeePartiallyAbsentOption"
+    />
+    <label for="employeePartiallyAbsentOption">
+      {{ 'CONTRACT_CONFIRMATION.OPTIONS_TREE.EMPLOYEE_PARTIALLY_ABSENT' | translate }}
+    </label>
+  </div>
+</div>
+
+<p-fieldset
+  [legend]="
+    (selectedScheduleDayForm().value.absence?.type === absenceTypeEnum.FULL
+      ? 'CONTRACT_CONFIRMATION.THESE_ABSENT_HOURS'
+      : 'CONTRACT_CONFIRMATION.WHAT_WORKED_HOURS'
+    ) | translate
+  "
+  styleClass="surface-100"
+>
+  <div class="grid grid-nogutter align-items-center mb-2">
+    <div class="col"></div>
+    <div class="col-3 text-center">{{ 'CONTRACT.SCHEDULE_FROM' | translate }}</div>
+    <div class="col-1"></div>
+    <div class="col-3 text-center">{{ 'CONTRACT.SCHEDULE_UNTIL' | translate }}</div>
+  </div>
+
+  <div class="grid grid-nogutter align-items-center mb-2">
+    <div class="col">{{ 'CONTRACT.SCHEDULE_WORK_HOURS' | translate }}</div>
+    <div class="col-3 flex justify-content-center">
+      <dps-time-field [control]="selectedScheduleDayForm().controls.fromTime"></dps-time-field>
+    </div>
+    <div class="col-1 flex justify-content-center">
+      <span class="dps-icon dps-icon-chevron"></span>
+    </div>
+    <div class="col-3 flex justify-content-center">
+      <dps-time-field [control]="selectedScheduleDayForm().controls.toTime"></dps-time-field>
+    </div>
+  </div>
+
+  <div class="grid grid-nogutter align-items-center">
+    <div class="col">{{ 'CONTRACT.SCHEDULE_PAUSE_HOURS' | translate }}</div>
+    <div class="col-3 flex justify-content-center">
+      <dps-time-field [control]="selectedScheduleDayForm().controls.pauseFromTime"></dps-time-field>
+    </div>
+    <div class="col-1 flex justify-content-center">
+      <span class="dps-icon dps-icon-chevron"></span>
+    </div>
+    <div class="col-3 flex justify-content-center">
+      <dps-time-field [control]="selectedScheduleDayForm().controls.pauseToTime"></dps-time-field>
+    </div>
+  </div>
+</p-fieldset>
+
+@if (selectedScheduleDayForm().controls.absence.controls.type.value; as selectedAbsenceType) {
+  @if (selectedAbsenceType === absenceTypeEnum.PARTIAL) {
+    <p-fieldset
+      [legend]="'CONTRACT_CONFIRMATION.WHAT_ABSENT_HOURS' | translate"
+      styleClass="surface-100"
+    >
+      <div class="grid align-items-center">
+        <div class="col-5"></div>
+        <div class="col-3 text-center">{{ 'CONTRACT.SCHEDULE_FROM' | translate }}</div>
+        <div class="col-1"></div>
+        <div class="col-3 text-center">{{ 'CONTRACT.SCHEDULE_UNTIL' | translate }}</div>
+      </div>
+
+      <div class="grid align-items-center">
+        <div class="col-5">{{ 'CONTRACT_CONFIRMATION.ABSENCE_HOURS' | translate }}</div>
+        <div class="col-3 flex justify-content-center">
+          <dps-time-field
+            [control]="
+              selectedScheduleDayForm().controls.absence.controls.partialAbsenceDetails.controls
+                .fromTime
+            "
+          ></dps-time-field>
+        </div>
+        <div class="col-1 flex justify-content-center">
+          <span class="dps-icon dps-icon-chevron"></span>
+        </div>
+        <div class="col-3 flex justify-content-center">
+          <dps-time-field
+            [control]="
+              selectedScheduleDayForm().controls.absence.controls.partialAbsenceDetails.controls
+                .toTime
+            "
+          ></dps-time-field>
+        </div>
+      </div>
+    </p-fieldset>
+  }
+
+  <p-floatlabel variant="on">
+    <p-select
+      inputId="absenceReason"
+      optionLabel="name"
+      appendTo="body"
+      dataKey="code"
+      [fluid]="true"
+      [options]="(absenceReasons$ | async) || []"
+      [formControl]="selectedScheduleDayForm().controls.absence.controls.reason"
+    />
+    <label for="absenceReason">
+      {{ 'CONTRACT_CONFIRMATION.ABSENCE_REASON_PLACEHOLDER' | translate }}
+    </label>
+  </p-floatlabel>
+}
+
+<section class="flex flex-column">
+  <span>
+    {{
+      'CONTRACT_CONFIRMATION.TOTAL_WORKED_HOURS'
+        | translate
+          : {
+              hours:
+                (selectedScheduleDayDurations$ | async)?.workDurationHours
+                | number: dayDurationHoursFormat
+            }
+    }}
+  </span>
+  @if (selectedScheduleDayForm().value.absence?.type) {
+    <span>
+      {{
+        'CONTRACT_CONFIRMATION.TOTAL_ABSENT_HOURS'
+          | translate
+            : {
+                hours:
+                  (selectedScheduleDayDurations$ | async)?.absenceDurationHours
+                  | number: dayDurationHoursFormat
+              }
+      }}
+    </span>
+  }
+</section>
+
+<!-- Section for displaying validation errors -->
+<section class="text-red-500 text-center font-medium py-2">
+  @if (isPastContractConfirmationUpdateProhibited && !isNextTuesdayHoliday) {
+    <span [innerHTML]="'CONTRACT_CONFIRMATION.THIS_WEEK_PAYMENTS_STARTED' | translate"> </span>
+  } @else if (isPastContractConfirmationUpdateProhibited && isNextTuesdayHoliday) {
+    <span [innerHTML]="'CONTRACT_CONFIRMATION.PUBLIC_HOLIDAY_NOTICE' | translate"> </span>
+  } @else if (selectedScheduleDayForm().hasError(contractConfirmationDayStartTimeError)) {
+    <span>
+      {{ 'CONTRACT_CONFIRMATION.MIN_START_TIME_DAY_VALIDATION_ERROR' | translate }}
+    </span>
+  } @else if (selectedScheduleDayForm().hasError(contractConfirmationDayMinDurationError)) {
+    <span>{{ 'CONTRACT_CONFIRMATION.MIN_DAY_DURATION_VALIDATION_ERROR' | translate }}</span>
+  } @else if (selectedScheduleDayForm().hasError(absenceHoursOverlapError)) {
+    <span>
+      {{ 'CONTRACT_CONFIRMATION.WORKED_AND_ABSENCE_HOURS_OVERLAP_VALIDATION_ERROR' | translate }}
+    </span>
+  } @else if (!isSingleDayContract && !isLastScheduleDaySelected()) {
+    <span>
+      {{ 'CONTRACT_CONFIRMATION.CONFIRM_ALL_ACTUAL_DAYS' | translate }}
+    </span>
+  }
+</section>
+
+@if (canUpdateContractConfirmation && !isPastContractConfirmationUpdateProhibited) {
+  <p-button
+    class="align-self-end"
+    [label]="
+      (isConfirmed
+        ? 'CONTRACT_CONFIRMATION.UPDATE_ACTUALS_BUTTON'
+        : 'CONTRACT_CONFIRMATION.CONFIRM_ACTUALS_BUTTON'
+      ) | translate
+    "
+    [loading]="isUpdating()"
+    [disabled]="form.invalid || !isLastScheduleDaySelected()"
+    (onClick)="updateContractConfirmation()"
+  ></p-button>
+}

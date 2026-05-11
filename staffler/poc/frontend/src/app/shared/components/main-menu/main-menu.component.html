@@ -1,0 +1,200 @@
+<span
+  class="toggle-button hidden md:inline-flex dps-icon dps-icon-chevron absolute border-1 border-circle border-400 cursor-pointer surface-50 hover:surface-200 transition-transform transition-duration-300 z-3"
+  [pTooltip]="
+    (isMenuExpanded() ? 'COMPANY_SIDENAV.COLLAPSE' : 'COMPANY_SIDENAV.EXPAND') | translate
+  "
+  tooltipPosition="right"
+  [ngClass]="{ 'rotate-180': isMenuExpanded() }"
+  (click)="toggleMenuExpansion()"
+></span>
+
+@if (isMenuExpanded()) {
+  <img
+    src="assets/images/logo-with-title.svg"
+    class="w-10rem ml-3 md:mt-3 md:ml-0 mb-3 md:mb-8 md:align-self-center fadein transition-delay-500"
+    alt="logo-with-title"
+  />
+
+  <p-button
+    rounded
+    text
+    icon="dps-icon dps-icon-close"
+    severity="secondary"
+    class="absolute top-0 right-0 m-2 sm:hidden"
+    (onClick)="hideSidenav()"
+  />
+} @else {
+  <img
+    src="assets/images/logo-icon.svg"
+    class="w-2rem align-self-center mt-3 mb-8"
+    alt="logo-icon"
+  />
+}
+
+@if (hasCustomerUserRole() && userCompanyMemberships()?.length && isMenuExpanded()) {
+  <p-floatlabel variant="in" class="mb-3">
+    <p-select
+      fluid
+      [ngModel]="selectedMembership()"
+      inputId="userCompanyMembershipSelect"
+      [options]="userCompanyMemberships()"
+      optionLabel="companyName"
+      (onChange)="onMembershipChange($event.value)"
+    />
+    <label for="userCompanyMembershipSelect">
+      {{ 'COMPANY_SIDENAV.COMPANY_SELECTOR_LABEL' | translate }}
+    </label>
+  </p-floatlabel>
+}
+
+<div class="flex flex-column gap-2 flex-auto overflow-y-auto overflow-x-hidden">
+  @if (!isPartialTimeRegistrationMenu()) {
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.COMPANY_PROFILE' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="[companyRouteEnum.PROFILE]"
+      [routerLinkActive]="activeLinkClasses"
+      [class]="linkClasses"
+    >
+      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PROFILE] }}"></span>
+      <span class="link-text">{{ 'COMPANY_SIDENAV.COMPANY_PROFILE' | translate }}</span>
+    </a>
+
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.USER_ACCOUNTS' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="[companyRouteEnum.USER_ACCOUNTS]"
+      [routerLinkActive]="activeLinkClasses"
+      [class]="linkClasses"
+    >
+      <span
+        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.USER_ACCOUNTS] }}"
+      ></span>
+      <span class="link-text">{{ 'COMPANY_SIDENAV.USER_ACCOUNTS' | translate }}</span>
+    </a>
+
+    @if (!isGroupUser() && isGroupsEnabled()) {
+      <a
+        [pTooltip]="'COMPANY_SIDENAV.GROUPS' | translate"
+        [tooltipDisabled]="isMenuExpanded()"
+        [routerLink]="[companyRouteEnum.GROUPS]"
+        [routerLinkActive]="activeLinkClasses"
+        [class]="linkClasses"
+      >
+        <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.GROUPS] }}"></span>
+        <span class="link-text">{{ 'COMPANY_SIDENAV.GROUPS' | translate }}</span>
+      </a>
+    }
+
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="[companyRouteEnum.INVITATIONS]"
+      [routerLinkActive]="activeLinkClasses"
+      [class]="linkClasses"
+    >
+      <span
+        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.INVITATIONS] }}"
+      ></span>
+      <span class="link-text">{{ 'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate }}</span>
+    </a>
+
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="[companyRouteEnum.PLANNING]"
+      [routerLinkActive]="activeLinkClasses"
+      class="planning-link {{ linkClasses }}"
+    >
+      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PLANNING] }}"></span>
+      <span class="link-text">
+        {{ 'COMPANY_SIDENAV.PLANNING' | translate }}
+      </span>
+    </a>
+
+    @if (isActualsEnabled()) {
+      @let companyContractConfirmationsCountValue = companyContractConfirmationsCount();
+
+      <a
+        [pTooltip]="'COMPANY_SIDENAV.ACTUALS' | translate"
+        [tooltipDisabled]="isMenuExpanded()"
+        [routerLink]="[companyRouteEnum.ACTUALS]"
+        [routerLinkActive]="activeLinkClasses"
+        queryParamsHandling="merge"
+        [class]="linkClasses"
+      >
+        <span
+          class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.ACTUALS] }}"
+          pBadge
+          [value]="companyContractConfirmationsCountValue"
+          [badgeDisabled]="isMenuExpanded() || !companyContractConfirmationsCountValue"
+          badgeStyleClass="p-0"
+          [badgeStyle]="{ right: '-4px', top: '-4px' }"
+        ></span>
+        <span class="link-text flex-1">
+          {{ 'COMPANY_SIDENAV.ACTUALS' | translate }}
+        </span>
+
+        @if (
+          isMenuExpanded() && companyContractConfirmationsCountValue;
+          as companyContractConfirmationsCount
+        ) {
+          <p-badge [value]="companyContractConfirmationsCount"></p-badge>
+        }
+      </a>
+    }
+  }
+
+  @if (isTimeRegistrationEnabled()) {
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.TIME_REGISTRATION' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="[companyRouteEnum.TIME_REGISTRATION]"
+      [routerLinkActive]="activeLinkClasses"
+      [class]="linkClasses"
+    >
+      <span
+        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.TIME_REGISTRATION] }}"
+      ></span>
+      <span class="link-text">
+        {{ 'COMPANY_SIDENAV.TIME_REGISTRATION' | translate }}
+      </span>
+    </a>
+  }
+
+  @if (!hasCustomerUserRole()) {
+    <a
+      [pTooltip]="'COMPANY_SIDENAV.SEARCH_COMPANY' | translate"
+      [tooltipDisabled]="isMenuExpanded()"
+      [routerLink]="searchRoute"
+      [routerLinkActive]="activeLinkClasses"
+      [class]="linkClasses"
+    >
+      <span class="dps-icon dps-icon-search"></span>
+      <span class="link-text">{{ 'COMPANY_SIDENAV.SEARCH_COMPANY' | translate }}</span>
+    </a>
+  }
+</div>
+
+@if (isMobileScreen() && isMenuExpanded()) {
+  <app-action-center-dialog class="my-3"></app-action-center-dialog>
+}
+
+<div class="flex align-items-center">
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.LOGOUT' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLinkActive]="activeLinkClasses"
+    [routerLink]="loginRoute"
+    (click)="authApiService.logout()"
+    [class]="linkClasses"
+  >
+    <span class="dps-icon dps-icon-logout rotate-180"></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.LOGOUT' | translate }}</span>
+  </a>
+
+  @if (isMobileScreen() && isMenuExpanded()) {
+    <p-divider styleClass="mx-2" layout="vertical"></p-divider>
+    <dps-app-locale-selector></dps-app-locale-selector>
+  }
+</div>

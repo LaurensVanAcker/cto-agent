@@ -1,0 +1,42 @@
+dps-main-menu {
+  a {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+
+    &.planning-link.active {
+      background-color: var(--dps-planning-primary-color) !important;
+    }
+
+    &.active .p-badge {
+      color: var(--p-primary-color);
+      border: 1px solid currentColor;
+      background-color: var(--p-surface-50);
+    }
+
+    .link-text {
+      width: 0;
+      opacity: 0;
+      transition-property: width, opacity;
+      transition-duration: 0.25s;
+      transition-timing-function: ease;
+    }
+  }
+
+  &.expanded a .link-text {
+    width: 165px;
+    opacity: 1;
+    margin-left: 0.5rem;
+  }
+
+  .toggle-button {
+    $button-size: 20px;
+    $border-size: 1px;
+
+    font-size: $button-size;
+    top: calc(50% - $button-size / 2);
+    right: calc(($border-size * 2 + $button-size) / 2) * -1;
+  }
+}

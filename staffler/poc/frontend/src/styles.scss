@@ -1,100 +1,214 @@
-/* Global styles, klein en simpel voor PoC */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap');
+@import 'primeflex/primeflex.min.css';
+@import 'assets/fonts/dps-icons.css';
+@import 'functions';
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter';
+  letter-spacing: 0.5px;
+}
+
+a {
+  color: inherit;
+}
+
+.dps-icon {
+  display: inline-flex;
+  font-size: 1.5rem;
+  letter-spacing: normal;
+}
+
+// Bryntum styles overrides
+.b-mask .b-mask-content {
+  background-color: var(--p-primary-color);
+}
+
+.b-sch-canvas .b-sch-event-wrap {
+  .b-sch-event {
+    --event-opacity: 1;
+    --event-border-radius: var(--p-border-radius-lg);
+    --event-border-color: currentColor;
+    --event-background-color: #{transparentizeColor(currentColor)};
+
+    &:hover {
+      --event-background-color: #{transparentizeColor(currentColor, 0.13)};
+    }
+
+    &-content {
+      width: 100%;
+      height: 100%;
+      margin: 0 !important;
+    }
+
+    &.copy-contracts-btn-event {
+      --event-opacity: 1 !important;
+      display: flex;
+      border: none;
+      background: transparent !important;
+      width: fit-content;
+      height: fit-content;
+      right: calc(100% + 1.1rem);
+      opacity: 1 !important;
+
+      .b-sch-event-content {
+        opacity: 1 !important;
+        &::before {
+          display: none !important;
+        }
+      }
+
+      .copy-contracts-btn {
+        background-color: var(--p-primary-color) !important;
+        color: white !important;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 1 !important;
+
+        .dps-icon {
+          color: white !important;
+          opacity: 1 !important;
+        }
+
+        &:disabled,
+        &.copy-contracts-btn--disabled {
+          background-color: darkgray !important;
+          cursor: not-allowed;
+          opacity: 1 !important;
+
+          .dps-icon {
+            color: black !important;
+            opacity: 1 !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+dps-company-planning {
+  dps-page-header .title-wrapper {
+    background-color: var(--dps-planning-primary-color) !important;
+  }
+  .scheduler-banner {
+    color: var(--dps-planning-primary-color);
+  }
+  bryntum-scheduler {
+    border-color: var(--dps-planning-primary-color);
+  }
+
+  .b-sch-canvas .b-sch-event-wrap .b-sch-event {
+    color: #1e1864;
+  }
+
+  .b-gridbase:not(.b-moving-splitter)
+    .b-grid-subgrid:not(.b-hide-row-hover)
+    .b-grid-row:not(.b-group-row).b-hover {
+    background-color: #{transparentizeColor(#1e1864)} !important;
+  }
+}
+
+dps-company-actuals {
+  .b-sch-canvas .b-sch-event-wrap .b-sch-event {
+    &:not(.CONFIRMED):not(.ABSENT):not(.PENDING):not(.OVERDUE) {
+      color: var(--p-gray-500);
+      $stripe-color: transparentizeColor(currentColor);
+      $stripe-size: 7px;
+
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent $stripe-size,
+        $stripe-color $stripe-size,
+        $stripe-color $stripe-size * 2
+      );
+    }
+
+    &.CONFIRMED,
+    &.ABSENT {
+      color: #1a862a;
+    }
+    &.PENDING {
+      color: #f29120;
+    }
+    &.OVERDUE {
+      color: var(--p-red-500);
+    }
+  }
+}
+
+/* Customizations to the designer theme should be defined here */
+$smallScreenSize: 425px;
+
+@media screen and (max-width: $smallScreenSize) {
+  :root {
+    font-size: 15px;
+    --p-overlay-modal-padding: 1rem !important;
+    --p-tabs-tabpanel-padding: 1rem 0 0 0 !important;
+
+    // Disable inputs autozoom on iOS
+    input {
+      font-size: 16px;
+    }
+  }
+
+  .p-toast {
+    width: 100%;
+    left: 0;
+    top: 0;
+    padding: 1rem;
+  }
+}
 
 :root {
-  --color-primary: #fc074f;
-  --color-primary-hover: #d80644;
-  --color-text: #222;
-  --color-muted: #888;
-  --color-bg: #fafafa;
-  --color-surface: #ffffff;
-  --color-border: #e0e0e0;
-  --color-error: #d80644;
-  --color-success: #008c41;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
-  --radius: 4px;
+  --p-button-label-font-weight: 500 !important;
+  --p-floatlabel-font-weight: 400 !important;
+  --p-datatable-row-hover-background: #{transparentizeColor(var(--p-primary-color))} !important;
+
+  --dps-planning-primary-color: #3c51f0;
 }
 
-* {
-  box-sizing: border-box;
+.p-iconfield .p-inputicon {
+  --p-icon-size: 1.5rem;
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--color-text);
-  background: var(--color-bg);
-  font-size: 14px;
-  line-height: 1.5;
+.p-tabs {
+  --p-tabs-tablist-border-width: 0 0 1px;
+
+  .p-tab {
+    --p-tabs-tab-border-width: 0 0 2px 0;
+    --p-tabs-tab-background: none;
+    --p-tabs-tab-margin: 0 0 -1px;
+
+    font-weight: normal;
+
+    &-active {
+      font-weight: 500;
+    }
+  }
 }
 
-h1 { font-size: 22px; margin: 0 0 var(--space-2); }
-h2 { font-size: 18px; margin: 0 0 var(--space-2); }
-h3 { font-size: 16px; margin: 0 0 var(--space-2); }
+.p-fieldset .p-fieldset-legend {
+  $x-spacing: 0.5rem;
 
-a { color: var(--color-primary); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-button, .btn {
-  display: inline-block;
-  background: var(--color-primary);
-  color: white;
-  border: 0;
-  border-radius: var(--radius);
-  padding: 7px 14px;
-  font: inherit;
-  cursor: pointer;
-  text-decoration: none;
-}
-button:hover, .btn:hover { background: var(--color-primary-hover); }
-button:disabled { opacity: 0.4; cursor: default; }
-button.secondary { background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary); }
-button.secondary:hover { background: rgba(252, 7, 79, 0.08); }
-
-input, select {
-  padding: 7px 9px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font: inherit;
-  background: var(--color-surface);
-}
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(252, 7, 79, 0.15);
+  margin: 0 -#{$x-spacing};
+  --p-fieldset-legend-background: transparent;
+  --p-fieldset-legend-border-width: 0;
+  --p-fieldset-legend-padding: 0 #{$x-spacing};
+  --p-fieldset-legend-font-weight: 500;
 }
 
-label { display: block; font-size: 13px; color: var(--color-muted); margin-bottom: var(--space-1); }
-
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+.p-step-title {
+  font-size: 1rem;
 }
-
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); }
-th { font-weight: 600; color: var(--color-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-.err { color: var(--color-error); }
-.ok  { color: var(--color-success); }
-.muted { color: var(--color-muted); }
-
-.container { max-width: 1100px; margin: 0 auto; padding: var(--space-4); }
-.row { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: flex-start; }
-.col { flex: 1 1 320px; }
-
-.spinner {
-  display: inline-block;
-  width: 12px; height: 12px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }

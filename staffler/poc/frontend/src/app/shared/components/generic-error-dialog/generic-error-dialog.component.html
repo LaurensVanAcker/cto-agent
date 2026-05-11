@@ -1,0 +1,22 @@
+<h3>{{ 'GENERIC_ERROR_DIALOG.TITLE' | translate }}</h3>
+
+<span class="dps-icon dps-icon-warning text-8xl text-primary"></span>
+
+<span
+  class="text-center line-height-3"
+  [innerHTML]="'GENERIC_ERROR_DIALOG.MESSAGE' | translate: messageTranslationParams"
+></span>
+
+@if (dialogData) {
+  <div class="flex flex-column gap-2">
+    @for (error of dialogData.apiErrors; track error.code) {
+      <code class="surface-300 border-round p-3">{{ error.details }}</code>
+    }
+  </div>
+}
+
+<small>{{ formattedErrorDatetime }}</small>
+
+<button class="p-button align-self-stretch justify-content-center" (click)="dialogRef.close()">
+  {{ 'GENERIC_ERROR_DIALOG.CLOSE_BUTTON' | translate }}
+</button>

@@ -1,0 +1,234 @@
+<dps-page-header [title]="title$ | async" [subtitle]="company()?.name">
+  @if (isMobileScreen()) {
+    <p-overlaybadge styleClass="mt-2 mr-2" class="ml-auto" [badgeDisabled]="!companyActualsCount()">
+      <p-button
+        icon="dps-icon dps-icon-menu"
+        text
+        plain
+        rounded
+        class="z-1"
+        (click)="showSidenav()"
+      ></p-button>
+    </p-overlaybadge>
+  }
+</dps-page-header>
+
+<main class="flex flex-column md:align-items-center flex-1 gap-5 p-3">
+  <div class="flex flex-column text-center">
+    <span>
+      {{ 'COMPANY_TIME_REGISTRATION.DATE_TODAY' | translate }}
+    </span>
+
+    <span class="text-5xl md:text-8xl">{{ todayDatetime.toISODate() | formatDatetime }}</span>
+  </div>
+
+  <div class="flex flex-column text-center gap-1">
+    <p-autoComplete
+      fluid
+      dropdown
+      forceSelection
+      size="large"
+      optionLabel="name"
+      [minLength]="minSearchQueryLength"
+      [formControl]="employeeAutoComplete"
+      [suggestions]="(employees$ | async)?.content || []"
+      [placeholder]="'COMPANY_TIME_REGISTRATION.EMPLOYEES_AUTOCOMPLETE_LABEL' | translate"
+      (completeMethod)="searchEmployeeQuery$.next($event.query)"
+    ></p-autoComplete>
+    <span>{{ 'COMPANY_TIME_REGISTRATION.CHOOSE_EMPLOYEE_TO_REGISTER_TIME' | translate }}</span>
+  </div>
+
+  <p-table
+    [value]="(tableRows$ | async) || []"
+    [scrollable]="true"
+    scrollHeight="flex"
+    class="overflow-auto"
+    size="large"
+    styleClass="border-1 border-300 overflow-hidden border-round-lg"
+  >
+    <ng-template pTemplate="caption">
+      <div class="flex justify-content-between align-items-center -m-2">
+        <div class="w-3rem flex justify-content-start">
+          @if ((isYesterdayDateSelected$ | async) === false) {
+            <p-button
+              icon="dps-icon dps-icon-chevron rotate-180"
+              [text]="true"
+              [pTooltip]="(getRelativeDateToSelectedSchedule('prev') | async) || ''"
+              pTooltipPosition="right"
+              (onClick)="selectSchedule('prev')"
+            ></p-button>
+          }
+        </div>
+
+        <span class="font-medium">{{ getRelativeDateToSelectedSchedule('curr') | async }}</span>
+
+        <div class="w-3rem flex justify-content-end">
+          @if ((isTomorrowDateSelected$ | async) === false) {
+            <p-button
+              icon="dps-icon dps-icon-chevron"
+              [text]="true"
+              [pTooltip]="(getRelativeDateToSelectedSchedule('next') | async) || ''"
+              pTooltipPosition="left"
+              (onClick)="selectSchedule('next')"
+            ></p-button>
+          }
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th>{{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.DATE' | translate }}</th>
+        <th>{{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.EMPLOYEE' | translate }}</th>
+        <th>{{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.CONTRACT_HOURS' | translate }}</th>
+        <th>{{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.WORKED_HOURS' | translate }}</th>
+        <th>{{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.TOTAL_WORKED_HOURS' | translate }}</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-company>
+      @if (!isLoadingEmployeeSchedules()) {
+        <ng-container
+          [ngTemplateOutlet]="scheduleRowTemplate"
+          [ngTemplateOutletContext]="{ company }"
+        ></ng-container>
+      }
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+      @if (tableRows$ | async; as tableRows) {
+        <ng-container
+          [ngTemplateOutlet]="totalTimeRowTemplate"
+          [ngTemplateOutletContext]="{ tableRows }"
+        ></ng-container>
+      } @else {
+        <ng-template #loadingSkeleton>
+          <tr>
+            <td class="bg-transparent">
+              <p-skeleton />
+            </td>
+            <td class="bg-transparent">
+              <p-skeleton />
+            </td>
+            <td class="bg-transparent">
+              <p-skeleton />
+            </td>
+            <td class="bg-transparent">
+              <p-skeleton />
+            </td>
+            <td class="bg-transparent">
+              <p-skeleton />
+            </td>
+          </tr>
+        </ng-template>
+      }
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      @if (!isLoadingEmployeeSchedules()) {
+        <tr>
+          <td colspan="5" class="text-center text-sm">
+            {{ 'COMPANY_TIME_REGISTRATION.NO_CONTRACTS_FOR_SELECTED_EMPLOYEE_DAY' | translate }}
+          </td>
+        </tr>
+      }
+    </ng-template>
+  </p-table>
+
+  <div class="flex flex-column align-items-center text-center gap-2">
+    @if (isStartButtonShown$ | async) {
+      <p-button
+        size="large"
+        label="START"
+        styleClass="w-15rem"
+        [disabled]="isLoadingWorkTime() || (isStartButtonEnabled$ | async) === false"
+        (onClick)="startContractWorkTime()"
+      >
+      </p-button>
+
+      @if ((isStartButtonEnabled$ | async) === false) {
+        <span>{{
+          'COMPANY_TIME_REGISTRATION.MAX_SPAN_TO_START_WORK_TIME'
+            | translate
+              : {
+                  spanMinutes: maxSpanToStartWorkTime
+                }
+        }}</span>
+      }
+    }
+
+    @if (isStopButtonShown$ | async) {
+      <p-button
+        size="large"
+        label="STOP"
+        styleClass="w-15rem"
+        [disabled]="isLoadingWorkTime()"
+        (onClick)="stopContractWorkTime()"
+      >
+      </p-button>
+
+      <span>
+        {{
+          'COMPANY_TIME_REGISTRATION.MAX_CLOCK_OUT_TIME'
+            | translate: { maxClockOutTime: (maxClockOutTimeFormatted$ | async) }
+        }}
+      </span>
+    }
+  </div>
+</main>
+
+<ng-template #scheduleRowTemplate let-company="company">
+  <tr>
+    <td>{{ company.schedule.date | formatDatetime }}</td>
+    <td>{{ company.schedule.employee.name }}</td>
+    <td>{{ company.schedule.fromTime }} - {{ company.schedule.toTime }}</td>
+
+    <td class="">
+      @for (workTime of company.workTimes; track workTime.id) {
+        @if (isLoadingWorkTime()) {
+          <p-skeleton class="mb-1" />
+        } @else if (workTime?.fromTime && !workTime?.toTime) {
+          <div class="mt-1">
+            {{
+              'COMPANY_TIME_REGISTRATION.WORK_TIME_STARTED_AT'
+                | translate: { time: workTime?.fromTime }
+            }}
+          </div>
+        } @else {
+          <div class="mt-1">
+            <span>{{ workTime.fromTime }}</span>
+            <span> - </span>
+            <span>{{ workTime.toTime }}</span>
+          </div>
+        }
+      } @empty {
+        <span>{{ 'COMPANY_TIME_REGISTRATION.WORK_TIME_NOT_STARTED' | translate }}</span>
+      }
+    </td>
+
+    <td>
+      @for (workTime of company.workTimes; track workTime.id) {
+        @if (isLoadingWorkTime()) {
+          <p-skeleton class="mb-1" />
+        } @else {
+          <div class="mt-1">
+            {{ workTime.fromTime | timeDiff: workTime.toTime }}
+          </div>
+        }
+      } @empty {
+        <div class="mt-1">{{ 'COMPANY_TIME_REGISTRATION.EMPTY_TOTAL_WORK_TIME' | translate }}</div>
+      }
+    </td>
+  </tr>
+</ng-template>
+
+<ng-template #totalTimeRowTemplate let-tableRows="tableRows">
+  <tr>
+    <td colspan="4">
+      {{ 'COMPANY_TIME_REGISTRATION.TABLE_COLUMNS.TOTAL' | translate }}
+    </td>
+    <td>
+      <span>{{ calculateTotalWorkTime(tableRows) }}</span>
+    </td>
+  </tr>
+</ng-template>

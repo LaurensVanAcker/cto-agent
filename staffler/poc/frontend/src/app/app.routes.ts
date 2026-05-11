@@ -1,42 +1,40 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+
+import { adminUserAccessGuard, authenticatedGuard } from '@dps/core/api/auth';
+import { AUTH_ROUTES } from './pages/auth';
+import { environment } from '@dps/env';
+import { AppRouteEnum } from './app.routes.model';
 
 export const routes: Routes = [
+  ...AUTH_ROUTES,
   {
-    path: 'login',
-    loadComponent: () =>
-      import('./pages/login/login.component').then((m) => m.LoginComponent),
+    path: AppRouteEnum.EMPLOYEE,
+    loadChildren: () => import('./pages/employee/employee.routes').then(m => m.EMPLOYEE_ROUTES),
+    canMatch: [authenticatedGuard],
   },
   {
-    path: '',
-    loadComponent: () =>
-      import('./layout/shell.component').then((m) => m.ShellComponent),
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'dashboard',
-      },
-      {
-        path: 'dashboard',
-        loadComponent: () =>
-          import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-      },
-      {
-        path: 'employees',
-        loadComponent: () =>
-          import('./pages/employees/employees.component').then((m) => m.EmployeesComponent),
-      },
-      {
-        path: 'contracts',
-        loadComponent: () =>
-          import('./pages/contracts/contracts.component').then((m) => m.ContractsComponent),
-      },
-    ],
+    path: AppRouteEnum.COMPANY,
+    loadChildren: () => import('./pages/company/company.routes').then(m => m.COMPANY_ROUTES),
+    canMatch: [authenticatedGuard],
   },
   {
-    path: '**',
-    redirectTo: '',
+    path: AppRouteEnum.SEARCH,
+    loadComponent: () => import('./pages/search/search.component').then(c => c.SearchComponent),
+    canMatch: [authenticatedGuard, adminUserAccessGuard],
   },
+  {
+    path: AppRouteEnum.INVITATION,
+    loadChildren: () =>
+      import('./pages/invitation/invitation.routes').then(m => m.INVITATION_ROUTES),
+  },
+  {
+    // Helper component for authentication to capture skey query param after BE redirect
+    path: 'signin',
+    loadComponent: () => import('./pages/signin/signin.component').then(c => c.SigninComponent),
+  },
+  {
+    path: 'admin',
+    loadComponent: () => new Promise(() => (window.location.href = environment.boemmLoginUrl)),
+  },
+  { path: '**', redirectTo: AppRouteEnum.SEARCH },
 ];

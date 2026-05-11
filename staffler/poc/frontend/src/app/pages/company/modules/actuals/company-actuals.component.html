@@ -1,0 +1,273 @@
+<dps-page-header [title]="title$ | async" [subtitle]="(company$ | async)?.name">
+  @if (isMobileScreen()) {
+    <p-overlaybadge styleClass="mt-2 mr-2" class="ml-auto" [badgeDisabled]="!companyActualsCount()">
+      <p-button
+        icon="dps-icon dps-icon-menu"
+        text
+        plain
+        rounded
+        class="z-1"
+        (click)="showSidenav()"
+      ></p-button>
+    </p-overlaybadge>
+  } @else {
+    <app-action-center-dialog class="ml-auto"></app-action-center-dialog>
+  }
+</dps-page-header>
+
+<main class="flex flex-column flex-auto pt-3 px-3">
+  <div class="flex flex-column md:flex-row flex-wrap justify-content-between gap-2 md:gap-3 mb-3">
+    <div class="flex flex-column md:flex-row md:align-items-center flex-auto gap-2 md:gap-3">
+      <div class="flex align-items-center gap-2 md:gap-3">
+        <p-iconField class="flex-1">
+          <p-floatlabel variant="on">
+            <p-inputIcon styleClass="dps-icon dps-icon-search" />
+            <input
+              fluid
+              id="employeeSearchInput"
+              type="text"
+              pInputText
+              [formControl]="employeesFiltersForm.controls.nameLike"
+            />
+            <label for="employeeSearchInput">
+              {{ 'PLANNING.SEARCH_EMPLOYEE_PLACEHOLDER' | translate }}
+            </label>
+          </p-floatlabel>
+
+          @if (employeesFiltersForm.controls.nameLike.value.length) {
+            <p-inputIcon
+              styleClass="dps-icon dps-icon-close left-auto right-0 mr-2 cursor-pointer bg-white"
+              (click)="employeesFiltersForm.controls.nameLike.reset()"
+            />
+          }
+        </p-iconField>
+
+        @if (isMobileScreen()) {
+          <p-overlaybadge
+            [value]="activeFiltersCount$ | async"
+            [badgeDisabled]="!(activeFiltersCount$ | async)"
+            severity="secondary"
+          >
+            <p-button
+              outlined
+              [severity]="isMobileFiltersShown() ? 'primary' : 'secondary'"
+              icon="dps-icon dps-icon-tune"
+              (click)="toggleMobileFilters()"
+            />
+          </p-overlaybadge>
+        }
+      </div>
+
+      @if (isMobileFiltersShown()) {
+        @if (isGroupsFilterShown$ | async) {
+          <p-floatlabel variant="on">
+            <p-multiSelect
+              fluid
+              showClear
+              display="chip"
+              optionLabel="name"
+              optionValue="id"
+              dataKey="id"
+              id="employeeGroupsMultiSelect"
+              [options]="(companyGroups$ | async) || []"
+              [showHeader]="false"
+              [formControl]="employeesFiltersForm.controls.groupIds"
+            />
+            <label for="employeeGroupsMultiSelect">
+              {{ 'COMPANY_GROUPS.FILTER_BY_GROUP_PLACEHOLDER' | translate }}
+            </label>
+          </p-floatlabel>
+        }
+
+        <p-floatlabel variant="on">
+          <p-multiSelect
+            fluid
+            showClear
+            optionLabel="label"
+            id="employeeActualsStatusesMultiSelect"
+            [options]="actualsStatusesFilterOptions"
+            [showHeader]="false"
+            [formControl]="employeesFiltersForm.controls.actualsStatuses"
+          />
+          <label for="employeeActualsStatusesMultiSelect">
+            {{ 'COMPANY_ACTUALS.STATUSES_FILTER_PLACEHOLDER' | translate }}
+          </label>
+        </p-floatlabel>
+      }
+
+      @if (!isMobileScreen() && (activeFiltersCount$ | async); as activeFiltersCount) {
+        <p-button
+          [outlined]="true"
+          severity="secondary"
+          icon="dps-icon dps-icon-close"
+          [label]="
+            'GENERAL.CLEAR_FILTERS_BUTTON'
+              | translate
+                : {
+                    count: activeFiltersCount,
+                    plural: activeFiltersCount > 1 ? 's' : ''
+                  }
+          "
+          class="ml-auto"
+          (onClick)="clearActiveFilters()"
+        >
+        </p-button>
+      }
+    </div>
+
+    <div class="flex justify-content-center align-items-center gap-3">
+      @if (!isMobileScreen()) {
+        <p-button
+          plain
+          text
+          [label]="
+            (schedulerTimespanViewType() === 'week'
+              ? 'PLANNING.SHOW_TWO_WEEK'
+              : 'PLANNING.SHOW_ONE_WEEK'
+            ) | translate
+          "
+          (onClick)="toggleSchedulerWeekView()"
+        />
+      }
+
+      <p-buttonGroup>
+        <p-button
+          outlined
+          icon="dps-icon dps-icon-chevron rotate-180"
+          [pTooltip]="prevWeekTooltip"
+          tooltipStyleClass="max-w-fit"
+          tooltipPosition="left"
+          [tooltipDisabled]="schedulerTimespanViewType() === 'day'"
+          severity="secondary"
+          [label]="
+            schedulerTimespanViewType() === 'day' ? ('PLANNING.PREV_DAY' | translate) : undefined
+          "
+          (onClick)="moveTimespan('prev')"
+        />
+        <ng-template #prevWeekTooltip>
+          <div class="flex align-items-center">
+            <span>{{ 'PLANNING.PREV_WEEK_TOOLTIP' | translate }}</span>
+
+            <p-divider styleClass="h-1rem mx-2" layout="vertical"></p-divider>
+            <div class="inline-flex border-round-sm p-1 surface-200">
+              <span class="dps-icon dps-icon-arrow_back text-xl text-black-alpha-90"></span>
+            </div>
+            <span>&nbsp;key</span>
+          </div>
+        </ng-template>
+
+        @if (!isCurrentWeekShown) {
+          @if (schedulerTimespanViewType() === 'day') {
+            <p-button
+              [label]="'PLANNING.TODAY' | translate"
+              (onClick)="setCurrentWeekTimeSpan()"
+              styleClass="h-full"
+            />
+          } @else {
+            <p-button
+              outlined
+              severity="secondary"
+              [label]="'PLANNING.GO_TO_CURRENT_WEEK' | translate"
+              (onClick)="setCurrentWeekTimeSpan()"
+              styleClass="h-full"
+            />
+          }
+        }
+
+        <p-button
+          outlined
+          icon="dps-icon dps-icon-chevron"
+          iconPos="right"
+          [pTooltip]="nextWeekTooltip"
+          tooltipStyleClass="max-w-fit"
+          tooltipPosition="bottom"
+          [tooltipDisabled]="schedulerTimespanViewType() === 'day'"
+          severity="secondary"
+          [label]="
+            schedulerTimespanViewType() === 'day' ? ('PLANNING.NEXT_DAY' | translate) : undefined
+          "
+          (onClick)="moveTimespan('next')"
+        />
+        <ng-template #nextWeekTooltip>
+          <div class="flex align-items-center">
+            <span>{{ 'PLANNING.NEXT_WEEK_TOOLTIP' | translate }}</span>
+
+            <p-divider styleClass="h-1rem mx-2" layout="vertical"></p-divider>
+            <div class="inline-flex border-round-sm p-1 surface-200">
+              <span
+                class="dps-icon dps-icon-arrow_back text-xl text-black-alpha-90 rotate-180"
+              ></span>
+            </div>
+            <span>&nbsp;key</span>
+          </div>
+        </ng-template>
+      </p-buttonGroup>
+    </div>
+  </div>
+
+  <div class="hidden md:flex scheduler-banner text-primary">
+    <div class="icon-wrapper">
+      <span class="dps-icon dps-icon-event-note"></span>
+    </div>
+
+    <div class="main">
+      <h4 class="title">{{ 'COMPANY_ACTUALS.BANNER_TITLE' | translate }}</h4>
+      <span class="subtitle text-sm">
+        {{ 'COMPANY_ACTUALS.BANNER_SUBTITLE' | translate }}
+      </span>
+    </div>
+  </div>
+
+  <bryntum-scheduler
+    #scheduler
+    cls="md:border-1 border-primary border-round-bottom-md"
+    [startDate]="actualsFiltersForm.controls.startDate.value"
+    [endDate]="actualsFiltersForm.controls.endDate.value"
+    [resources]="(employees$ | async)?.content || []"
+    [timeRanges]="schedulerConfig.timeRanges"
+    [columns]="schedulerConfig.columns"
+    [viewPreset]="schedulerConfig.viewPreset"
+    [weekStartDay]="schedulerConfig.weekStartDay"
+    [eventStyle]="schedulerConfig.eventStyle"
+    [eventRenderer]="schedulerConfig.eventRenderer"
+    [rowHeight]="schedulerConfig.rowHeight"
+    [allowOverlap]="schedulerConfig.allowOverlap"
+    [fillTicks]="schedulerConfig.fillTicks"
+    [zoomOnTimeAxisDoubleClick]="schedulerConfig.zoomOnTimeAxisDoubleClick"
+    [zoomOnMouseWheel]="schedulerConfig.zoomOnMouseWheel"
+    [createEventOnDblClick]="schedulerConfig.createEventOnDblClick"
+    [nonWorkingTimeFeature]="schedulerConfig.features.nonWorkingTime"
+    [cellEditFeature]="schedulerConfig.features.cellEdit"
+    [regionResizeFeature]="schedulerConfig.features.regionResize"
+    [eventResizeFeature]="schedulerConfig.features.eventResize"
+    [eventDragCreateFeature]="schedulerConfig.features.eventDragCreate"
+    [scheduleMenuFeature]="schedulerConfig.features.scheduleMenu"
+    [eventMenuFeature]="schedulerConfig.features.eventMenu"
+    [eventTooltipFeature]="schedulerConfig.features.eventTooltip"
+    [scheduleTooltipFeature]="schedulerConfig.features.scheduleTooltip"
+    [timeAxisHeaderMenuFeature]="schedulerConfig.features.timeAxisHeaderMenu"
+    [eventDragFeature]="schedulerConfig.features.eventDrag"
+    [eventEditFeature]="schedulerConfig.features.eventEdit"
+    [cellTooltipFeature]="schedulerConfig.features.cellTooltip"
+    [timeRangesFeature]="schedulerConfig.features.timeRanges"
+    [hideRowHover]="schedulerConfig.hideRowHover"
+  ></bryntum-scheduler>
+
+  @if (employees$ | async; as employees) {
+    <div class="flex align-items-center justify-content-center">
+      <p-paginator
+        styleClass="px-0 flex-nowrap"
+        [first]="employees.number * employees.size"
+        [totalRecords]="employees.totalElements"
+        [rows]="employees.size"
+        showCurrentPageReport
+        showFirstLastIcon
+        [showPageLinks]="!isMobileScreen()"
+        [currentPageReportTemplate]="'PLANNING.EMPLOYEES_PAGE_REPORT_TEMPLATE' | translate"
+        (onPageChange)="employeesFiltersForm.patchValue({ page: $event.page })"
+      ></p-paginator>
+    </div>
+  }
+</main>
+
+<p-toast> </p-toast>

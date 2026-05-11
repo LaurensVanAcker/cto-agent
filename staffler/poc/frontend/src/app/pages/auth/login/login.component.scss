@@ -1,0 +1,19 @@
+@import 'functions';
+
+:host {
+  background: url('src/assets/images/background.jpeg');
+  background-size: cover;
+}
+
+header {
+  background-color: transparentizeColor(var(--p-primary-color), 0.8);
+}
+
+.background-logo {
+  position: absolute;
+  width: 43%;
+  height: 93%;
+  right: 0;
+  bottom: 0;
+  opacity: 0.25;
+}

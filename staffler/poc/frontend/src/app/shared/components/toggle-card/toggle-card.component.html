@@ -1,0 +1,17 @@
+<header class="flex justify-content-between align-items-center p-3">
+  <span>
+    {{ title }}
+  </span>
+
+  <p-toggleswitch
+    [ngModel]="toggled"
+    (onChange)="toggleChange.emit($event.checked)"
+    [disabled]="disabled"
+  ></p-toggleswitch>
+</header>
+
+<main [@toggleSection]="toggled ? 'expanded' : 'collapsed'">
+  <div class="border-top-1 border-300 p-3">
+    <ng-content></ng-content>
+  </div>
+</main>

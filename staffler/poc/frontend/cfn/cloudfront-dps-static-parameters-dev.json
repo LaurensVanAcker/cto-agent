@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "dps.boemm.eu"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "Z0952617WDGC04ALMM5H"
+  }
+]
