@@ -28,9 +28,11 @@ import { MessageService } from 'primeng/api';
 
 import { RootState } from '@dps/core/store';
 import { EmployeeApiService, ContractApiService } from '@dps/core/api';
-import { ContractListModel } from '@dps/shared/models';
+import { ContractListModel, EmployeeModel } from '@dps/shared/models';
 import { mapContractToSchedulerEvent } from '@dps/shared/functions';
 import { GENERAL_SCHEDULER_CONFIG } from '@dps/shared/configs';
+import { ContractDialogComponent } from '@dps/shared/components/contract-dialog/contract-dialog.component';
+import type { ContractDialogDataModel } from '@dps/shared/components/contract-dialog/contract-dialog-data.model';
 import {
   ServiceGroupApiService,
   ServiceGroupModel,
@@ -148,15 +150,36 @@ export class PlanningPocComponent implements AfterViewInit {
   protected readonly resources = signal<PocResource[]>([]);
   protected readonly events = signal<PocEvent[]>([]);
   protected readonly loading = signal(false);
+  /** Cache of the visible week's employees, keyed by DPS id. Used to look up
+   * an EmployeeModel when the user clicks a contract event. */
+  private readonly employeesById = new Map<string, EmployeeModel>();
 
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
     const v = this.view();
     if (v === 'day') {
+      // Vertical Bryntum, one day at a time, 30-minute ticks running on the
+      // Y-axis with service-locations as X-axis columns. Mirrors mockup 13.
       return {
         ...GENERAL_SCHEDULER_CONFIG,
-        viewPreset: 'hourAndDay',
+        viewPreset: {
+          base: 'hourAndDay',
+          timeResolution: { unit: 'minute', increment: 30 },
+          tickWidth: 60,
+          headers: [
+            {
+              unit: 'day',
+              dateFormat: 'dddd D MMMM',
+              headerCellCls: 'justify-content-center text-base font-medium',
+            },
+            {
+              unit: 'hour',
+              dateFormat: 'HH:mm',
+            },
+          ],
+        },
         mode: 'vertical',
         rowHeight: 60,
+        barMargin: 4,
       } as unknown as Partial<SchedulerConfig>;
     }
     return {
@@ -171,10 +194,28 @@ export class PlanningPocComponent implements AfterViewInit {
     return `Week ${start.weekNumber} — ${start.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')}`;
   });
 
-  protected readonly startDate = computed(() => DateTime.fromISO(this.weekStart()).toJSDate());
-  protected readonly endDate = computed(() =>
-    DateTime.fromISO(this.weekStart()).plus({ days: 7 }).toJSDate(),
-  );
+  /** Day view zooms into a single day at a time; the user pages via prev/next.
+   *  Names + V+SL show the full 7-day week. */
+  protected readonly startDate = computed(() => {
+    const week = DateTime.fromISO(this.weekStart());
+    if (this.view() === 'day') {
+      const today = DateTime.now().startOf('day');
+      // Snap to today if it falls in the visible week, otherwise the Monday.
+      if (today >= week && today < week.plus({ days: 7 })) {
+        return today.toJSDate();
+      }
+      return week.toJSDate();
+    }
+    return week.toJSDate();
+  });
+  protected readonly endDate = computed(() => {
+    const week = DateTime.fromISO(this.weekStart());
+    if (this.view() === 'day') {
+      const start = DateTime.fromJSDate(this.startDate());
+      return start.plus({ days: 1 }).toJSDate();
+    }
+    return week.plus({ days: 7 }).toJSDate();
+  });
 
   ngAfterViewInit(): void {
     this.store
@@ -263,26 +304,48 @@ export class PlanningPocComponent implements AfterViewInit {
     });
   }
 
-  /** Bryntum event-click → open contract detail (DPS) or shift details. */
+  /** Bryntum event-click → open production ContractDialogComponent for
+   *  contracts (edit / cancel / shorten via DPS), shift details for shifts,
+   *  permanent-assignment info for Vast blocks. */
   protected onEventClick(event: { eventRecord: EventModel }): void {
     const kind = event.eventRecord?.getData('kind') as PocEvent['kind'] | undefined;
-    if (kind === 'shift') {
+    if (kind === 'contract') {
+      const resourceId = String(event.eventRecord.getData('resourceId') ?? '');
+      const employee = this.employeesById.get(resourceId);
+      if (!employee) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Medewerker niet in cache',
+          detail: 'Vernieuw de pagina en probeer opnieuw.',
+        });
+        return;
+      }
+      this.dialogService.open(ContractDialogComponent, {
+        showHeader: false,
+        modal: true,
+        width: '60rem',
+        styleClass: 'overflow-hidden',
+        data: {
+          contractEventRecord: event.eventRecord,
+          employee,
+        } satisfies ContractDialogDataModel,
+      }).onClose.subscribe(result => {
+        if (result?.usedMode === 'update' || result?.usedMode === 'cancel') {
+          this.maybeRefresh();
+        }
+      });
+    } else if (kind === 'shift') {
       this.messageService.add({
         severity: 'info',
-        summary: 'Shift detail',
-        detail: 'Open shift — kandidaat-flow volgt in MyStaffler strook.',
+        summary: 'Open shift',
+        detail:
+          'Kandidaat-zicht (Niveau 2) wordt afgehandeld vanuit de MyStaffler-strook.',
       });
     } else if (kind === 'permanent') {
       this.messageService.add({
         severity: 'info',
-        summary: 'Vast blok',
-        detail: 'Vaste medewerker via PoC-DB permanent_assignments.',
-      });
-    } else if (kind === 'contract') {
-      this.messageService.add({
-        severity: 'info',
-        summary: 'Contract',
-        detail: 'Klik via /planning (productie-zicht) voor het edit-detail.',
+        summary: 'Vaste medewerker',
+        detail: 'Beheer via PoC-DB permanent_assignments — TODO admin-UI.',
       });
     }
   }
@@ -327,6 +390,12 @@ export class PlanningPocComponent implements AfterViewInit {
     }).subscribe({
       next: data => {
         const view = this.view();
+        // Cache employees by id so onEventClick can hand a proper
+        // EmployeeModel to the production ContractDialogComponent.
+        this.employeesById.clear();
+        for (const emp of data.employees?.content ?? []) {
+          if (emp?.id) this.employeesById.set(emp.id, emp);
+        }
         const resources = this.buildResources(view, data);
         const events = this.buildEvents(view, data);
         this.resources.set(resources);
@@ -410,13 +479,37 @@ export class PlanningPocComponent implements AfterViewInit {
       }
     }
 
-    // Shifts (PoC-DB) appear in V+SL and Day. In Names we'd need to fan them
-    // out to target_employee_ids — out of scope for v1.
-    if (view !== 'names') {
-      for (const s of data.shifts ?? []) {
-        const start = DateTime.fromISO(`${s.date_from}T${s.from_time}`).toJSDate();
-        const end = DateTime.fromISO(`${s.date_to}T${s.to_time}`).toJSDate();
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+    // Shifts (PoC-DB):
+    //  - V+SL / Day: shown on their service_group resource.
+    //  - Names: fan out to target_employee_ids (SELECTION) — broadcast-to-all
+    //    shifts are rendered on every employee row as a faint "ghost" so the
+    //    operator sees where they could land. Anything not targeting an
+    //    employee is dropped from Names (it stays visible in V+SL).
+    for (const s of data.shifts ?? []) {
+      const start = DateTime.fromISO(`${s.date_from}T${s.from_time}`).toJSDate();
+      const end = DateTime.fromISO(`${s.date_to}T${s.to_time}`).toJSDate();
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+      if (view === 'names') {
+        const targetIds =
+          s.target_type === 'SELECTION'
+            ? s.target_employee_ids ?? []
+            : s.target_type === 'ALL_POOL'
+              ? Array.from(this.employeesById.keys())
+              : [];
+        const ghostCls = s.target_type === 'ALL_POOL' ? ' poc-event-shift-ghost' : '';
+        for (const empId of targetIds) {
+          events.push({
+            id: `shift:${s.id}:${empId}`,
+            resourceId: empId,
+            startDate: start,
+            endDate: end,
+            name: `Open shift × ${s.capacity}`,
+            cls: `poc-event poc-event-shift poc-event-shift-${s.status}${ghostCls}`,
+            kind: 'shift',
+            raw: s,
+          });
+        }
+      } else {
         events.push({
           id: `shift:${s.id}`,
           resourceId: s.service_group_id,

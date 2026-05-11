@@ -171,7 +171,7 @@ export class DialogContractCreateComponent {
         coefficientEcoVouchers: 0,
         coefficientBankHoliday: 0,
         dimonaCost: 0,
-        defaultTaxRate: { id: '', code: '', name: '' },
+        defaultTaxRate: { code: '', name: '' },
       },
       companyHoursPerWeek: 0,
       employeeHoursPerWeek: 0,

@@ -39,3 +39,18 @@
   background: #14b8a6;
   color: white;
 }
+
+/* Ghosted "broadcast to all pool" shift — shown faintly on every
+ * employee row in Names so the planner sees the broadcast surface. */
+::ng-deep .b-sch-event-wrap.poc-event-shift-ghost .b-sch-event {
+  opacity: 0.45;
+  border: 1px dashed rgba(245, 158, 11, 0.7);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(245, 158, 11, 0.25),
+    rgba(245, 158, 11, 0.25) 6px,
+    rgba(254, 243, 199, 0.45) 6px,
+    rgba(254, 243, 199, 0.45) 12px
+  );
+  color: #92400e;
+}
