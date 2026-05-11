@@ -184,6 +184,25 @@ export class MystafflerPreviewComponent {
     });
   }
 
+  protected withdraw(row: MyShiftRow): void {
+    const empId = this.employeeControl.value;
+    if (!empId) return;
+    this.shiftsApi.withdraw(row.shift.id, empId).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Kandidatuur teruggetrokken',
+        });
+        this.refresh();
+      },
+      error: () =>
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Terugtrekken mislukt',
+        }),
+    });
+  }
+
   protected createAvailability(day: DayBucket, fromTime: string, toTime: string): void {
     const empId = this.employeeControl.value;
     if (!empId || !fromTime || !toTime) return;

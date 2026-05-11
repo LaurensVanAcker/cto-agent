@@ -128,9 +128,17 @@
                         Status: {{ row.application.status }}
                       </div>
                     }
-                    @if (!row.application) {
+                    @if (!row.application || row.application.status === 'withdrawn') {
                       <button type="button" class="shift-cta" (click)="apply(row)">
                         Kandidaat stellen
+                      </button>
+                    } @else if (row.application.status === 'candidate') {
+                      <button
+                        type="button"
+                        class="shift-cta secondary"
+                        (click)="withdraw(row)"
+                      >
+                        Terugtrekken
                       </button>
                     }
                   </div>

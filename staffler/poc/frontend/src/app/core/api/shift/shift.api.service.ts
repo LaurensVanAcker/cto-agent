@@ -80,6 +80,12 @@ export class ShiftApiService {
     return this.http.post<unknown>(`${this.url}/${id}/apply`, { employeeId, note });
   }
 
+  withdraw(id: string, employeeId: string): Observable<unknown> {
+    return this.http.request<unknown>('DELETE', `${this.url}/${id}/apply`, {
+      body: { employeeId },
+    });
+  }
+
   applications(shiftId: string): Observable<ShiftApplicationModel[]> {
     return this.http.get<ShiftApplicationModel[]>(`${this.url}/${shiftId}/applications`);
   }

@@ -255,3 +255,13 @@
 .shift-cta:hover {
   background: #d62e4d;
 }
+
+.shift-cta.secondary {
+  background: white;
+  border: 1px solid #fc074f;
+  color: #fc074f;
+}
+
+.shift-cta.secondary:hover {
+  background: #ffe6ee;
+}
