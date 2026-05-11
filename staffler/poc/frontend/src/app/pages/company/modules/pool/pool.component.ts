@@ -30,7 +30,7 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { AppRouteEnum } from 'src/app/app.routes.model';
 import { RootState, AuthStore } from '@dps/core/store';
 import { CompanyGroupApiService, EmployeeApiService } from '@dps/core/api';
-import { EmployeeModel, Group, UserRole } from '@dps/shared/models';
+import { EmployeeGroupEngagement, EmployeeModel, Group, UserRole } from '@dps/shared/models';
 import {
   EmployeeMyStafflerStatus,
   MyStafflerInviteModel,
@@ -44,8 +44,11 @@ import {
 type StatusFilter = 'all' | EmployeeMyStafflerStatus;
 
 interface PoolRow {
-  employee: EmployeeModel;
-  assignedGroups: { id: string; name: string }[];
+  /** Subset used for display; assignment uses the full record below. */
+  employee: EmployeeModel | EmployeeGroupEngagement;
+  /** Full engagement record (id + firstName + lastName + engagementGroups). */
+  engagement: EmployeeGroupEngagement;
+  assignedGroups: Group[];
   status: EmployeeMyStafflerStatus;
   lastLoginAt: string | null;
   invitedAt: string | null;
@@ -167,21 +170,20 @@ export class PoolComponent {
 
     const nameLike = this.searchControl.value?.trim() || undefined;
 
-    this.employeesApi
-      .getEmployees({
-        companyId: company.id,
+    // Use the engagement-groups endpoint so each row carries its assigned
+    // vestigingen — needed both for the "Toegewezen vestigingen" column and
+    // for the AssignGroupsDialog's existingGroups data.
+    this.groupsApi
+      .getEmployeeGroupEngagements(company.id, {
         nameLike,
-        baseView: true,
         page: 0,
         size: 100,
-      })
+      } as Parameters<CompanyGroupApiService['getEmployeeGroupEngagements']>[1])
       .pipe(
         switchMap(page =>
-          this.invitesApi.list(company.id).pipe(
-            tap(() => undefined),
-            // attach invites to employees
-            switchMap(invites => Promise.resolve(this.mergeRows(page?.content ?? [], invites))),
-          ),
+          this.invitesApi
+            .list(company.id)
+            .pipe(switchMap(invites => Promise.resolve(this.mergeRows(page?.content ?? [], invites)))),
         ),
       )
       .subscribe({
@@ -199,25 +201,23 @@ export class PoolComponent {
   }
 
   private mergeRows(
-    employees: EmployeeModel[],
+    engagements: EmployeeGroupEngagement[],
     invites: MyStafflerInviteModel[],
   ): PoolRow[] {
     const inviteByEmployee = new Map<string, MyStafflerInviteModel>();
     for (const i of invites) inviteByEmployee.set(i.employee_id, i);
-    return employees.map(emp => {
-      const invite = inviteByEmployee.get(emp.id);
+    return engagements.map(eng => {
+      const invite = inviteByEmployee.get(eng.id);
       const status: EmployeeMyStafflerStatus =
         invite?.status === 'active'
           ? 'active'
           : invite?.status === 'invited'
             ? 'invited'
             : 'inactive';
-      const groups = ((emp as EmployeeModel & {
-        engagementGroups?: { id: string; name: string }[];
-      }).engagementGroups ?? []).map(g => ({ id: g.id, name: g.name }));
       return {
-        employee: emp,
-        assignedGroups: groups,
+        employee: eng,
+        engagement: eng,
+        assignedGroups: eng.engagementGroups ?? [],
         status,
         invitedAt: invite?.invited_at ?? null,
         lastLoginAt: invite?.last_login_at ?? null,
@@ -232,11 +232,11 @@ export class PoolComponent {
     return d.toFormat("d/M/yyyy, HH:mm");
   }
 
-  protected employeeName(emp: EmployeeModel): string {
+  protected employeeName(emp: EmployeeModel | EmployeeGroupEngagement): string {
     return `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || emp.id;
   }
 
-  protected goToProfile(emp: EmployeeModel): void {
+  protected goToProfile(emp: EmployeeModel | EmployeeGroupEngagement): void {
     this.router.navigate([AppRouteEnum.EMPLOYEE, emp.id, 'profile']);
   }
 
@@ -302,29 +302,26 @@ export class PoolComponent {
   protected assignGroups(row: PoolRow): void {
     const company = this.company();
     if (!company) return;
-    const existingGroups = ((row.employee as EmployeeModel & {
-      engagementGroups?: Group[];
-    }).engagementGroups ?? []) as Group[];
     const ref = this.dialogService.open(AssignGroupsDialogComponent, {
       modal: true,
       showHeader: false,
       focusOnShow: false,
       width: '32rem',
       data: {
-        headerTitle: `Wijs vestigingen toe aan ${this.employeeName(row.employee)}`,
-        existingGroups,
+        headerTitle: `Wijs vestigingen toe aan ${this.employeeName(row.engagement)}`,
+        existingGroups: row.engagement.engagementGroups ?? [],
       } satisfies AssignGroupsDialogData,
     });
     ref.onClose.subscribe((selectedGroups: Group[] | undefined) => {
       if (!selectedGroups) return;
       this.groupsApi
-        .updateEmployeeGroups(company.id, row.employee.id, selectedGroups)
+        .updateEmployeeGroups(company.id, row.engagement.id, selectedGroups)
         .subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
               summary: 'Vestigingen bijgewerkt',
-              detail: this.employeeName(row.employee),
+              detail: this.employeeName(row.engagement),
             });
             this.refresh();
           },
