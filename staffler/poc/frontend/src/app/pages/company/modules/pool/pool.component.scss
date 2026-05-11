@@ -1,0 +1,93 @@
+:host {
+  background: #f8fafc;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border, #e2e8f0);
+  background: white;
+  color: #334155;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.filter-chip:hover {
+  border-color: #cbd5e1;
+}
+
+.filter-chip.active {
+  background: var(--primary-50, #ffe6ee);
+  border-color: var(--primary, #fc074f);
+  color: var(--primary, #fc074f);
+}
+
+.filter-chip .chip-count {
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+
+.filter-chip.active .chip-count {
+  background: rgba(252, 7, 79, 0.15);
+}
+
+.ms-active,
+.ms-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.ms-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ms-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-green {
+  background: #16a34a;
+}
+
+.dot-amber {
+  background: #f59e0b;
+}
+
+.ms-invite {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--primary, #fc074f);
+  background: white;
+  color: var(--primary, #fc074f);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ms-invite:hover {
+  background: var(--primary-50, #ffe6ee);
+}

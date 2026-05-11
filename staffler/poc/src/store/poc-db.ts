@@ -102,6 +102,21 @@ export interface Availability {
   updated_at: string;
 }
 
+export type MyStafflerStatus = "invited" | "active";
+
+/** BCJ-19425 — MyStaffler invite/account status per employee per company.
+ *  This is a PoC-DB shim because DPS does not expose the status field on
+ *  /api/employees yet. v1 will read it from the real Staffler endpoint. */
+export interface MyStafflerInvite {
+  id: string;
+  employee_id: string;
+  company_id: string;
+  status: MyStafflerStatus;
+  invited_at: string;
+  accepted_at: string | null;
+  last_login_at: string | null;
+}
+
 interface DbShape {
   service_groups: ServiceGroup[];
   permanent_employees: PermanentEmployee[];
@@ -109,6 +124,7 @@ interface DbShape {
   shifts: Shift[];
   shift_applications: ShiftApplication[];
   availabilities: Availability[];
+  mystaffler_invites: MyStafflerInvite[];
 }
 
 function emptyDb(): DbShape {
@@ -119,6 +135,7 @@ function emptyDb(): DbShape {
     shifts: [],
     shift_applications: [],
     availabilities: [],
+    mystaffler_invites: [],
   };
 }
 
@@ -363,6 +380,47 @@ class PocDb {
       ...input,
     };
     this.data.availabilities.push(row);
+    this.save();
+    return row;
+  }
+
+  // -- mystaffler_invites --
+
+  listMyStafflerInvites(companyId: string): MyStafflerInvite[] {
+    return this.data.mystaffler_invites.filter((r) => r.company_id === companyId);
+  }
+
+  getMyStafflerInvite(employeeId: string, companyId: string): MyStafflerInvite | undefined {
+    return this.data.mystaffler_invites.find(
+      (r) => r.employee_id === employeeId && r.company_id === companyId,
+    );
+  }
+
+  upsertMyStafflerInvite(
+    employeeId: string,
+    companyId: string,
+    patch: Partial<Pick<MyStafflerInvite, "status" | "accepted_at" | "last_login_at">> = {},
+  ): MyStafflerInvite {
+    const now = new Date().toISOString();
+    let row = this.getMyStafflerInvite(employeeId, companyId);
+    if (!row) {
+      row = {
+        id: randomUUID(),
+        employee_id: employeeId,
+        company_id: companyId,
+        status: patch.status ?? "invited",
+        invited_at: now,
+        accepted_at: patch.accepted_at ?? null,
+        last_login_at: patch.last_login_at ?? null,
+      };
+      this.data.mystaffler_invites.push(row);
+    } else {
+      if (patch.status !== undefined) row.status = patch.status;
+      if (patch.accepted_at !== undefined) row.accepted_at = patch.accepted_at;
+      if (patch.last_login_at !== undefined) row.last_login_at = patch.last_login_at;
+      // If the row already exists and we're "re-inviting", refresh invited_at.
+      if (patch.status === "invited") row.invited_at = now;
+    }
     this.save();
     return row;
   }

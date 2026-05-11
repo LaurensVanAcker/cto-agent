@@ -662,7 +662,26 @@ app.post<{
   },
 );
 
-// Pool: MyStaffler invite (BCJ-19425)
+// ── MyStaffler pool (BCJ-19425) ────────────────────────────────────────────
+
+// GET /api/mystaffler-invites?companyId=
+// Returns the PoC-DB invite/account status per employee for this company.
+app.get<{ Querystring: { companyId?: string } }>(
+  "/api/mystaffler-invites",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.listMyStafflerInvites(req.query.companyId);
+  },
+);
+
+// POST /api/employees/:id/mystaffler-invite?companyId=
+// Best-effort proxy to DPS' real invite endpoint, plus a PoC-DB upsert so the
+// Pool overview can render the new status immediately.
 app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
   "/api/employees/:id/mystaffler-invite",
   async (req, reply) => {
@@ -673,19 +692,69 @@ app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
       reply.status(400);
       return { kind: "validation", message: "companyId required" };
     }
-    // Proxy naar de bestaande DPS endpoint. In v0 simuleren we het
-    // resultaat als de upstream call mislukt, zodat de PoC-flow blijft
-    // doorlopen voor de demo.
+    let upstream: unknown = null;
+    let upstreamError: unknown = null;
     try {
-      return await clientFor(session).rawAuthed<unknown>(
+      upstream = await clientFor(session).rawAuthed<unknown>(
         "POST",
         `/api/companies/${companyId}/employees/${req.params.id}/mystaffler/invite`,
       );
     } catch (err) {
-      const e = asResponse(err);
-      reply.status(e.status);
-      return e.body;
+      upstreamError = err;
     }
+    const invite = pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
+      status: "invited",
+    });
+    return { invite, upstream, upstreamError: upstreamError ? (asResponse(upstreamError).body) : null };
+  },
+);
+
+// POST /api/employees/:id/mystaffler-resend-invite?companyId=
+app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
+  "/api/employees/:id/mystaffler-resend-invite",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const companyId = req.query.companyId;
+    if (!companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    let upstreamError: unknown = null;
+    try {
+      await clientFor(session).rawAuthed<unknown>(
+        "POST",
+        `/api/companies/${companyId}/employees/${req.params.id}/mystaffler/invite`,
+      );
+    } catch (err) {
+      upstreamError = err;
+    }
+    const invite = pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
+      status: "invited",
+    });
+    return { invite, upstreamError: upstreamError ? (asResponse(upstreamError).body) : null };
+  },
+);
+
+// POST /api/employees/:id/mystaffler-mark-active?companyId=
+// Test/demo helper — flips the PoC-DB status to "active" so the Pool overview
+// shows the green "Account active" badge without needing the employee to
+// actually accept the invite via the MyStaffler app.
+app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
+  "/api/employees/:id/mystaffler-mark-active",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const companyId = req.query.companyId;
+    if (!companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
+      status: "active",
+      accepted_at: new Date().toISOString(),
+      last_login_at: new Date().toISOString(),
+    });
   },
 );
 

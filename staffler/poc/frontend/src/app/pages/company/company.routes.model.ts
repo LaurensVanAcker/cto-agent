@@ -7,6 +7,7 @@ export enum CompanyRouteEnum {
   NEWCOMERS = 'newcomers',
   INVITATIONS = 'invitations',
   GROUPS = 'groups',
+  POOL = 'pool',
   LOCATIONS = 'locations',
 }
 

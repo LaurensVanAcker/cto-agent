@@ -55,18 +55,16 @@
     planning).
   -->
 
-  @if (!isGroupUser() && isGroupsEnabled()) {
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.GROUPS' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.GROUPS]"
-      [routerLinkActive]="activeLinkClasses"
-      [class]="linkClasses"
-    >
-      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.GROUPS] }}"></span>
-      <span class="link-text">{{ 'COMPANY_SIDENAV.GROUPS' | translate }}</span>
-    </a>
-  }
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.POOL' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.POOL]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.POOL] }}"></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.POOL' | translate }}</span>
+  </a>
 
   <a
     [pTooltip]="'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate"

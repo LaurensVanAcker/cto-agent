@@ -50,6 +50,10 @@ export const COMPANY_ROUTES: Routes = [
         canActivate: [COMPANY_GROUPS_ENABLED_GUARD, GROUP_USER_ROLE_GUARD],
       },
       {
+        path: CompanyRouteEnum.POOL,
+        loadChildren: () => import('./modules/pool/pool.routes').then(m => m.POOL_ROUTES),
+      },
+      {
         path: CompanyRouteEnum.LOCATIONS,
         loadChildren: () =>
           import('./modules/locations/company-locations.routes').then(
