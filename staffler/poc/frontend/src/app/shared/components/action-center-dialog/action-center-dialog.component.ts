@@ -327,20 +327,9 @@ export class ActionCenterDialogComponent implements OnInit {
     );
   }
 
+  // PoC step 1: ACTUALS module is stripped — fall back to the planning page.
   navigateToActualsPage(): void {
-    const previousWeekStart = DateTime.now().minus({ week: 1 });
-    const startDate = previousWeekStart.startOf('week');
-    const endDate = previousWeekStart.endOf('week');
-
-    this.router.navigate(
-      [`${AppRouteEnum.COMPANY}/${this.company()?.id}/${CompanyRouteEnum.ACTUALS}`],
-      {
-        queryParams: {
-          startDate: startDate.toISODate(),
-          endDate: endDate.toISODate(),
-        },
-      }
-    );
+    this.navigateToPlanningPage();
   }
 
   updateNotificationPreferences() {

@@ -48,132 +48,51 @@
 }
 
 <div class="flex flex-column gap-2 flex-auto overflow-y-auto overflow-x-hidden">
-  @if (!isPartialTimeRegistrationMenu()) {
+  <!--
+    PoC step 1: COMPANY_PROFILE, USER_ACCOUNTS, ACTUALS, TIME_REGISTRATION and
+    SEARCH nav items are stripped along with their modules. Only the items
+    that survive into v0 scope remain (groups conditional, new employees,
+    planning).
+  -->
+
+  @if (!isGroupUser() && isGroupsEnabled()) {
     <a
-      [pTooltip]="'COMPANY_SIDENAV.COMPANY_PROFILE' | translate"
+      [pTooltip]="'COMPANY_SIDENAV.GROUPS' | translate"
       [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.PROFILE]"
+      [routerLink]="[companyRouteEnum.GROUPS]"
       [routerLinkActive]="activeLinkClasses"
       [class]="linkClasses"
     >
-      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PROFILE] }}"></span>
-      <span class="link-text">{{ 'COMPANY_SIDENAV.COMPANY_PROFILE' | translate }}</span>
-    </a>
-
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.USER_ACCOUNTS' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.USER_ACCOUNTS]"
-      [routerLinkActive]="activeLinkClasses"
-      [class]="linkClasses"
-    >
-      <span
-        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.USER_ACCOUNTS] }}"
-      ></span>
-      <span class="link-text">{{ 'COMPANY_SIDENAV.USER_ACCOUNTS' | translate }}</span>
-    </a>
-
-    @if (!isGroupUser() && isGroupsEnabled()) {
-      <a
-        [pTooltip]="'COMPANY_SIDENAV.GROUPS' | translate"
-        [tooltipDisabled]="isMenuExpanded()"
-        [routerLink]="[companyRouteEnum.GROUPS]"
-        [routerLinkActive]="activeLinkClasses"
-        [class]="linkClasses"
-      >
-        <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.GROUPS] }}"></span>
-        <span class="link-text">{{ 'COMPANY_SIDENAV.GROUPS' | translate }}</span>
-      </a>
-    }
-
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.INVITATIONS]"
-      [routerLinkActive]="activeLinkClasses"
-      [class]="linkClasses"
-    >
-      <span
-        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.INVITATIONS] }}"
-      ></span>
-      <span class="link-text">{{ 'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate }}</span>
-    </a>
-
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.PLANNING]"
-      [routerLinkActive]="activeLinkClasses"
-      class="planning-link {{ linkClasses }}"
-    >
-      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PLANNING] }}"></span>
-      <span class="link-text">
-        {{ 'COMPANY_SIDENAV.PLANNING' | translate }}
-      </span>
-    </a>
-
-    @if (isActualsEnabled()) {
-      @let companyContractConfirmationsCountValue = companyContractConfirmationsCount();
-
-      <a
-        [pTooltip]="'COMPANY_SIDENAV.ACTUALS' | translate"
-        [tooltipDisabled]="isMenuExpanded()"
-        [routerLink]="[companyRouteEnum.ACTUALS]"
-        [routerLinkActive]="activeLinkClasses"
-        queryParamsHandling="merge"
-        [class]="linkClasses"
-      >
-        <span
-          class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.ACTUALS] }}"
-          pBadge
-          [value]="companyContractConfirmationsCountValue"
-          [badgeDisabled]="isMenuExpanded() || !companyContractConfirmationsCountValue"
-          badgeStyleClass="p-0"
-          [badgeStyle]="{ right: '-4px', top: '-4px' }"
-        ></span>
-        <span class="link-text flex-1">
-          {{ 'COMPANY_SIDENAV.ACTUALS' | translate }}
-        </span>
-
-        @if (
-          isMenuExpanded() && companyContractConfirmationsCountValue;
-          as companyContractConfirmationsCount
-        ) {
-          <p-badge [value]="companyContractConfirmationsCount"></p-badge>
-        }
-      </a>
-    }
-  }
-
-  @if (isTimeRegistrationEnabled()) {
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.TIME_REGISTRATION' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="[companyRouteEnum.TIME_REGISTRATION]"
-      [routerLinkActive]="activeLinkClasses"
-      [class]="linkClasses"
-    >
-      <span
-        class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.TIME_REGISTRATION] }}"
-      ></span>
-      <span class="link-text">
-        {{ 'COMPANY_SIDENAV.TIME_REGISTRATION' | translate }}
-      </span>
+      <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.GROUPS] }}"></span>
+      <span class="link-text">{{ 'COMPANY_SIDENAV.GROUPS' | translate }}</span>
     </a>
   }
 
-  @if (!hasCustomerUserRole()) {
-    <a
-      [pTooltip]="'COMPANY_SIDENAV.SEARCH_COMPANY' | translate"
-      [tooltipDisabled]="isMenuExpanded()"
-      [routerLink]="searchRoute"
-      [routerLinkActive]="activeLinkClasses"
-      [class]="linkClasses"
-    >
-      <span class="dps-icon dps-icon-search"></span>
-      <span class="link-text">{{ 'COMPANY_SIDENAV.SEARCH_COMPANY' | translate }}</span>
-    </a>
-  }
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.INVITATIONS]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span
+      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.INVITATIONS] }}"
+    ></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate }}</span>
+  </a>
+
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.PLANNING]"
+    [routerLinkActive]="activeLinkClasses"
+    class="planning-link {{ linkClasses }}"
+  >
+    <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PLANNING] }}"></span>
+    <span class="link-text">
+      {{ 'COMPANY_SIDENAV.PLANNING' | translate }}
+    </span>
+  </a>
 </div>
 
 @if (isMobileScreen() && isMenuExpanded()) {

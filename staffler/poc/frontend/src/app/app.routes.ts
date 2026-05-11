@@ -1,8 +1,7 @@
 import { Routes } from '@angular/router';
 
-import { adminUserAccessGuard, authenticatedGuard } from '@dps/core/api/auth';
+import { authenticatedGuard } from '@dps/core/api/auth';
 import { AUTH_ROUTES } from './pages/auth';
-import { environment } from '@dps/env';
 import { AppRouteEnum } from './app.routes.model';
 
 export const routes: Routes = [
@@ -18,23 +17,11 @@ export const routes: Routes = [
     canMatch: [authenticatedGuard],
   },
   {
-    path: AppRouteEnum.SEARCH,
-    loadComponent: () => import('./pages/search/search.component').then(c => c.SearchComponent),
-    canMatch: [authenticatedGuard, adminUserAccessGuard],
-  },
-  {
     path: AppRouteEnum.INVITATION,
     loadChildren: () =>
       import('./pages/invitation/invitation.routes').then(m => m.INVITATION_ROUTES),
   },
-  {
-    // Helper component for authentication to capture skey query param after BE redirect
-    path: 'signin',
-    loadComponent: () => import('./pages/signin/signin.component').then(c => c.SigninComponent),
-  },
-  {
-    path: 'admin',
-    loadComponent: () => new Promise(() => (window.location.href = environment.boemmLoginUrl)),
-  },
-  { path: '**', redirectTo: AppRouteEnum.SEARCH },
+  // PoC: search page, signin (Cognito-callback helper) and admin (BoemmAD)
+  // routes are stripped — see step 1 in the PoC plan.
+  { path: '**', redirectTo: AppRouteEnum.COMPANY },
 ];

@@ -114,7 +114,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   host: { class: 'flex flex-auto flex-column h-full relative' },
 })
 export class CompanyOnboardingComponent implements OnInit {
-  readonly defaultBackRoute = AppRouteEnum.SEARCH;
+  readonly defaultBackRoute = AppRouteEnum.COMPANY;
   readonly vatMask = VAT_MASK;
   readonly companyHoursPerWeekMax = COMPANY_HOURS_PER_WEEK_MAX;
   readonly financePhoneNumber = DPS_FINANCE_PHONE_NUMBER;
@@ -245,8 +245,9 @@ export class CompanyOnboardingComponent implements OnInit {
       } as CompanyDetailModel)
       .subscribe(updatedCompany => {
         this.store.dispatch(new UpdateCompany(updatedCompany));
+        // PoC step 1: company profile route is stripped — land on planning.
         this.router.navigateByUrl(
-          `${AppRouteEnum.COMPANY}/${this.companyData.id}/${CompanyRouteEnum.PROFILE}`
+          `${AppRouteEnum.COMPANY}/${this.companyData.id}/${CompanyRouteEnum.PLANNING}`
         );
         this.store.dispatch(new ChangeSidenavVisibility(true));
       });

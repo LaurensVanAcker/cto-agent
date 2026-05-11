@@ -37,8 +37,7 @@
             "stylePreprocessorOptions": {
               "includePaths": ["src/scss"]
             },
-            "scripts": ["node_modules/@iconfu/svg-inject/dist/svg-inject.min.js"],
-            "serviceWorker": "ngsw-config.json"
+            "scripts": ["node_modules/@iconfu/svg-inject/dist/svg-inject.min.js"]
           },
           "configurations": {
             "prod": {

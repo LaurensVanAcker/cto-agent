@@ -5,13 +5,7 @@ import {
   signal,
   ViewEncapsulation,
 } from '@angular/core';
-import {
-  ActivatedRoute,
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-} from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { Store } from '@ngxs/store';
@@ -23,7 +17,7 @@ import { ButtonModule } from 'primeng/button';
 import { CompanyRouteEnum } from 'src/app/pages/company/company.routes.model';
 import { AppRouteEnum } from 'src/app/app.routes.model';
 import { CompanyMembership, UserRole } from '@dps/shared/models';
-import { AuthStore, ChangeSidenavVisibility, LoadActualsCount, RootState } from '@dps/core/store';
+import { AuthStore, ChangeSidenavVisibility, RootState } from '@dps/core/store';
 import { AuthApiService } from '@dps/core/api/auth';
 import { AuthRoutePath } from '../../../pages/auth';
 import { COMPANY_ROUTES_ICONS_MAP } from '@dps/shared/configs';
@@ -37,6 +31,12 @@ import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { UserApiService } from '@dps/core/api';
 import { toSignal } from '@angular/core/rxjs-interop';
+
+// PoC step 1: stripped the user-account dropdown along with COMPANY_PROFILE,
+// USER_ACCOUNTS, ACTUALS, TIME_REGISTRATION and SEARCH menu items. Their
+// modules are deleted; the corresponding properties (isActualsEnabled,
+// isTimeRegistrationEnabled, companyContractConfirmationsCount, searchRoute,
+// isPartialTimeRegistrationMenu, checkPartialTimeRegistrationMenu) are gone.
 
 @UntilDestroy()
 @Component({
@@ -74,7 +74,6 @@ export class MainMenuComponent {
   readonly activeLinkClasses: string = ['bg-primary', 'hover:bg-primary', 'active'].join(' ');
   readonly companyRouteEnum = CompanyRouteEnum;
   readonly companyRoutesIconsMap = COMPANY_ROUTES_ICONS_MAP;
-  readonly searchRoute = ['/', AppRouteEnum.SEARCH];
   readonly loginRoute = ['/', AuthRoutePath.LOGIN];
   readonly isGroupUser = computed(() => {
     return this.authStore.hasRoles([UserRole.GROUP_USER]);
@@ -87,14 +86,6 @@ export class MainMenuComponent {
     { initialValue: false }
   );
   readonly isGroupsEnabled = this.store.selectSignal(RootState.isCompanyGroupsEnabled);
-  readonly isTimeRegistrationEnabled = this.store.selectSignal(
-    RootState.isCompanyTimeRegistrationEnabled
-  );
-  readonly isActualsEnabled = this.store.selectSignal(RootState.isCompanyActualsEnabled);
-  readonly companyContractConfirmationsCount = this.store.selectSignal(
-    RootState.getCompanyActualsCount
-  );
-  readonly isPartialTimeRegistrationMenu = signal<boolean>(false);
   readonly currCompany = this.store.selectSignal(RootState.getCompanyData);
   readonly selectedMembership = computed<CompanyMembership | null>(
     () =>
@@ -110,12 +101,9 @@ export class MainMenuComponent {
     private store: Store,
     private authStore: AuthStore,
     private router: Router,
-    private route: ActivatedRoute,
     protected authApiService: AuthApiService,
     private userApiService: UserApiService
   ) {
-    this.checkPartialTimeRegistrationMenu();
-
     this.router.events
       .pipe(
         filter(e => e instanceof NavigationEnd),
@@ -124,28 +112,16 @@ export class MainMenuComponent {
       .subscribe(() => {
         if (this.isMobileScreen()) {
           this.hideSidenav();
-        } else {
-          this.checkPartialTimeRegistrationMenu();
         }
       });
   }
 
   onMembershipChange(membership: CompanyMembership): void {
+    // PoC step 1: dropped the LoadActualsCount dispatch — actuals module is stripped.
     this.router.navigate([AppRouteEnum.COMPANY, membership.companyId, CompanyRouteEnum.PLANNING]);
-    this.store.dispatch(new LoadActualsCount());
     this.userApiService
       .setUserLastViewedCompany(membership.userId, membership.companyId)
       .subscribe();
-  }
-
-  checkPartialTimeRegistrationMenu(): void {
-    const childRoute = this.route.firstChild?.snapshot;
-    if (
-      childRoute?.url.at(0)?.path === CompanyRouteEnum.TIME_REGISTRATION &&
-      childRoute.queryParamMap.get('menu') === 'hide'
-    ) {
-      this.isPartialTimeRegistrationMenu.set(true);
-    }
   }
 
   toggleMenuExpansion(): void {
