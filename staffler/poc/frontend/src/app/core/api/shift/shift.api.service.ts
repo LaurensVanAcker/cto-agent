@@ -47,6 +47,17 @@ export interface CreateShiftPayload {
   status?: 'draft' | 'open';
 }
 
+export interface ShiftApplicationModel {
+  id: string;
+  shift_id: string;
+  employee_id: string;
+  status: 'candidate' | 'selected' | 'rejected' | 'withdrawn';
+  applied_at: string;
+  decided_at: string | null;
+  contract_id: string | null;
+  note: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ShiftApiService {
   private readonly http = inject(HttpClient);
@@ -67,5 +78,20 @@ export class ShiftApiService {
 
   apply(id: string, employeeId: string, note?: string): Observable<unknown> {
     return this.http.post<unknown>(`${this.url}/${id}/apply`, { employeeId, note });
+  }
+
+  applications(shiftId: string): Observable<ShiftApplicationModel[]> {
+    return this.http.get<ShiftApplicationModel[]>(`${this.url}/${shiftId}/applications`);
+  }
+
+  select(
+    shiftId: string,
+    applicationId: string,
+    contract: unknown,
+  ): Observable<{ contract: unknown; applicationId: string }> {
+    return this.http.post<{ contract: unknown; applicationId: string }>(
+      `${this.url}/${shiftId}/select`,
+      { applicationId, contract },
+    );
   }
 }

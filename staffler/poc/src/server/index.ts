@@ -569,6 +569,16 @@ app.post<{ Params: { id: string } }>(
   },
 );
 
+// GET /api/shifts/:id/applications — list candidates for a shift
+app.get<{ Params: { id: string } }>(
+  "/api/shifts/:id/applications",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    return pocDb.listApplicationsForShift(req.params.id);
+  },
+);
+
 // Shift applications (uitzendkracht-strook)
 app.post<{ Params: { id: string }; Body: { employeeId: string; note?: string } }>(
   "/api/shifts/:id/apply",

@@ -55,6 +55,7 @@ import {
 } from '@dps/core/api/engagement-group/engagement-group.api.service';
 import { DialogContractCreateComponent } from '@dps/shared/components/dialog-contract-create/dialog-contract-create.component';
 import { DialogShiftBatchComponent } from '@dps/shared/components/dialog-shift-batch/dialog-shift-batch.component';
+import { DialogShiftDetailComponent } from '@dps/shared/components/dialog-shift-detail/dialog-shift-detail.component';
 
 type PocPlanningView = 'names' | 'vsl' | 'day';
 
@@ -335,11 +336,24 @@ export class PlanningPocComponent implements AfterViewInit {
         }
       });
     } else if (kind === 'shift') {
-      this.messageService.add({
-        severity: 'info',
-        summary: 'Open shift',
-        detail:
-          'Kandidaat-zicht (Niveau 2) wordt afgehandeld vanuit de MyStaffler-strook.',
+      const shift = event.eventRecord.getData('raw') as ShiftModel | undefined;
+      const company = this.store.selectSnapshot(RootState.getCompanyData);
+      if (!shift || !company) return;
+      const ref = this.dialogService.open(DialogShiftDetailComponent, {
+        header: 'Shift detail (Niveau 2)',
+        width: '40rem',
+        modal: true,
+        data: { shift, companyId: company.id },
+      });
+      ref.onClose.subscribe(result => {
+        if (result?.kind === 'shift.select.success') {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Kandidaat geselecteerd',
+            detail: 'Contract aangevraagd in DPS (Dimona).',
+          });
+          this.maybeRefresh();
+        }
       });
     } else if (kind === 'permanent') {
       this.messageService.add({

@@ -1,0 +1,78 @@
+<div class="flex flex-column gap-3">
+  <header>
+    <div class="text-color-secondary text-sm">Open shift</div>
+    <div class="text-lg font-medium">
+      {{ shift.date_from }} · {{ shift.from_time }} → {{ shift.to_time }}
+    </div>
+    <div class="text-sm text-color-secondary">
+      Capaciteit: <strong>{{ shift.capacity }}</strong> ·
+      Status: <strong>{{ shift.status }}</strong>
+      @if (shift.deadline) {
+        · Deadline: {{ shift.deadline }}
+      }
+    </div>
+  </header>
+
+  <hr class="m-0" />
+
+  <h3 class="m-0">Kandidaten</h3>
+
+  @if (loading()) {
+    <p class="text-color-secondary">Laden…</p>
+  } @else if (candidates().length === 0) {
+    <p class="text-color-secondary font-italic">
+      Nog geen kandidaten. Deel deze shift via MyStaffler preview en kandideer
+      met een testmedewerker.
+    </p>
+  } @else {
+    <table class="w-full">
+      <thead>
+        <tr class="text-left text-color-secondary text-sm">
+          <th>Medewerker</th>
+          <th>Status</th>
+          <th>Kandideerde op</th>
+          <th class="text-right">Actie</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of candidates(); track row.application.id) {
+          <tr>
+            <td class="py-2">{{ employeeName(row) }}</td>
+            <td class="py-2">
+              @if (row.application.status === 'candidate') {
+                <span class="text-color-secondary">Kandidaat</span>
+              } @else if (row.application.status === 'selected') {
+                <span class="text-primary font-medium">Gekozen</span>
+              } @else {
+                <span class="text-color-secondary">{{ row.application.status }}</span>
+              }
+            </td>
+            <td class="py-2 text-color-secondary text-sm">
+              {{ formatTime(row.application.applied_at) }}
+            </td>
+            <td class="py-2 text-right">
+              @if (row.application.status === 'candidate') {
+                <p-button
+                  label="Kies"
+                  [loading]="row.selecting"
+                  (onClick)="select(row)"
+                  size="small"
+                />
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (error()) {
+    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
+      {{ error() }}
+    </div>
+  }
+</div>
+
+<div class="flex justify-content-end mt-3">
+  <p-button label="Sluiten" severity="secondary" [text]="true" (onClick)="close()" />
+</div>
