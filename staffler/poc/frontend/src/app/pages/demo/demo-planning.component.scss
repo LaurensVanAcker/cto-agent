@@ -1,0 +1,36 @@
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.demo-pill {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.poc-scheduler-host {
+  position: relative;
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  min-height: 600px;
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.poc-scheduler-host > bryntum-scheduler {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+/* Bryntum event colors live in styles.scss (global) so they apply both
+ * here in the demo and in the production planning-poc page. */

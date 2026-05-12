@@ -78,8 +78,6 @@ const WEEKDAY_INDEX: Record<string, number> = {
 interface PocResource {
   id: string;
   name: string;
-  parentId?: string;
-  expanded?: boolean;
   isPermanent?: boolean;
 }
 
@@ -158,13 +156,12 @@ export class PlanningPocComponent implements AfterViewInit {
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
     const v = this.view();
     if (v === 'day') {
-      // Vertical Bryntum, one day at a time, 30-minute ticks running on the
-      // Y-axis with service-locations as X-axis columns. Mirrors mockup 13.
+      // Vertical Bryntum, one day at a time, 30-minute ticks on the Y-axis
+      // with service-locations as X-axis columns. Mirrors mockup 13.
       return {
         ...GENERAL_SCHEDULER_CONFIG,
         viewPreset: {
           base: 'hourAndDay',
-          timeResolution: { unit: 'minute', increment: 30 },
           tickWidth: 60,
           headers: [
             {
@@ -172,19 +169,19 @@ export class PlanningPocComponent implements AfterViewInit {
               dateFormat: 'dddd D MMMM',
               headerCellCls: 'justify-content-center text-base font-medium',
             },
-            {
-              unit: 'hour',
-              dateFormat: 'HH:mm',
-            },
+            { unit: 'hour', dateFormat: 'HH:mm' },
           ],
         },
         mode: 'vertical',
+        eventStyle: 'border',
         rowHeight: 60,
-        barMargin: 4,
       } as unknown as Partial<SchedulerConfig>;
     }
     return {
       ...GENERAL_SCHEDULER_CONFIG,
+      // 'border' = colored left-border + light background, matches the
+      // mockup 10 / 11 block treatment.
+      eventStyle: 'border',
       rowHeight: 65,
     } as Partial<SchedulerConfig>;
   });
@@ -449,17 +446,18 @@ export class PlanningPocComponent implements AfterViewInit {
     }
 
     // V+SL and Day both group service-locations under their parent branch.
-    const branches = (data.branches ?? []).map(b => ({
-      id: `branch:${b.id}`,
-      name: (b.name as string | undefined) ?? b.id,
-      expanded: true,
-    }));
+    // We flatten the tree with a `Vestiging › Service location` row label so
+    // we don't depend on Bryntum's tree-resource mode (which needs extra
+    // resourceStore config and was unstable across our theme).
+    const branchById = new Map<string, string>();
+    for (const b of data.branches ?? []) {
+      branchById.set(b.id, (b.name as string | undefined) ?? b.id);
+    }
     const serviceGroups = (data.serviceGroups ?? []).map(sg => ({
       id: sg.id,
-      name: sg.name,
-      parentId: `branch:${sg.branch_group_id}`,
+      name: `${branchById.get(sg.branch_group_id) ?? '—'} › ${sg.name}`,
     }));
-    return [...branches, ...serviceGroups];
+    return serviceGroups;
   }
 
   private buildEvents(

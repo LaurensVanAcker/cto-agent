@@ -21,6 +21,14 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./pages/invitation/invitation.routes').then(m => m.INVITATION_ROUTES),
   },
+  // No-auth visual demo of the Bryntum planning surface. Open
+  // /demo/planning to see the grid with mock data, useful while the QA
+  // test account isn't valid yet.
+  {
+    path: 'demo/planning',
+    loadChildren: () =>
+      import('./pages/demo/demo-planning.routes').then(m => m.DEMO_PLANNING_ROUTES),
+  },
   // PoC: search page, signin (Cognito-callback helper) and admin (BoemmAD)
   // routes are stripped — see step 1 in the PoC plan.
   { path: '**', redirectTo: AppRouteEnum.COMPANY },

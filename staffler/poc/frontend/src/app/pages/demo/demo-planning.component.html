@@ -1,36 +1,35 @@
 <header class="flex align-items-center gap-3 flex-wrap">
-  <h1 class="text-2xl font-semibold m-0">Planning (PoC)</h1>
+  <h1 class="text-2xl font-semibold m-0">Planning (demo)</h1>
+  <span class="demo-pill">Mock data — geen API-calls</span>
 
   <p-selectButton
     [options]="viewOptions"
     [(ngModel)]="view"
     optionLabel="label"
     optionValue="value"
-    (onChange)="onViewChange()"
+  />
+
+  <p-selectButton
+    [options]="zoomOptions"
+    [(ngModel)]="zoom"
+    optionLabel="label"
+    optionValue="value"
   />
 
   <span class="flex-1"></span>
 
-  <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige week">
+  <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige">
     <span class="dps-icon dps-icon-chevron rotate-180"></span>
   </button>
   <span class="font-medium">{{ weekLabel() }}</span>
-  <button type="button" class="p-link" (click)="nextWeek()" pTooltip="Volgende week">
+  <button type="button" class="p-link" (click)="nextWeek()" pTooltip="Volgende">
     <span class="dps-icon dps-icon-chevron"></span>
   </button>
   <p-button label="Vandaag" severity="secondary" [text]="true" (onClick)="today()" />
-  <p-button
-    icon="dps-icon dps-icon-add"
-    label="Nieuwe shift"
-    (onClick)="openShiftBatchDialog()"
-  />
 </header>
-
-<p-toast position="bottom-right" />
 
 <div class="poc-scheduler-host flex-auto">
   <bryntum-scheduler
-    #scheduler
     cls="border-round-bottom-md"
     [resources]="resources()"
     [events]="events()"
@@ -52,14 +51,12 @@
     [eventResizeFeature]="false"
     [scheduleMenuFeature]="false"
     [eventMenuFeature]="false"
-    [eventTooltipFeature]="true"
+    [eventTooltipFeature]="false"
     [scheduleTooltipFeature]="false"
     [timeAxisHeaderMenuFeature]="false"
     [eventDragFeature]="false"
     [eventDragCreateFeature]="false"
     [cellTooltipFeature]="false"
     [timeRangesFeature]="true"
-    (onScheduleClick)="onCellClick($event)"
-    (onEventClick)="onEventClick($event)"
   ></bryntum-scheduler>
 </div>
