@@ -9,6 +9,13 @@
     (onChange)="onViewChange()"
   />
 
+  <p-selectButton
+    [options]="zoomOptions"
+    [(ngModel)]="zoom"
+    optionLabel="label"
+    optionValue="value"
+  />
+
   <span class="flex-1"></span>
 
   <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige week">

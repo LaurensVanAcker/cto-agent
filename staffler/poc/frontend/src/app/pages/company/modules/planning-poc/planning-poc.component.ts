@@ -9,7 +9,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngxs/store';
 import { DateTime } from 'luxon';
 import { filter, forkJoin, take } from 'rxjs';
@@ -57,12 +57,18 @@ import { DialogContractCreateComponent } from '@dps/shared/components/dialog-con
 import { DialogShiftBatchComponent } from '@dps/shared/components/dialog-shift-batch/dialog-shift-batch.component';
 import { DialogShiftDetailComponent } from '@dps/shared/components/dialog-shift-detail/dialog-shift-detail.component';
 
-type PocPlanningView = 'names' | 'vsl' | 'day';
+type PocPlanningView = 'names' | 'locations';
+type PocPlanningZoom = 'day' | 'week' | '2weeks';
 
 const VIEW_OPTIONS: { label: string; value: PocPlanningView }[] = [
   { label: 'Namen', value: 'names' },
-  { label: 'V+SL', value: 'vsl' },
+  { label: 'Locaties', value: 'locations' },
+];
+
+const ZOOM_OPTIONS: { label: string; value: PocPlanningZoom }[] = [
   { label: 'Dag', value: 'day' },
+  { label: 'Week', value: 'week' },
+  { label: '2 weken', value: '2weeks' },
 ];
 
 const WEEKDAY_INDEX: Record<string, number> = {
@@ -114,6 +120,7 @@ interface PocEvent {
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     BryntumSchedulerModule,
     ButtonModule,
     SelectButtonModule,
@@ -142,7 +149,11 @@ export class PlanningPocComponent implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly view = signal<PocPlanningView>('names');
+  protected readonly zoom = signal<PocPlanningZoom>('week');
   protected readonly viewOptions = VIEW_OPTIONS;
+  protected readonly zoomOptions = ZOOM_OPTIONS;
+  /** Free-text employee filter, debounced + sent as nameLike to /api/employees. */
+  protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
   protected readonly weekStart = signal<string>(
     DateTime.now().startOf('week').toISODate() ?? '',
   );
@@ -154,8 +165,8 @@ export class PlanningPocComponent implements AfterViewInit {
   private readonly employeesById = new Map<string, EmployeeModel>();
 
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
-    const v = this.view();
-    if (v === 'day') {
+    const z = this.zoom();
+    if (z === 'day') {
       // Vertical Bryntum, one day at a time, 30-minute ticks on the Y-axis
       // with service-locations as X-axis columns. Mirrors mockup 13.
       return {
@@ -188,30 +199,30 @@ export class PlanningPocComponent implements AfterViewInit {
 
   protected readonly weekLabel = computed(() => {
     const start = DateTime.fromISO(this.weekStart()).setLocale('nl-BE');
-    const end = start.plus({ days: 6 });
-    return `Week ${start.weekNumber} — ${start.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')}`;
+    const z = this.zoom();
+    if (z === 'day') return start.toFormat('cccc d LLL yyyy');
+    const end = z === '2weeks' ? start.plus({ days: 13 }) : start.plus({ days: 6 });
+    return `${start.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')} (week ${start.weekNumber})`;
   });
 
-  /** Day view zooms into a single day at a time; the user pages via prev/next.
-   *  Names + V+SL show the full 7-day week. */
+  /** Day zoom: single day (snap to today if it falls in the visible week).
+   *  Week / 2 weken: 7 / 14 days from the anchor Monday. */
   protected readonly startDate = computed(() => {
     const week = DateTime.fromISO(this.weekStart());
-    if (this.view() === 'day') {
+    if (this.zoom() === 'day') {
       const today = DateTime.now().startOf('day');
-      // Snap to today if it falls in the visible week, otherwise the Monday.
-      if (today >= week && today < week.plus({ days: 7 })) {
-        return today.toJSDate();
-      }
+      if (today >= week && today < week.plus({ days: 7 })) return today.toJSDate();
       return week.toJSDate();
     }
     return week.toJSDate();
   });
   protected readonly endDate = computed(() => {
     const week = DateTime.fromISO(this.weekStart());
-    if (this.view() === 'day') {
-      const start = DateTime.fromJSDate(this.startDate());
-      return start.plus({ days: 1 }).toJSDate();
+    const z = this.zoom();
+    if (z === 'day') {
+      return DateTime.fromJSDate(this.startDate()).plus({ days: 1 }).toJSDate();
     }
+    if (z === '2weeks') return week.plus({ days: 14 }).toJSDate();
     return week.plus({ days: 7 }).toJSDate();
   });
 
