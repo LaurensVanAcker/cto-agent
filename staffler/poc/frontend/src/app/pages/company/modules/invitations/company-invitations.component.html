@@ -16,26 +16,37 @@
 </dps-page-header>
 
 <main class="flex flex-column flex-1 px-3 pt-3 overflow-y-auto">
-  <div class="flex align-items-center justify-content-between gap-2">
+  <div class="flex align-items-center justify-content-between gap-2 flex-wrap">
     @if (isInviteNewEmployeeBtnShown$ | async) {
-      <p-button
-        icon="dps-icon dps-icon-person_add"
-        [label]="'INVITATIONS.INVITE_NEW_EMPLOYEE' | translate"
-        (onClick)="navigateToCreateInvitationPage()"
-      >
-      </p-button>
+      <div class="flex align-items-center gap-2 flex-wrap">
+        <!--
+          Two side-by-side buttons replace the single "Nieuwe medewerker
+          uitnodigen" CTA. Bijverdiener = the existing DPS invitation flow
+          (Dimona-triggering). Vaste medewerker = PoC-DB-only permanent
+          record opened in a dedicated dialog.
+        -->
+        <p-button
+          icon="dps-icon dps-icon-person_add"
+          label="Bijverdiener toevoegen"
+          (onClick)="navigateToCreateInvitationPage()"
+        ></p-button>
+        <p-button
+          icon="dps-icon dps-icon-person_add"
+          label="Vaste medewerker toevoegen"
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="openAddPermanentDialog()"
+        ></p-button>
+      </div>
     } @else {
       <span>{{ 'INVITATIONS.NO_ACCESS_TO_GROUPS_YET' | translate }}</span>
     }
 
-    @if (hasNewcomers$ | async) {
-      <a
-        class="p-button p-button-outlined text-primary no-underline text-center"
-        [routerLink]="['../', companyRouteEnum.NEWCOMERS]"
-      >
-        {{ 'PLANNING.TO_VALIDATE' | translate }}
-      </a>
-    }
+    <!--
+      "Te valideren" was a shortcut that only applies to non-company-user
+      roles in the production DPS app. It is not in any PoC mockup, and the
+      pilot users are all company-users, so the link is gone.
+    -->
   </div>
 
   <p-float-label variant="on" class="mt-3 mb-2 md: mb-3">

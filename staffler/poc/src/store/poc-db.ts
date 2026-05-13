@@ -57,6 +57,23 @@ export interface PermanentAssignment {
   updated_at: string;
 }
 
+/**
+ * Flat "vast blok" — single date range + single hour range, no recurrence.
+ * Created from the planning grid's empty-cell click on a permanent-employee
+ * row (Names view). PoC-DB only, no Dimona.
+ */
+export interface PermanentBlock {
+  id: string;
+  company_id: string;
+  permanent_employee_id: string;
+  date_from: string; // ISO date
+  date_to: string;   // ISO date (inclusive)
+  from_time: string; // HH:mm
+  to_time: string;   // HH:mm
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Shift {
   id: string;
   company_id: string;
@@ -121,6 +138,7 @@ interface DbShape {
   service_groups: ServiceGroup[];
   permanent_employees: PermanentEmployee[];
   permanent_assignments: PermanentAssignment[];
+  permanent_blocks: PermanentBlock[];
   shifts: Shift[];
   shift_applications: ShiftApplication[];
   availabilities: Availability[];
@@ -132,6 +150,7 @@ function emptyDb(): DbShape {
     service_groups: [],
     permanent_employees: [],
     permanent_assignments: [],
+    permanent_blocks: [],
     shifts: [],
     shift_applications: [],
     availabilities: [],
@@ -273,12 +292,63 @@ class PocDb {
     return row;
   }
 
+  // -- permanent_blocks (Vast blokjes, flat date+hour ranges) --
+
+  listPermanentBlocks(params: { companyId: string; dateFrom?: string; dateTo?: string }): PermanentBlock[] {
+    return this.data.permanent_blocks.filter((b) => {
+      if (b.company_id !== params.companyId) return false;
+      if (params.dateFrom && b.date_to < params.dateFrom) return false;
+      if (params.dateTo && b.date_from > params.dateTo) return false;
+      return true;
+    });
+  }
+
+  createPermanentBlock(
+    input: Omit<PermanentBlock, "id" | "created_at" | "updated_at">,
+  ): PermanentBlock {
+    const now = new Date().toISOString();
+    const row: PermanentBlock = {
+      id: randomUUID(),
+      created_at: now,
+      updated_at: now,
+      ...input,
+    };
+    this.data.permanent_blocks.push(row);
+    this.save();
+    return row;
+  }
+
+  deletePermanentBlock(id: string): boolean {
+    const idx = this.data.permanent_blocks.findIndex((b) => b.id === id);
+    if (idx < 0) return false;
+    this.data.permanent_blocks.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
   // -- shifts --
 
-  listShifts(companyId: string, dateFrom: string, dateTo: string): Shift[] {
-    return this.data.shifts.filter(
-      (s) => s.company_id === companyId && s.date_to >= dateFrom && s.date_from <= dateTo,
-    );
+  /**
+   * Shift list, augmented with `applications_count` so the planning grid
+   * can render the magenta badge that represents how many pool members
+   * have positively reacted to the open shift (mockup 11 — "+5" pill).
+   * Cheaper than fetching applications per-shift on the client.
+   */
+  listShifts(
+    companyId: string,
+    dateFrom: string,
+    dateTo: string,
+  ): Array<Shift & { applications_count: number }> {
+    const counts = new Map<string, number>();
+    for (const a of this.data.shift_applications) {
+      // Only candidate / selected applications count as "positive reaction".
+      // Rejected and withdrawn shouldn't bump the badge.
+      if (a.status !== "candidate" && a.status !== "selected") continue;
+      counts.set(a.shift_id, (counts.get(a.shift_id) ?? 0) + 1);
+    }
+    return this.data.shifts
+      .filter((s) => s.company_id === companyId && s.date_to >= dateFrom && s.date_from <= dateTo)
+      .map((s) => ({ ...s, applications_count: counts.get(s.id) ?? 0 }));
   }
 
   createShift(input: Omit<Shift, "id" | "created_at" | "updated_at">): Shift {
@@ -300,6 +370,20 @@ class PocDb {
     row.status = "open";
     row.published_at = new Date().toISOString();
     row.updated_at = row.published_at;
+    this.save();
+    return row;
+  }
+
+  /**
+   * Merge-patch a shift row in place. Used by the batch-share endpoint to
+   * update target + deadline without having to round-trip a full Shift
+   * payload from the frontend. Returns null if the id is unknown so the
+   * caller can surface a 404 to the client.
+   */
+  patchShift(id: string, patch: Partial<Shift>): Shift | null {
+    const row = this.data.shifts.find((s) => s.id === id);
+    if (!row) return null;
+    Object.assign(row, patch, { updated_at: new Date().toISOString() });
     this.save();
     return row;
   }

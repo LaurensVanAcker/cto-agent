@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '@dps/env';
 
-export type ShiftTargetType = 'ALL_POOL' | 'SELECTION' | 'GROUP' | 'NONE';
+export type ShiftTargetType = 'ALL_POOL' | 'SELECTION' | 'GROUP' | 'PARTNERS' | 'NONE';
 export type ShiftStatus = 'draft' | 'open' | 'closed' | 'fulfilled' | 'cancelled';
 
 /** PoC-DB shift (an open Niveau-2 request for temporary invulling). */
@@ -28,6 +28,12 @@ export interface ShiftModel {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Pool members who positively reacted to this shift (candidate or
+   * selected). Drives the magenta `+N` badge on the open-shift block.
+   * Computed server-side in `listShifts`.
+   */
+  applications_count?: number;
 }
 
 export interface CreateShiftPayload {
@@ -99,5 +105,22 @@ export class ShiftApiService {
       `${this.url}/${shiftId}/select`,
       { applicationId, contract },
     );
+  }
+
+  /**
+   * Update target + deadline on an open shift — used by the batch-share
+   * dialog (mockup 12). Backed by PATCH so the PoC-DB just merges the
+   * provided fields instead of replacing the whole shift record.
+   */
+  share(
+    shiftId: string,
+    payload: {
+      targetType: ShiftTargetType;
+      targetEmployeeIds?: string[];
+      targetGroupIds?: string[];
+      reactionDeadline?: string;
+    },
+  ): Observable<ShiftModel> {
+    return this.http.patch<ShiftModel>(`${this.url}/${shiftId}/share`, payload);
   }
 }

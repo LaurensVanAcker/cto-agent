@@ -1,81 +1,318 @@
-<div class="flex flex-column gap-3">
-  <p class="text-color-secondary m-0">
-    Niveau 2 — open shift broadcasten. POSTs naar
-    <code>/api/shifts</code> en publiceert direct.
-  </p>
+<!--
+  Nieuwe shift dialog — 1:1 with `mockups/09-dialog-volledig.html`.
+  PrimeNG's DynamicDialog wraps this in its own chrome; we render the
+  mockup's header/body/footer inside.
 
-  <label class="flex flex-column gap-1">
-    <span class="text-sm">Service location</span>
-    @if (serviceGroupOptions().length === 0) {
-      <span class="text-color-secondary font-italic">
-        Geen service locations aangemaakt voor dit bedrijf. Voeg er toe via
-        Beheer locaties.
-      </span>
-    } @else {
-      <p-select
-        [options]="serviceGroupOptions()"
-        [(ngModel)]="form.serviceGroupId"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Kies service location"
-      />
-    }
-  </label>
-
-  <div class="grid">
-    <label class="col-6 flex flex-column gap-1">
-      <span class="text-sm">Datum van</span>
-      <input pInputText type="date" [(ngModel)]="form.dateFrom" />
-    </label>
-    <label class="col-6 flex flex-column gap-1">
-      <span class="text-sm">Datum tot</span>
-      <input pInputText type="date" [(ngModel)]="form.dateTo" />
-    </label>
-  </div>
-
-  <div class="grid">
-    <label class="col-4 flex flex-column gap-1">
-      <span class="text-sm">Van</span>
-      <input pInputText type="time" [(ngModel)]="form.fromTime" />
-    </label>
-    <label class="col-4 flex flex-column gap-1">
-      <span class="text-sm">Tot</span>
-      <input pInputText type="time" [(ngModel)]="form.toTime" />
-    </label>
-    <label class="col-4 flex flex-column gap-1">
-      <span class="text-sm">Capaciteit</span>
-      <p-inputNumber [(ngModel)]="form.capacity" [min]="1" [max]="20" />
-    </label>
-  </div>
-
-  <label class="flex flex-column gap-1">
-    <span class="text-sm">Target</span>
-    <p-select
-      [options]="targetOptions"
-      [(ngModel)]="form.targetType"
-      optionLabel="label"
-      optionValue="value"
-    />
-  </label>
-
-  <label class="flex flex-column gap-1">
-    <span class="text-sm">Deadline (optioneel)</span>
-    <input pInputText type="datetime-local" [(ngModel)]="form.deadline" />
-  </label>
-
-  @if (error()) {
-    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
-      {{ error() }}
+  Klant subheader is intentionally omitted (operator already sees the
+  company in the sidebar). Position chip = vestiging — service-location
+  derived from the chosen service-group.
+-->
+<div class="m09-dialog">
+  <header class="m09-header">
+    <div>
+      <h2>
+        Nieuwe shift voor <span class="pos">{{ positionLabel() }}</span>
+      </h2>
     </div>
-  }
-</div>
+    <button class="m09-x" type="button" (click)="cancel()" aria-label="Sluiten">
+      <span class="dps-icon dps-icon-close"></span>
+    </button>
+  </header>
 
-<div class="flex justify-content-end gap-2 mt-3">
-  <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
-  <p-button
-    label="Aanmaken en publiceren"
-    [loading]="saving()"
-    [disabled]="!canSave()"
-    (onClick)="confirmAndPublish()"
-  />
+  <section class="m09-body">
+    <!-- Service location (only when none pre-selected) -->
+    @if (!config.data?.serviceGroupId && serviceGroupOptions().length > 1) {
+      <div class="m09-field">
+        <label class="m09-field-label">Service location</label>
+        <p-select
+          [options]="serviceGroupOptions()"
+          [(ngModel)]="form.serviceGroupId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Kies service location"
+          appendTo="body"
+        />
+      </div>
+    }
+
+    <!-- Datum range -->
+    <div class="m09-field">
+      <label class="m09-field-label">Datum</label>
+      <div class="m09-daterange">
+        <span class="dps-icon dps-icon-event-note"></span>
+        <input
+          type="date"
+          [(ngModel)]="form.dateFrom"
+          (ngModelChange)="onDateFromChange($event)"
+        />
+        <span class="m09-arrow">›</span>
+        <input type="date" [(ngModel)]="form.dateTo" />
+      </div>
+    </div>
+
+    <!-- Werkuren card -->
+    <div class="m09-shift-card">
+      <div class="m09-day-title">{{ dayTitle() }}</div>
+
+      <div class="m09-toggle-2">
+        <button
+          type="button"
+          [class.active]="hoursMode() === 'template'"
+          (click)="hoursMode.set('template')"
+        >
+          Bestaande shift gebruiken
+        </button>
+        <button
+          type="button"
+          [class.active]="hoursMode() === 'custom'"
+          (click)="hoursMode.set('custom')"
+        >
+          Nieuwe uren ingeven
+        </button>
+      </div>
+
+      @if (hoursMode() === 'template') {
+        <!--
+          Existing-shift template selector. Picking a preset rewires
+          fromTime / toTime / pauseFrom / pauseTo to the template's values,
+          matching the production "Bestaande shift gebruiken" pattern.
+        -->
+        <div class="m09-template-row">
+          <p-select
+            class="flex-1"
+            [options]="shiftTemplateOptions"
+            [ngModel]="shiftTemplateId()"
+            (ngModelChange)="applyShiftTemplate($event)"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Kies een bestaande shift"
+            appendTo="body"
+          />
+          <button type="button" class="m09-square-btn" (click)="hoursMode.set('custom')">
+            <span class="dps-icon dps-icon-edit"></span>
+          </button>
+        </div>
+      }
+
+      <div class="m09-time-row">
+        <div></div>
+        <div class="m09-col-heads">
+          <span>Van</span><span></span><span>Tot</span>
+        </div>
+
+        <div class="m09-row-label">Werkuren</div>
+        <div class="m09-time-pair">
+          <input type="time" [(ngModel)]="form.fromTime" />
+          <span class="m09-arr">›</span>
+          <input type="time" [(ngModel)]="form.toTime" />
+        </div>
+
+        <div class="m09-row-label">Pauze</div>
+        <div class="m09-time-pair">
+          <input type="time" [(ngModel)]="form.pauseFrom" />
+          <span class="m09-arr">›</span>
+          <input type="time" [(ngModel)]="form.pauseTo" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Slots -->
+    <label class="m09-field-label">Shifts</label>
+    <div class="m09-slot-list">
+      @for (slot of slots(); track $index) {
+        <div
+          class="m09-slot"
+          [class.assigned]="slot.kind === 'assigned' || slot.kind === 'vast'"
+          [class.fixed]="slot.kind === 'vast'"
+          [class.open-shift]="slot.kind === 'open'"
+          [class.hoverable]="slot.kind === 'open'"
+        >
+          <div class="m09-slot-head">
+            <div class="m09-num">{{ $index + 1 }}</div>
+
+            @switch (slot.kind) {
+              @case ('assigned') {
+                <div class="m09-name">
+                  @if (slot.employeeName) {
+                    {{ slot.employeeName }}
+                  } @else {
+                    <p-select
+                      class="flex-1 persoon-kiezen"
+                      panelStyleClass="persoon-kiezen-panel"
+                      [options]="employeeOptions()"
+                      [filter]="true"
+                      filterBy="label,statute,phone"
+                      [ngModel]="slot.employeeId"
+                      (ngModelChange)="onSlotEmployeeSelected($index, $event)"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Kies medewerker"
+                      appendTo="body"
+                    >
+                      <ng-template let-opt pTemplate="item">
+                        <div class="persoon-row">
+                          <div class="persoon-main">
+                            <div class="persoon-name">
+                              {{ opt.firstName }} {{ opt.lastName }}
+                            </div>
+                            <div class="persoon-meta">
+                              <span>{{ opt.statute }}</span>
+                              <span>{{ opt.lastShift }}</span>
+                              @if (opt.phone) {
+                                <span>{{ opt.phone }}</span>
+                              }
+                            </div>
+                          </div>
+                          <span
+                            class="stat-tag"
+                            [class.flexi]="opt.statuteTag === 'flexi'"
+                            [class.student]="opt.statuteTag === 'student'"
+                            [class.bediende]="opt.statuteTag === 'bediende'"
+                            [class.arbeider]="opt.statuteTag === 'arbeider'"
+                          >
+                            {{ opt.statuteTag }}
+                          </span>
+                          <!--
+                            Vestiging chips removed 2026-05-12 — pilot
+                            feedback: "I don't need to see what vestigingen
+                            someone is assigned to in the dropdown, it's
+                            too much." Statute + last-shift + availability
+                            give the operator enough signal; vestiging
+                            assignments live elsewhere (pool view).
+                          -->
+                          <span
+                            class="availability-badge"
+                            [class.match]="opt.availability === 'match'"
+                            [class.partial]="opt.availability === 'partial'"
+                            [class.none]="opt.availability === 'none'"
+                            [class.conflict]="opt.availability === 'conflict'"
+                          >
+                            {{ opt.availability === 'match' ? 'beschikbaar' :
+                                opt.availability === 'partial' ? 'deels' :
+                                opt.availability === 'conflict' ? 'conflict' : '—' }}
+                          </span>
+                        </div>
+                      </ng-template>
+                    </p-select>
+                  }
+                </div>
+              }
+              @case ('vast') {
+                <div class="m09-name">
+                  <span class="m09-vast-tag">Vast</span>{{ slot.employeeName }}
+                </div>
+              }
+              @default {
+                <div class="m09-slot-content">
+                  <div class="default-content">
+                    <div class="m09-name">Open shift</div>
+                  </div>
+                  <div class="hover-content">
+                    <button
+                      type="button"
+                      class="m09-choice-btn persoon"
+                      (click)="makeAssigned($index)"
+                    >
+                      <span class="dps-icon dps-icon-person"></span>
+                      Persoon kiezen
+                    </button>
+                    <button type="button" class="m09-choice-btn open" (click)="makeOpen($index)">
+                      <span class="dps-icon dps-icon-info"></span>
+                      Open laten
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+
+            <button
+              type="button"
+              class="m09-undo"
+              (click)="removeSlot($index)"
+              aria-label="Verwijder slot"
+            >
+              <span class="dps-icon dps-icon-close"></span>
+            </button>
+          </div>
+
+          @if (slot.kind === 'assigned' && slot.employeeName) {
+            <div class="m09-slot-detail">
+              <div class="m09-pakket-label">
+                Loonpakket voor {{ firstName(slot.employeeName) }}
+              </div>
+              <p-select
+                class="m09-pakket-select-pn"
+                [options]="loonpakketOptions"
+                [ngModel]="slot.loonpakketId ?? 'default'"
+                (ngModelChange)="onSlotLoonpakketChanged($index, $event)"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+              />
+            </div>
+          }
+        </div>
+      }
+
+      <button type="button" class="m09-add-slot" (click)="addSlot()">
+        <span class="dps-icon dps-icon-add"></span> Shift toevoegen
+      </button>
+    </div>
+
+    <!--
+      Wage-package missing banner: shows when one or more assigned slots
+      still sit on the "Standaard pakket" placeholder. Keeps the dialog
+      explicit about loonpakketten — the operator sees the names that
+      still need a real pick without scrolling slot-by-slot.
+    -->
+    @if (slotsMissingLoonpakket().length) {
+      <div class="m09-banner m09-banner-warn" role="status">
+        <span class="dps-icon dps-icon-warning"></span>
+        <div class="m09-banner-body">
+          <strong>Loonpakket ontbreekt</strong>
+          <span>
+            Kies een specifiek loonpakket voor
+            {{ slotsMissingLoonpakket().join(', ') }} — anders publiceren we
+            de shift met "Standaard pakket".
+          </span>
+        </div>
+      </div>
+    }
+
+    <!-- Deadline reactie (only when an open slot exists) -->
+    @if (hasOpenSlot()) {
+      <div class="m09-field mt-3">
+        <label class="m09-field-label">Deadline reactie</label>
+        <input
+          type="datetime-local"
+          class="m09-input"
+          [(ngModel)]="form.deadline"
+        />
+      </div>
+    }
+
+    @if (error()) {
+      <div class="m09-error">{{ error() }}</div>
+    }
+  </section>
+
+  <footer class="m09-footer">
+    <button type="button" class="m09-btn-cancel" (click)="cancel()">
+      Annuleren
+    </button>
+    <!--
+      Disabled-state tooltip: the operator sees the exact validation
+      reason on hover, so they can fix without playing "guess the field".
+    -->
+    <button
+      type="button"
+      class="m09-btn-confirm"
+      [class.disabled]="!canSave()"
+      [disabled]="!canSave()"
+      [title]="validationError() ?? ''"
+      (click)="confirmAndPublish()"
+    >
+      Bevestig shift
+    </button>
+  </footer>
 </div>

@@ -1,0 +1,142 @@
+// Confirm-actual dialog — m09 chrome reuse + per-day inline form.
+
+.confirm-actual {
+  .confirm-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  // Bulk-action bar above the day list (mockup-aligned: subtle pill,
+  // outlined magenta accent). One click flips every row to "gewerkt".
+  .bulk-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .bulk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: white;
+    color: #fc074f;
+    border: 1px solid #fc074f;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: background-color 100ms ease;
+
+    .dps-icon {
+      font-size: 14px;
+    }
+  }
+
+  .bulk-btn:hover {
+    background: #fff1f2;
+  }
+
+  .day-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .day-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: white;
+    transition: border-color 100ms ease, background-color 100ms ease;
+  }
+
+  .day-row.is-absent {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .day-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+
+    strong {
+      font-size: 13px;
+      color: #0f172a;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+  }
+
+  .day-row-toggle {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 6px;
+    gap: 2px;
+
+    button {
+      border: none;
+      background: transparent;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #64748b;
+      transition: background-color 100ms ease, color 100ms ease;
+    }
+
+    button.active {
+      background: white;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .day-row-times {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr 1fr auto 1fr;
+    gap: 8px;
+    align-items: end;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+      color: #64748b;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+
+      input {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 13px;
+        background: white;
+      }
+    }
+
+    .arr {
+      color: #94a3b8;
+      font-size: 13px;
+      padding-bottom: 8px;
+    }
+  }
+
+  .day-row-absent {
+    font-size: 12px;
+    color: #64748b;
+    font-style: italic;
+  }
+}

@@ -1,0 +1,112 @@
+<div class="m09-dialog confirm-actual">
+  <header class="m09-header">
+    <div>
+      <h2>
+        Prestatie bevestigen — <span class="pos">{{ confirmation.position }}</span>
+      </h2>
+      <div class="confirm-sub">
+        {{ confirmation.workTime.length }}
+        {{ confirmation.workTime.length === 1 ? 'dag' : 'dagen' }} te bevestigen
+      </div>
+    </div>
+    <button class="m09-x" type="button" (click)="cancel()" aria-label="Sluiten">
+      <span class="dps-icon dps-icon-close"></span>
+    </button>
+  </header>
+
+  <section class="m09-body">
+    <div class="bulk-actions">
+      <button type="button" class="bulk-btn" (click)="confirmAllWorked()">
+        <span class="dps-icon dps-icon-check"></span>
+        Bevestig alles als gewerkt
+      </button>
+    </div>
+
+    <ul class="day-list" role="list">
+      @for (day of days(); track day.id; let i = $index) {
+        <li class="day-row" [class.is-absent]="day.decision === 'absent'">
+          <div class="day-row-head">
+            <strong>{{ dayLabel(day.date) }}</strong>
+            <div class="day-row-toggle" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="day.decision === 'confirmed'"
+                [class.active]="day.decision === 'confirmed'"
+                (click)="setDecision(i, 'confirmed')"
+              >
+                Gewerkt
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="day.decision === 'absent'"
+                [class.active]="day.decision === 'absent'"
+                (click)="setDecision(i, 'absent')"
+              >
+                Afwezig
+              </button>
+            </div>
+          </div>
+
+          @if (day.decision === 'confirmed') {
+            <div class="day-row-times">
+              <label>
+                <span>Van</span>
+                <input
+                  type="time"
+                  [ngModel]="day.fromTime"
+                  (ngModelChange)="onFieldChange(i, 'fromTime', $event)"
+                />
+              </label>
+              <span class="arr">›</span>
+              <label>
+                <span>Tot</span>
+                <input
+                  type="time"
+                  [ngModel]="day.toTime"
+                  (ngModelChange)="onFieldChange(i, 'toTime', $event)"
+                />
+              </label>
+              <label>
+                <span>Pauze van</span>
+                <input
+                  type="time"
+                  [ngModel]="day.pauseFromTime"
+                  (ngModelChange)="onFieldChange(i, 'pauseFromTime', $event)"
+                />
+              </label>
+              <span class="arr">›</span>
+              <label>
+                <span>Pauze tot</span>
+                <input
+                  type="time"
+                  [ngModel]="day.pauseToTime"
+                  (ngModelChange)="onFieldChange(i, 'pauseToTime', $event)"
+                />
+              </label>
+            </div>
+          } @else {
+            <div class="day-row-absent">Geregistreerd als afwezig.</div>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (error()) {
+      <div class="m09-error">{{ error() }}</div>
+    }
+  </section>
+
+  <footer class="m09-footer">
+    <button type="button" class="m09-btn-cancel" (click)="cancel()">Annuleren</button>
+    <button
+      type="button"
+      class="m09-btn-confirm"
+      [disabled]="saving()"
+      (click)="save()"
+    >
+      Bevestigen
+    </button>
+  </footer>
+</div>

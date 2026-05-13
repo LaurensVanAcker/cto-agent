@@ -75,10 +75,15 @@
 }
 
 .ms-invite {
+  // Centered text: equal horizontal padding + icon on the left as a
+  // standalone child. Previously the icon used `margin-right` which made
+  // the text drift left of centre.
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  min-width: 8rem;
   border-radius: 6px;
   border: 1px solid var(--primary, #fc074f);
   background: white;
@@ -86,8 +91,24 @@
   font-size: 0.85rem;
   cursor: pointer;
   font-family: inherit;
+  line-height: 1;
 }
 
 .ms-invite:hover {
   background: var(--primary-50, #ffe6ee);
+}
+
+// Lock indicator next to the "Toegewezen vestigingen" column header.
+// Mockup 15 surfaces this so the operator knows the column is admin-only;
+// the icon sits inline with the label, subtly muted.
+.poc-th-lock-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.poc-th-lock {
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: help;
 }

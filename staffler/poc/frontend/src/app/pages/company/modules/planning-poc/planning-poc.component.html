@@ -1,39 +1,99 @@
 <header class="flex align-items-center gap-3 flex-wrap">
-  <h1 class="text-2xl font-semibold m-0">Planning (PoC)</h1>
+  <h1 class="text-2xl font-semibold m-0">Planning</h1>
 
   <p-selectButton
+    class="planning-segment"
     [options]="viewOptions"
-    [(ngModel)]="view"
+    [ngModel]="view()"
+    (ngModelChange)="setView($event)"
     optionLabel="label"
     optionValue="value"
-    (onChange)="onViewChange()"
+    [allowEmpty]="false"
   />
 
   <p-selectButton
+    class="planning-segment"
     [options]="zoomOptions"
-    [(ngModel)]="zoom"
+    [ngModel]="zoom()"
+    (ngModelChange)="setZoom($event)"
     optionLabel="label"
     optionValue="value"
+    [allowEmpty]="false"
   />
 
   <span class="flex-1"></span>
 
-  <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige week">
-    <span class="dps-icon dps-icon-chevron rotate-180"></span>
+  <!--
+    Toolbar: chevron-group on the left, label in the middle, "Vandaag"
+    on the right. Day zoom uses the same group, just routing prev/next
+    to the per-day shifters.
+  -->
+  <div class="planning-nav">
+    <button
+      type="button"
+      class="nav-arrow"
+      (click)="zoom() === 'day' ? previousDay() : previousWeek()"
+      [attr.aria-label]="zoom() === 'day' ? 'Vorige dag' : 'Vorige week'"
+      [pTooltip]="zoom() === 'day' ? 'Vorige dag' : 'Vorige week'"
+    >
+      <span class="dps-icon dps-icon-chevron rotate-180"></span>
+    </button>
+    <span class="nav-label">{{ weekLabel() }}</span>
+    <button
+      type="button"
+      class="nav-arrow"
+      (click)="zoom() === 'day' ? nextDay() : nextWeek()"
+      [attr.aria-label]="zoom() === 'day' ? 'Volgende dag' : 'Volgende week'"
+      [pTooltip]="zoom() === 'day' ? 'Volgende dag' : 'Volgende week'"
+    >
+      <span class="dps-icon dps-icon-chevron"></span>
+    </button>
+  </div>
+  <button type="button" class="planning-today" (click)="today()">
+    Vandaag
   </button>
-  <span class="font-medium">{{ weekLabel() }}</span>
-  <button type="button" class="p-link" (click)="nextWeek()" pTooltip="Volgende week">
-    <span class="dps-icon dps-icon-chevron"></span>
-  </button>
-  <p-button label="Vandaag" severity="secondary" [text]="true" (onClick)="today()" />
-  <p-button
-    icon="dps-icon dps-icon-add"
-    label="Nieuwe shift"
-    (onClick)="openShiftBatchDialog()"
-  />
+
+  <!--
+    Mockup 10 / 11 header: the share-button only appears when there is at
+    least one open shift in the visible week. It opens the batch-share
+    dialog (mockup 12). New shifts are created by clicking an empty cell
+    on the grid, NOT by a header button — so "+ Nieuwe shift" is gone.
+  -->
+  @if (openShiftCount() > 0) {
+    <p-button
+      icon="dps-icon dps-icon-double_arrow_right"
+      [label]="'Open shifts delen (' + openShiftCount() + ')'"
+      (onClick)="openShareDialog()"
+    />
+  }
 </header>
 
 <p-toast position="bottom-right" />
+
+<!--
+  Mockup 10/11 banner card: indigo icon-square + tagline. Keeps the
+  surface inviting and tells the operator what the grid does without
+  needing a tour. Auto-hides per-view so each view gets its own copy.
+-->
+<aside class="poc-banner" role="note">
+  <span class="poc-banner-icon">
+    <span class="dps-icon dps-icon-event-note"></span>
+  </span>
+  <div class="poc-banner-body">
+    <strong>Planning — plan jouw medewerkers in</strong>
+    @if (view() === 'names') {
+      <span>
+        Klik op een cel om een contract te maken. Sleep blokjes verticaal naar een
+        andere medewerker.
+      </span>
+    } @else {
+      <span>
+        Klik op een cel om een shift te maken. Sleep blokken verticaal naar een
+        andere service location.
+      </span>
+    }
+  </div>
+</aside>
 
 <div class="poc-scheduler-host flex-auto">
   <bryntum-scheduler
@@ -46,6 +106,7 @@
     [viewPreset]="schedulerConfig().viewPreset!"
     [columns]="schedulerConfig().columns!"
     [eventStyle]="schedulerConfig().eventStyle!"
+    [eventRenderer]="schedulerConfig().eventRenderer!"
     [rowHeight]="schedulerConfig().rowHeight!"
     [mode]="schedulerConfig().mode ?? 'horizontal'"
     [weekStartDay]="schedulerConfig().weekStartDay!"
@@ -62,10 +123,12 @@
     [eventTooltipFeature]="true"
     [scheduleTooltipFeature]="false"
     [timeAxisHeaderMenuFeature]="false"
-    [eventDragFeature]="false"
-    [eventDragCreateFeature]="false"
+    [eventDragFeature]="true"
+    [eventDragCreateFeature]="true"
+    [eventEditFeature]="eventEditFeatureConfig"
     [cellTooltipFeature]="false"
     [timeRangesFeature]="true"
+    [scrollButtonsFeature]="zoom() === 'day'"
     (onScheduleClick)="onCellClick($event)"
     (onEventClick)="onEventClick($event)"
   ></bryntum-scheduler>

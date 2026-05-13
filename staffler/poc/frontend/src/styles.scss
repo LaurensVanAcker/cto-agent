@@ -7,53 +7,840 @@
 /* ──────────────────────────────────────────────────────────────────────────
  * PoC Bryntum scheduler event styling — applied globally so it works in
  * both the production planning view and the /demo/planning preview.
- * Mockup palette per mockup 10 (Names), 11 (V+SL) and 13 (Day).
+ * Mockup palette per v5-10-names / v5-11-vsl / v5-13-dag. Verbatim hex
+ * values lifted from the mockup CSS variables.
+ *
+ * Bryntum's eventStyle='plain' strips the default chrome; the renderer
+ * (planning-poc / demo-planning) injects `<div class="poc-event-title">`
+ * and `<div class="poc-event-times">` so each block has a title row + a
+ * times row stacked vertically.
  * ────────────────────────────────────────────────────────────────────────── */
 
+// Force the renderer slot to be a column flex so title + times stack
+// instead of running inline. Bryntum's default is row.
+.b-sch-event-wrap .b-sch-event > .b-sch-event-content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  padding: 4px 8px;
+  gap: 2px;
+}
+
+.b-sch-event-wrap .b-sch-event .poc-event-title {
+  font-weight: 700;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.b-sch-event-wrap .b-sch-event .poc-event-times {
+  display: block !important;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// "Vast" pill that prefixes the permanent block title (events) and the
+// permanent-employee resource row (Names view).
+.b-sch-event .poc-vast-tag,
+.poc-perm-tag {
+  background: #115e59;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+// "Vandaag" body stripe — magenta tint with visible vertical lines.
+.b-sch-timerange.today-range {
+  background: rgba(252, 7, 79, 0.06) !important;
+  border-left: 2px solid #fc074f !important;
+  border-right: 2px solid #fc074f !important;
+  z-index: 4;
+}
+
+// Day-zoom now-line: thin magenta vertical line spanning every row at
+// the current minute. Mockup 13's `.now-line` (mockup uses a dot cap at
+// the top, we add a circular pseudo-element for the same visual hint).
+.b-sch-timerange.poc-now-line {
+  background: #fc074f !important;
+  border: none !important;
+  width: 2px !important;
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(252, 7, 79, 0.25);
+}
+.b-sch-timerange.poc-now-line::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fc074f;
+  box-shadow: 0 0 0 2px white;
+}
+
+// "Vandaag" column header — full magenta fill with white text per mockup.
+// Bryntum class is `b-sch-dayheadercell-today` (verified via DOM probe).
+.b-sch-dayheadercell-today {
+  background: #fc074f !important;
+  color: white !important;
+  font-weight: 700;
+  border-left-color: #fc074f !important;
+  border-right-color: #fc074f !important;
+  // Top stripe — extends the magenta accent above the header so the column
+  // reads as a continuous "vandaag" indicator even if the header sits inside
+  // a slightly tinted toolbar.
+  box-shadow: 0 -3px 0 0 #fc074f;
+}
+
+// Resource column renderer markup (planning-poc — Locaties view).
+// Targets need to be global because Bryntum renders the cell HTML outside
+// Angular's component shadow scoping.
+.poc-resource-cell {
+  padding: 0 !important;
+}
+
+.poc-name-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.poc-name-row .poc-perm-tag {
+  align-self: flex-start;
+}
+
+.poc-branch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(252, 7, 79, 0.08);
+  border-left: 3px solid #fc074f;
+  width: 100%;
+  height: 100%;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.3px;
+}
+
+.poc-branch-row .poc-branch-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.poc-branch-row .poc-branch-icon {
+  color: #fc074f;
+  font-size: 16px;
+}
+
+.poc-branch-row .poc-branch-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.poc-branch-row .poc-add-sl {
+  border: none;
+  background: white;
+  color: #fc074f;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px #fc074f;
+  transition: background-color 100ms ease;
+}
+
+.poc-branch-row .poc-add-sl:hover {
+  background: #fc074f;
+  color: white;
+}
+
+.poc-branch-row .poc-branch-gear {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 100ms ease;
+}
+
+.poc-branch-row .poc-branch-gear:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.poc-branch-row .poc-branch-gear .dps-icon {
+  font-size: 16px;
+}
+
+.poc-sl-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 28px;
+  color: #475569;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+// Orphan SL row — amber accent + "!" pill makes it obvious the row needs fixing.
+.poc-sl-row.poc-sl-orphan {
+  background: rgba(180, 83, 9, 0.06);
+  color: #92400e;
+}
+
+.poc-orphan-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #b45309;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.poc-sl-gear {
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  margin-left: auto;
+  padding: 4px;
+  border-radius: 4px;
+  transition: opacity 100ms ease;
+}
+
+.b-grid-row:hover .poc-sl-gear,
+.b-grid-row.b-hover .poc-sl-gear {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.poc-sl-gear:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+// Mockup-09 dialog host: zero out PrimeNG's content padding so the
+// `<header>/<section>/<footer>` blocks inside render flush with the
+// rounded outer chrome. Cap the outer PrimeNG dialog at viewport height
+// so the inner .m09-body can own the scroll (edit-mode dialog used to
+// clip beyond viewport — bug reported 2026-05-12).
+.p-dialog.m09-host {
+  max-height: calc(100vh - 32px);
+}
+.p-dialog.m09-host .p-dialog-content {
+  padding: 0 !important;
+  // hidden (was visible) so the m09-body's overflow:auto actually has
+  // a containing block to clip against. Without this the body's
+  // overflow rule is moot because PrimeNG's parent lets content bleed.
+  overflow: hidden;
+  // Inherit the dialog's height cap so flex:1 in the body actually has
+  // something to fill.
+  display: flex;
+  flex-direction: column;
+}
+.p-dialog.m09-host .p-dialog-mask {
+  // Keep p-select dropdowns above the dialog when appendTo="body".
+  z-index: auto;
+}
+
+// ── Shared m09-chrome rules ─────────────────────────────────────────────
+// These were originally scoped inside dialog-shift-batch.component.scss,
+// which meant any *other* dialog that wants the same look (e.g. the
+// confirm-actual dialog) had to duplicate the rules. Hoisting them to
+// global makes the m09 chrome a real design-token: drop the wrapper
+// classes (.m09-dialog / .m09-header / .m09-x / .m09-body / .m09-footer
+// / .m09-btn-*) inside `styleClass: 'm09-host'` and the popup matches.
+//
+// Note: the original component-scoped rules are still in place. They
+// "win" inside that component (specificity tie + later cascade), so this
+// section only adds coverage for other dialogs that need the chrome.
+
+.p-dialog.m09-host .m09-dialog {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #334155;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+}
+
+.p-dialog.m09-host .m09-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  h2 .pos {
+    color: #fc074f;
+    font-weight: 600;
+  }
+}
+
+.p-dialog.m09-host .m09-x {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #64748b;
+  border: none;
+  background: transparent;
+}
+.p-dialog.m09-host .m09-x:hover {
+  background: #f8fafc;
+}
+.p-dialog.m09-host .m09-x .dps-icon {
+  font-size: 20px;
+}
+
+.p-dialog.m09-host .m09-body {
+  padding: 16px 20px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.p-dialog.m09-host .m09-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #f8fafc;
+}
+
+.p-dialog.m09-host .m09-btn-cancel {
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #334155;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+
+.p-dialog.m09-host .m09-btn-confirm {
+  padding: 9px 18px;
+  background: #fc074f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+.p-dialog.m09-host .m09-btn-confirm:hover {
+  background: #d70643;
+}
+.p-dialog.m09-host .m09-btn-confirm[disabled],
+.p-dialog.m09-host .m09-btn-confirm.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.p-dialog.m09-host .m09-error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+// ── ContractDialog (Names cell-click) — m09-style chrome ────────────────
+// The prod ContractDialog's structure is close enough to mockup 09 that
+// we don't rewrite the 861-line HTML — we just align the chrome so it
+// reads as the same dialog: rounded outer card, magenta accent in the
+// header, neutral section spacing, magenta confirm button.
+//
+// Pilot feedback 2026-05-12: "Contract popup looks weird, all margins
+// gone." Previously we zeroed .p-dialog-content padding globally, which
+// stripped breathing room from every section inside the dialog. The new
+// approach: let PrimeNG keep its content padding, and target the
+// header/footer (which should sit flush with the chrome edges) with
+// negative margins so they re-extend to the dialog edges while body
+// sections keep their normal padding.
+
+.p-dialog:has(dps-contract-dialog) {
+  // Cap so the dialog itself doesn't overflow the viewport — the inner
+  // scrollable region is dps-contract-dialog > section.flex-1.
+  max-height: calc(100vh - 32px);
+}
+
+.p-dialog:has(dps-contract-dialog) .p-dialog-content {
+  // Keep PrimeNG's default padding (gives body sections breathing room)
+  // but cap height + scroll if the form gets long.
+  padding: 16px 20px !important;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+dps-contract-dialog {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  font-size: 13px;
+  color: #334155;
+  letter-spacing: 0.3px;
+  gap: 16px;
+}
+
+// Header: re-extend to the dialog edges (counter the parent padding)
+// then add its own padding back + a hairline divider.
+dps-contract-dialog > header {
+  margin: -16px -20px 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+dps-contract-dialog > header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+dps-contract-dialog > header h3 .text-primary {
+  color: #fc074f !important;
+  font-weight: 600;
+}
+
+// Footer: same edge-extension trick.
+dps-contract-dialog > footer {
+  margin: 0 -20px -16px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+// Body section consistency — soft surface for grouped fieldsets.
+dps-contract-dialog section.surface-100 {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+// Body padding + bordered date input chrome
+dps-contract-dialog p-datepicker .p-datepicker-input,
+dps-contract-dialog p-datepicker input[type='text'] {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  padding: 9px 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+}
+
+// Confirm button — magenta solid, matches m09 footer
+dps-contract-dialog .p-button.p-button-primary,
+dps-contract-dialog .p-button:not(.p-button-secondary):not(.p-button-text):not(.p-button-outlined) {
+  background: #fc074f !important;
+  border-color: #fc074f !important;
+  color: white !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+}
+
+dps-contract-dialog .p-button.p-button-primary:hover {
+  background: #d70643 !important;
+}
+
+// ── Persoon-kiezen rich dropdown (mockup 06) ─────────────────────────────
+// Wider panel (so all 5 grid columns fit) and bigger rows.
+.persoon-kiezen-panel.p-select-overlay {
+  min-width: 640px !important;
+  max-width: 720px;
+}
+
+.persoon-kiezen-panel .p-select-list-container {
+  padding: 0;
+}
+
+.persoon-kiezen-panel .p-select-option {
+  padding: 0 !important;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.persoon-kiezen-panel .p-select-option:last-child {
+  border-bottom: none;
+}
+
+.persoon-row {
+  display: grid;
+  // 3 columns: name+meta | statute pill | availability badge.
+  // (Vestiging chips removed 2026-05-12 — too noisy per pilot feedback.)
+  grid-template-columns: 1fr 110px 130px;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 16px;
+  font-size: 12px;
+  width: 100%;
+}
+
+// Empty stand-in so the original grid column count + visual rhythm still
+// works even if we re-introduce vestiging chips later. Zero width when
+// nothing is rendered.
+.persoon-row .persoon-groups-spacer {
+  display: none;
+}
+
+.persoon-row .persoon-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.persoon-row .persoon-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.persoon-row .persoon-meta span + span::before {
+  content: ' · ';
+  margin-right: 4px;
+}
+
+.persoon-row .stat-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  justify-self: start;
+}
+
+.persoon-row .stat-tag.flexi { background: #ddd6fe; color: #5b21b6; }
+.persoon-row .stat-tag.student { background: #fed7aa; color: #9a3412; }
+.persoon-row .stat-tag.bediende { background: #bfdbfe; color: #1e40af; }
+.persoon-row .stat-tag.arbeider { background: #bbf7d0; color: #166534; }
+
+.persoon-row .persoon-groups {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.persoon-row .group-tag {
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.persoon-row .availability-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  justify-self: end;
+}
+
+.persoon-row .availability-badge.match { background: #d1fae5; color: #065f46; }
+.persoon-row .availability-badge.match::before { content: '✓'; }
+.persoon-row .availability-badge.partial { background: #fef3c7; color: #92400e; }
+.persoon-row .availability-badge.partial::before { content: '~'; }
+.persoon-row .availability-badge.none { background: #f1f5f9; color: #64748b; }
+.persoon-row .availability-badge.none::before { content: '—'; }
+.persoon-row .availability-badge.conflict { background: #fee2e2; color: #991b1b; }
+.persoon-row .availability-badge.conflict::before { content: '✕'; }
+
+// ── Service location dialog header (mockup 14) ─────────────────────────
+// Title + magenta SL-name accent + parent-vestiging subtitle. The header
+// reads tight to the body so the dialog stays compact.
+.sl-dialog .sl-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sl-dialog .sl-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #0f172a;
+}
+
+.sl-dialog .sl-header h2 .pos {
+  color: #fc074f;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.sl-dialog .sl-header .sl-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+// ── Danger-zone (dialog footer destructive action) ─────────────────────
+// Used by the vestiging-edit dialog. Soft red wash + outlined red button
+// so it reads as "I'm dangerous" without screaming. Mirrors the visual
+// language prod uses on its delete-group confirm flow.
+.dialog-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.dialog-danger-zone .danger-zone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 7px 14px;
+  cursor: pointer;
+  // Prevent the long helper text on the left from squeezing the button
+  // (Verwijderen → Verwijdere); keep the button at its natural width.
+  flex: 0 0 auto;
+  white-space: nowrap;
+  transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+.dialog-danger-zone .danger-zone-btn:hover:not([disabled]) {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+.dialog-danger-zone .danger-zone-btn .dps-icon {
+  font-size: 14px;
+}
+
+// Custom-styled p-selectButton segment toggles (Namen / Locaties + Dag/Week/2w)
+// p-selectbutton renders the wrapper element itself with classes
+// "planning-segment p-selectbutton" (same node), so we use && to AND them.
+.planning-segment.p-selectbutton {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+  border: none;
+}
+
+.planning-segment.p-selectbutton .p-togglebutton {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  border-radius: 5px !important;
+  padding: 7px 14px;
+  box-shadow: none;
+  min-width: unset;
+}
+
+.planning-segment.p-selectbutton .p-togglebutton.p-togglebutton-checked {
+  background: white !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+// Applications badge (N positive reactions) for open shifts. Mockup 11
+// uses a solid magenta circle in the top-right corner; pilot feedback
+// said the previous amber pill was illegible at small sizes, so we go
+// bigger (22×22), give it a white ring so it pops over any block colour,
+// and use bold 12px so a 2-digit count fits cleanly.
+//
+// Positioning: top:-8/right:-8 instead of -10 so the badge stays mostly
+// within the event chrome — earlier the badge poked too far up and the
+// row-canvas clipped its lower half (only the curve of the top of the
+// circle was visible).
+.b-sch-event .poc-open-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #fc074f;
+  color: white;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(252, 7, 79, 0.35);
+  z-index: 6;
+}
+
+// The event-wrap clips children by default — opt the wrap into
+// overflow:visible so the badge isn't trimmed at the event edges.
+.b-sch-event-wrap {
+  overflow: visible !important;
+}
+
+// Default event chrome — overridden per kind below
+.b-sch-event-wrap .b-sch-event {
+  border-radius: 8px !important;
+  font-size: 13px;
+  font-weight: 500;
+  border: 2px solid;
+  letter-spacing: 0.3px;
+  overflow: visible !important;
+}
+
+// Bryntum's material theme paints events via three CSS variables (with no
+// !important). The cleanest override path is to redefine those variables
+// per kind — `background: var(--event-background-color)` etc. will then
+// resolve to our values without us having to fight Bryntum's selectors.
+
+// Bryntum's material theme paints events via three CSS variables. The
+// .b-sch-canvas rules later in this file redefine those vars in terms of
+// `currentColor`, so we use `!important` to lock in our per-kind palette.
+
+// Bryntum applies the data-record's `cls` to the `.b-sch-event` element
+// itself (NOT to `.b-sch-event-wrap`), so we target it directly. We keep a
+// .b-sch-event-wrap form too for safety in case Bryntum ever changes the
+// inheritance.
+
+// Assigned contract — indigo
 .b-sch-event.poc-event-contract,
-.b-sch-event-wrap.poc-event-contract .b-sch-event {
-  background: rgba(30, 24, 100, 0.12) !important;
-  color: #1e1864 !important;
-  border-left: 3px solid #1e1864 !important;
-  font-weight: 500 !important;
-  padding-inline-start: 6px !important;
+.b-sch-event-wrap .b-sch-event.poc-event-contract {
+  --event-color: #312e81 !important;
+  --event-background-color: rgba(60, 81, 240, 0.10) !important;
+  --event-border-color: #3c51f0 !important;
+  border-style: solid !important;
 }
 
+// Open shift — amber dashed
 .b-sch-event.poc-event-shift,
-.b-sch-event-wrap.poc-event-shift .b-sch-event {
-  background: #fef3c7 !important;
-  color: #92400e !important;
-  border-left: 3px solid #f59e0b !important;
-  font-weight: 500 !important;
-  padding-inline-start: 6px !important;
+.b-sch-event-wrap .b-sch-event.poc-event-shift {
+  --event-color: #92400e !important;
+  --event-background-color: #fef3c7 !important;
+  --event-border-color: #b45309 !important;
+  border-style: dashed !important;
 }
 
+// Draft shift — striped amber
 .b-sch-event.poc-event-shift-draft,
-.b-sch-event-wrap.poc-event-shift-draft .b-sch-event {
-  background: repeating-linear-gradient(
+.b-sch-event-wrap .b-sch-event.poc-event-shift-draft {
+  --event-color: #78350f !important;
+  --event-background-color: transparent !important;
+  --event-border-color: #b45309 !important;
+  background-image: repeating-linear-gradient(
     -45deg,
     rgba(245, 158, 11, 0.30),
     rgba(245, 158, 11, 0.30) 6px,
     rgba(254, 243, 199, 0.55) 6px,
     rgba(254, 243, 199, 0.55) 12px
   ) !important;
-  color: #78350f !important;
-  border-left: 3px dashed #f59e0b !important;
+  border-style: dashed !important;
 }
 
+// Permanent (Vast) — teal
 .b-sch-event.poc-event-permanent,
-.b-sch-event-wrap.poc-event-permanent .b-sch-event {
-  background: #f0fdfa !important;
-  color: #115e59 !important;
-  border-left: 3px solid #115e59 !important;
-  font-weight: 500 !important;
-  padding-inline-start: 6px !important;
+.b-sch-event-wrap .b-sch-event.poc-event-permanent {
+  --event-color: #115e59 !important;
+  --event-background-color: #f0fdfa !important;
+  --event-border-color: #115e59 !important;
+  border-style: solid !important;
 }
 
-.b-sch-event-wrap.poc-event-shift-ghost .b-sch-event,
-.b-sch-event.poc-event-shift-ghost {
+// Ghost (broadcast-all open shift fanned out onto every employee row)
+.b-sch-event.poc-event-shift-ghost,
+.b-sch-event-wrap .b-sch-event.poc-event-shift-ghost {
+  --event-color: #92400e !important;
+  --event-border-color: rgba(245, 158, 11, 0.7) !important;
+  --event-background-color: transparent !important;
   opacity: 0.45 !important;
-  border: 1px dashed rgba(245, 158, 11, 0.7) !important;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(245, 158, 11, 0.20),
+    rgba(245, 158, 11, 0.20) 6px,
+    rgba(254, 243, 199, 0.45) 6px,
+    rgba(254, 243, 199, 0.45) 12px
+  ) !important;
+  border-style: dashed !important;
 }
 
 html,

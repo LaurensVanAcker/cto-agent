@@ -12,7 +12,7 @@ import {
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngxs/store';
 import { DateTime } from 'luxon';
-import { filter, forkJoin, take } from 'rxjs';
+import { catchError, filter, forkJoin, of, take, type Observable } from 'rxjs';
 
 // Bryntum
 import type { EventModel, ResourceModel, Scheduler, SchedulerConfig } from '@bryntum/scheduler';
@@ -30,7 +30,7 @@ import { RootState } from '@dps/core/store';
 import { EmployeeApiService, ContractApiService } from '@dps/core/api';
 import { ContractListModel, EmployeeModel } from '@dps/shared/models';
 import { mapContractToSchedulerEvent } from '@dps/shared/functions';
-import { GENERAL_SCHEDULER_CONFIG } from '@dps/shared/configs';
+import { GENERAL_SCHEDULER_CONFIG, TODAY_TIME_RANGE_ID } from '@dps/shared/configs';
 import { ContractDialogComponent } from '@dps/shared/components/contract-dialog/contract-dialog.component';
 import type { ContractDialogDataModel } from '@dps/shared/components/contract-dialog/contract-dialog-data.model';
 import {
@@ -42,10 +42,6 @@ import {
   ShiftModel,
 } from '@dps/core/api/shift/shift.api.service';
 import {
-  PermanentAssignmentApiService,
-  PermanentAssignmentModel,
-} from '@dps/core/api/permanent-assignment/permanent-assignment.api.service';
-import {
   PermanentEmployeeApiService,
   PermanentEmployeeModel,
 } from '@dps/core/api/permanent-employee/permanent-employee.api.service';
@@ -53,9 +49,17 @@ import {
   EngagementGroupApiService,
   EngagementGroupModel,
 } from '@dps/core/api/engagement-group/engagement-group.api.service';
-import { DialogContractCreateComponent } from '@dps/shared/components/dialog-contract-create/dialog-contract-create.component';
 import { DialogShiftBatchComponent } from '@dps/shared/components/dialog-shift-batch/dialog-shift-batch.component';
 import { DialogShiftDetailComponent } from '@dps/shared/components/dialog-shift-detail/dialog-shift-detail.component';
+import { DialogShiftShareComponent } from '@dps/shared/components/dialog-shift-share/dialog-shift-share.component';
+import { DialogAddServiceLocationComponent } from '@dps/shared/components/dialog-add-service-location/dialog-add-service-location.component';
+import { DialogEditVestigingComponent } from '@dps/shared/components/dialog-edit-vestiging/dialog-edit-vestiging.component';
+import { DialogVastBlockComponent } from '@dps/shared/components/dialog-vast-block/dialog-vast-block.component';
+import { DialogAttachVestigingComponent } from '@dps/shared/components/dialog-attach-vestiging/dialog-attach-vestiging.component';
+import {
+  PermanentBlockApiService,
+  PermanentBlockModel,
+} from '@dps/core/api/permanent-block/permanent-block.api.service';
 
 type PocPlanningView = 'names' | 'locations';
 type PocPlanningZoom = 'day' | 'week' | '2weeks';
@@ -71,20 +75,24 @@ const ZOOM_OPTIONS: { label: string; value: PocPlanningZoom }[] = [
   { label: '2 weken', value: '2weeks' },
 ];
 
-const WEEKDAY_INDEX: Record<string, number> = {
-  MON: 1,
-  TUE: 2,
-  WED: 3,
-  THU: 4,
-  FRI: 5,
-  SAT: 6,
-  SUN: 7,
-};
-
 interface PocResource {
   id: string;
   name: string;
+  /** Names view: marks PoC-DB "vaste medewerker" rows (perm:* ids). */
   isPermanent?: boolean;
+  /** Locaties view: marks the synthetic vestiging-header row (no events,
+   *  has a "+ Service location" button). */
+  isBranch?: boolean;
+  /** Locaties view: id of the parent vestiging for a service-location row.
+   *  Used by the row renderer to indent and by the empty-cell click to
+   *  pass the right context to the new-shift dialog. */
+  branchId?: string;
+  /** Locaties view: SL row that has no vestiging — the renderer shows a
+   *  "Koppel" pencil that opens the attach-vestiging dialog. */
+  isOrphan?: boolean;
+  /** Synthetic header row for the orphan bucket — same chrome as a
+   *  vestiging header but without the "+" button. */
+  isOrphanHeader?: boolean;
 }
 
 interface PocEvent {
@@ -131,7 +139,10 @@ interface PocEvent {
   templateUrl: './planning-poc.component.html',
   styleUrl: './planning-poc.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex flex-auto flex-column overflow-hidden p-3 gap-3' },
+  host: {
+    class: 'flex flex-auto flex-column overflow-hidden p-3 gap-3',
+    '(click)': 'hostClickHandler($event)',
+  },
 })
 export class PlanningPocComponent implements AfterViewInit {
   @ViewChild('scheduler') readonly schedulerComponent?: BryntumSchedulerComponent;
@@ -139,8 +150,8 @@ export class PlanningPocComponent implements AfterViewInit {
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly contractsApi = inject(ContractApiService);
   private readonly shiftsApi = inject(ShiftApiService);
-  private readonly permanentAssignmentsApi = inject(PermanentAssignmentApiService);
   private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
+  private readonly permanentBlocksApi = inject(PermanentBlockApiService);
   private readonly serviceGroupsApi = inject(ServiceGroupApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly dialogService = inject(DialogService);
@@ -148,8 +159,18 @@ export class PlanningPocComponent implements AfterViewInit {
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  protected readonly view = signal<PocPlanningView>('names');
-  protected readonly zoom = signal<PocPlanningZoom>('week');
+  /** Per-user preference keys. We don't bother with server-side persistence
+   *  for the PoC — localStorage is enough to remember the last-used view
+   *  across refreshes / company switches. */
+  private static readonly LS_VIEW_KEY = 'poc.planning.view';
+  private static readonly LS_ZOOM_KEY = 'poc.planning.zoom';
+
+  protected readonly view = signal<PocPlanningView>(
+    (localStorage.getItem(PlanningPocComponent.LS_VIEW_KEY) as PocPlanningView | null) ?? 'names',
+  );
+  protected readonly zoom = signal<PocPlanningZoom>(
+    (localStorage.getItem(PlanningPocComponent.LS_ZOOM_KEY) as PocPlanningZoom | null) ?? 'week',
+  );
   protected readonly viewOptions = VIEW_OPTIONS;
   protected readonly zoomOptions = ZOOM_OPTIONS;
   /** Free-text employee filter, debounced + sent as nameLike to /api/employees. */
@@ -164,16 +185,205 @@ export class PlanningPocComponent implements AfterViewInit {
    * an EmployeeModel when the user clicks a contract event. */
   private readonly employeesById = new Map<string, EmployeeModel>();
 
+  /**
+   * Custom event-bar renderer — paints the v5 block layout:
+   *  - permanent (Vast) block: `<span class="poc-vast-tag">Vast</span> Name`
+   *  - open-shift block:        title + "+N" pill in the top-right if capacity > 1
+   *  - contract block:          position + time range
+   *
+   * Returns raw HTML. Bryntum's eventStyle is set to 'plain' so we have
+   * full control of the inner DOM (no default border/title overlay to
+   * fight with).
+   */
+  private readonly eventBarRenderer = ({
+    eventRecord,
+  }: {
+    eventRecord: { getData: (key: string) => unknown };
+  }): string => {
+    const kind = eventRecord.getData('kind') as PocEvent['kind'] | undefined;
+    const name = String(eventRecord.getData('name') ?? '');
+    const raw = eventRecord.getData('raw') as { capacity?: number } | undefined;
+    const start = eventRecord.getData('startDate') as Date | undefined;
+    const end = eventRecord.getData('endDate') as Date | undefined;
+    const fmt = (d: Date | undefined): string =>
+      d ? DateTime.fromJSDate(d).toFormat('HH:mm') : '';
+
+    if (kind === 'permanent') {
+      return `
+        <div class="poc-event-title">
+          <span class="poc-vast-tag">Vast</span>
+          <span>${name.replace(/^Vast\s*[-—]?\s*/, '')}</span>
+        </div>
+        <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+    }
+    if (kind === 'shift') {
+      // Badge = applicants who positively reacted (mockup 11 spec). Capacity
+      // already lives in the title ("2 open shifts") so we don't repeat it
+      // here. We only paint the magenta dot when there's actually
+      // applications — empty zero would just be visual noise.
+      const apps = (raw as { applications_count?: number } | undefined)
+        ?.applications_count ?? 0;
+      const badge =
+        apps > 0
+          ? `<span class="poc-open-badge" aria-label="${apps} reacties">${apps}</span>`
+          : '';
+      const title = name && name.length > 0 ? name : 'Open shift';
+      return `
+        ${badge}
+        <div class="poc-event-title">${title}</div>
+        <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+    }
+    // Default = contract.
+    return `
+      <div class="poc-event-title">${name}</div>
+      <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+  };
+
+  /**
+   * Custom resource-column renderer.
+   *
+   * Names view: "Jan Janssens" / "Jan Janssens (vast)".
+   *
+   * Locaties view:
+   *   - branch row → "Galana" + "+" button (opens "Nieuwe service location"
+   *     dialog scoped to that vestiging) — purely visual, no shifts attach.
+   *   - service-location row → indented "Toog".
+   *
+   * The "+" button click is wired via a data-action attribute; we delegate
+   * the actual handling in a host listener (see hostClickHandler) so we
+   * don't have to leak Angular context into the Bryntum DOM.
+   */
+  private readonly resourceColumnRenderer = ({
+    record,
+  }: {
+    record: { getData: (key: string) => unknown };
+  }): string => {
+    const name = String(record.getData('name') ?? '');
+    const isBranch = !!record.getData('isBranch');
+    const branchId = String(record.getData('id') ?? '').replace(/^branch:/, '');
+    if (this.view() === 'locations' && isBranch) {
+      // Branch (vestiging) row owns BOTH the "+" (new service-location)
+      // and the gear (edit vestiging address). Service-location rows are
+      // edited inline via the name-rename popover; their address lives on
+      // the parent vestiging.
+      const isReal = branchId && !branchId.startsWith('_');
+      const gear = isReal
+        ? `<button
+            type="button"
+            class="poc-branch-gear"
+            data-poc-action="edit-branch"
+            data-branch-id="${branchId}"
+            title="Vestiging-adres bewerken"
+          ><span class="dps-icon dps-icon-settings"></span></button>`
+        : '';
+      const add = isReal
+        ? `<button
+            type="button"
+            class="poc-add-sl"
+            data-poc-action="add-sl"
+            data-branch-id="${branchId}"
+            title="Service location toevoegen"
+          >+</button>`
+        : '';
+      return `
+        <div class="poc-branch-row">
+          <span class="poc-branch-name">
+            <span class="dps-icon dps-icon-apartment poc-branch-icon"></span>
+            <span>${name}</span>
+          </span>
+          <span class="poc-branch-actions">${gear}${add}</span>
+        </div>`;
+    }
+    if (this.view() === 'locations') {
+      const slId = String(record.getData('id') ?? '');
+      const isOrphan = !!record.getData('isOrphan');
+      if (isOrphan) {
+        // Orphan SL: surface a clear "koppel aan vestiging" pencil with a
+        // warning amber pill so the operator can tell why this row is
+        // misbehaving.
+        return `
+          <span class="poc-sl-row poc-sl-orphan">
+            <span class="poc-orphan-pill">!</span>
+            <span>${name}</span>
+            <button
+              type="button"
+              class="poc-sl-gear"
+              data-poc-action="attach-sl"
+              data-sl-id="${slId}"
+              title="Koppel aan vestiging"
+            ><span class="dps-icon dps-icon-edit"></span></button>
+          </span>`;
+      }
+      // Service-location row: name + rename pencil (no address — that
+      // lives on the parent vestiging row).
+      return `
+        <span class="poc-sl-row">
+          <span>${name}</span>
+          <button
+            type="button"
+            class="poc-sl-gear"
+            data-poc-action="rename-sl"
+            data-sl-id="${slId}"
+            title="Naam wijzigen"
+          ><span class="dps-icon dps-icon-edit"></span></button>
+        </span>`;
+    }
+    // Names view: permanent (PoC-DB) rows get a teal "Vast" pill prefix,
+    // matching the v5 mockup's row treatment. The name itself is stripped
+    // of the legacy "(vast)" suffix we used while there was no styled pill.
+    const isPerm = !!record.getData('isPermanent');
+    if (isPerm) {
+      const clean = name.replace(/\s*\(vast\)\s*$/i, '');
+      return `
+        <span class="poc-name-row">
+          <span class="poc-perm-tag">Vast</span>
+          <span>${clean}</span>
+        </span>`;
+    }
+    return `<span class="poc-name-row"><span>${name}</span></span>`;
+  };
+
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
     const z = this.zoom();
+    const commonColumns = [
+      {
+        text: '',
+        field: 'name',
+        width: 280,
+        enableHeaderContextMenu: false,
+        enableCellContextMenu: false,
+        cellCls: 'poc-resource-cell',
+        htmlEncode: false,
+        renderer: this.resourceColumnRenderer,
+      },
+    ];
+
     if (z === 'day') {
-      // Vertical Bryntum, one day at a time, 30-minute ticks on the Y-axis
-      // with service-locations as X-axis columns. Mirrors mockup 13.
+      // Mockup 13: horizontal grid, single day on the X-axis, one row per
+      // resource. Full 24h strip — night shifts (horeca tot 03u) zijn
+      // zichtbaar. Scroll-buttons (set on the host) laten de operator
+      // makkelijk vooruit/achteruit door de uren navigeren.
+      //
+      // We drop the today timeRange because the whole grid IS today —
+      // showing the magenta stripe across the entire body just looked
+      // like a CSS bug. We add a thin "now-line" instead — a 1-minute
+      // wide timeRange that paints a magenta vertical line at the current
+      // hour (mockup 13's `.now-line`).
+      const base = { ...GENERAL_SCHEDULER_CONFIG } as Partial<SchedulerConfig>;
+      const baseTimeRanges = (base.timeRanges ?? []) as Array<{ id?: string | number }>;
+      const nowLineRange = {
+        id: 'now-line',
+        startDate: DateTime.now().toJSDate(),
+        duration: 1,
+        durationUnit: 'minute',
+        cls: 'poc-now-line',
+      };
       return {
-        ...GENERAL_SCHEDULER_CONFIG,
+        ...base,
+        columns: commonColumns,
         viewPreset: {
           base: 'hourAndDay',
-          tickWidth: 60,
+          tickWidth: 80,
           headers: [
             {
               unit: 'day',
@@ -183,36 +393,65 @@ export class PlanningPocComponent implements AfterViewInit {
             { unit: 'hour', dateFormat: 'HH:mm' },
           ],
         },
-        mode: 'vertical',
-        eventStyle: 'border',
-        rowHeight: 60,
+        eventStyle: 'plain',
+        eventRenderer: this.eventBarRenderer,
+        rowHeight: 65,
+        // Locaties view emits multiple blocks per shift (assigned per
+        // employee + the remaining open block); they all land on the same
+        // service_group row so Bryntum needs allowOverlap=true to stack
+        // them into lanes instead of refusing to render.
+        allowOverlap: true,
+        timeRanges: [
+          ...baseTimeRanges.filter(r => r.id !== TODAY_TIME_RANGE_ID),
+          nowLineRange,
+        ],
       } as unknown as Partial<SchedulerConfig>;
     }
     return {
       ...GENERAL_SCHEDULER_CONFIG,
-      // 'border' = colored left-border + light background, matches the
-      // mockup 10 / 11 block treatment.
-      eventStyle: 'border',
+      columns: commonColumns,
+      // 'plain' = no default Bryntum chrome on the event bar; the renderer
+      // owns the full HTML. Combined with the per-kind classes in cls (set
+      // by buildEvents) the SCSS paints the v5 mockup look exactly.
+      eventStyle: 'plain',
+      eventRenderer: this.eventBarRenderer,
       rowHeight: 65,
-    } as Partial<SchedulerConfig>;
+      // Same lane-stacking reason as the day-zoom config above.
+      allowOverlap: true,
+    } as unknown as Partial<SchedulerConfig>;
   });
 
   protected readonly weekLabel = computed(() => {
-    const start = DateTime.fromISO(this.weekStart()).setLocale('nl-BE');
+    const week = DateTime.fromISO(this.weekStart()).setLocale('nl-BE');
     const z = this.zoom();
-    if (z === 'day') return start.toFormat('cccc d LLL yyyy');
-    const end = z === '2weeks' ? start.plus({ days: 13 }) : start.plus({ days: 6 });
-    return `${start.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')} (week ${start.weekNumber})`;
+    if (z === 'day') {
+      // Show the displayed day (today if it's in this week, otherwise the
+      // anchor Monday). Avoids the previous "label says Monday, grid shows
+      // Tuesday" mismatch.
+      const today = DateTime.now().setLocale('nl-BE').startOf('day');
+      const day = today >= week && today < week.plus({ days: 7 }) ? today : week;
+      return day.toFormat('cccc d LLL yyyy');
+    }
+    const end = z === '2weeks' ? week.plus({ days: 13 }) : week.plus({ days: 6 });
+    return `${week.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')} (week ${week.weekNumber})`;
   });
 
-  /** Day zoom: single day (snap to today if it falls in the visible week).
-   *  Week / 2 weken: 7 / 14 days from the anchor Monday. */
+  /**
+   * Day zoom: anchor on today if it falls in the visible week, otherwise
+   * on the week's Monday. The hour window spans the full 24h so night
+   * shifts (e.g. horeca tot 03u) zijn zichtbaar — mockup 13 toont een
+   * 24-uur strip met scroll-buttons. Bryntum's scrollButtonsFeature
+   * (config'd by `zoom() === 'day'`) lets the operator scroll horizontaal.
+   *
+   * Week / 2 weken: full day boundary (00:00–24:00) for 7 / 14 days from
+   * the anchor Monday.
+   */
   protected readonly startDate = computed(() => {
     const week = DateTime.fromISO(this.weekStart());
     if (this.zoom() === 'day') {
       const today = DateTime.now().startOf('day');
-      if (today >= week && today < week.plus({ days: 7 })) return today.toJSDate();
-      return week.toJSDate();
+      const anchor = today >= week && today < week.plus({ days: 7 }) ? today : week;
+      return anchor.toJSDate();
     }
     return week.toJSDate();
   });
@@ -220,7 +459,8 @@ export class PlanningPocComponent implements AfterViewInit {
     const week = DateTime.fromISO(this.weekStart());
     const z = this.zoom();
     if (z === 'day') {
-      return DateTime.fromJSDate(this.startDate()).plus({ days: 1 }).toJSDate();
+      const anchor = DateTime.fromJSDate(this.startDate()).startOf('day');
+      return anchor.plus({ days: 1 }).toJSDate();
     }
     if (z === '2weeks') return week.plus({ days: 14 }).toJSDate();
     return week.plus({ days: 7 }).toJSDate();
@@ -231,9 +471,331 @@ export class PlanningPocComponent implements AfterViewInit {
       .select(RootState.getCompanyData)
       .pipe(filter(Boolean), take(1))
       .subscribe(company => this.refresh(company.id));
+
+    // Wire the production planning page's interaction pattern: any new or
+    // edited Bryntum event routes through `beforeEventEdit`, which decides
+    // which dialog to open (Names → ContractDialog, Locaties → shift batch,
+    // Vast row → Vast block dialog). This is the same listener prod uses,
+    // so drag-to-create, drag-to-resize, and cell-click all share one
+    // funnel.
+    setTimeout(() => {
+      const scheduler = this.schedulerComponent?.instance as Scheduler | undefined;
+      if (!scheduler) return;
+      (scheduler as unknown as { on: (name: string, fn: (ev: unknown) => void) => void }).on(
+        'beforeEventEdit',
+        (ev: unknown) => this.handleBeforeEventEdit(ev as {
+          resourceRecord: ResourceModel;
+          eventRecord: EventModel;
+        }),
+      );
+    });
+  }
+
+  /**
+   * Funnel for everything Bryntum tries to "edit": fresh placeholders
+   * (drag-create, cell click) AND clicks on existing events.
+   *
+   * Dispatch order:
+   *  1. Branch (vestiging-header) row → no-op, drop placeholder.
+   *  2. Existing event with a known `kind` → open the appropriate detail
+   *     dialog (contracts → ContractDialog, shifts → ShiftDetail, vast →
+   *     toast for now).
+   *  3. Otherwise (placeholder from a fresh cell-click / drag-create):
+   *     pick the dialog by view (Names → ContractDialog, Locaties →
+   *     shift batch).
+   */
+  private handleBeforeEventEdit(
+    ev: { resourceRecord: ResourceModel; eventRecord: EventModel },
+  ): false {
+    const resource = ev.resourceRecord;
+    const event = ev.eventRecord;
+    if (!resource || !event) return false;
+    const resourceId = String(resource.getData('id') ?? '');
+    const isBranch = !!resource.getData('isBranch');
+    if (isBranch) {
+      (event as { remove: () => void }).remove?.();
+      return false;
+    }
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return false;
+
+    const kind = event.getData('kind') as PocEvent['kind'] | undefined;
+    const hasGenId = !!(event as { hasGeneratedId?: boolean }).hasGeneratedId;
+
+    // Existing event with our data shape → branch on kind so each event
+    // type opens its own detail dialog.
+    if (!hasGenId && kind) {
+      if (kind === 'contract') {
+        this.openContractDialogForEvent(resourceId, event);
+        return false;
+      }
+      if (kind === 'shift') {
+        this.openShiftDetailDialog(event);
+        return false;
+      }
+      if (kind === 'permanent') {
+        this.openVastBlockDialog(resourceId, event);
+        return false;
+      }
+    }
+
+    // Fresh placeholder (cell-click / drag-create). Pick the right dialog
+    // by view + resource kind.
+    if (this.view() === 'names') {
+      if (resourceId.startsWith('perm:')) {
+        this.openVastBlockDialog(resourceId, event);
+        return false;
+      }
+      this.openContractDialogForEvent(resourceId, event);
+      return false;
+    }
+    const startDate = (event as unknown as { startDate: Date }).startDate;
+    this.openShiftDialogForCell(resourceId, startDate, event);
+    return false;
+  }
+
+  /**
+   * Existing-shift click → reuse the same mockup-09 dialog as create, but
+   * in edit mode. The user gets the same chrome they're already familiar
+   * with (datum / werkuren / slots / deadline) populated with the shift's
+   * current state. Confirm calls PATCH /share via the existingShift branch
+   * inside the dialog.
+   */
+  private openShiftDetailDialog(eventRecord: EventModel): void {
+    const shift = eventRecord.getData('raw') as ShiftModel | undefined;
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!shift || !company) return;
+    const ref = this.dialogService.open(DialogShiftBatchComponent, {
+      showHeader: false,
+      width: '38rem',
+      styleClass: 'm09-host',
+      modal: true,
+      focusOnShow: false,
+      data: { companyId: company.id, existingShift: shift },
+    });
+    ref.onClose.subscribe(result => {
+      if (result?.kind === 'shift.batch.published') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Shift bijgewerkt',
+        });
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /** Open ContractDialog with the same DynamicDialogConfig shape as prod. */
+  private openContractDialogForEvent(employeeId: string, eventRecord: EventModel): void {
+    const employee = this.employeesById.get(employeeId);
+    if (!employee) return;
+    const ref = this.dialogService.open(ContractDialogComponent, {
+      modal: true,
+      showHeader: false,
+      focusOnShow: false,
+      data: {
+        contractEventRecord: eventRecord,
+        employee,
+      } satisfies ContractDialogDataModel,
+    });
+    ref.onClose.subscribe(result => {
+      // Cancel → remove the placeholder so the grid stays clean.
+      if (!result && (eventRecord as { hasGeneratedId?: boolean }).hasGeneratedId) {
+        (eventRecord as { remove: () => void }).remove();
+      }
+      if (result?.usedMode === 'create' || result?.usedMode === 'update') {
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /**
+   * Vast-blok dialog — date range + hours, no Dimona. Vaste medewerkers
+   * live entirely in PoC-DB so the dialog stays compact. The placeholder
+   * event from Bryntum drives the initial date/time values.
+   */
+  private openVastBlockDialog(resourceId: string, eventRecord: EventModel): void {
+    const permId = resourceId.replace(/^perm:/, '');
+    const employee = this.lastData?.permanentEmployees?.find(p => p.id === permId);
+    const employeeName = employee
+      ? `${employee.first_name} ${employee.last_name}`
+      : 'Vaste medewerker';
+    const start = (eventRecord as unknown as { startDate?: Date }).startDate ?? null;
+    const end = (eventRecord as unknown as { endDate?: Date }).endDate ?? null;
+    const startD = start ? DateTime.fromJSDate(start as Date) : DateTime.now();
+    const endD = end ? DateTime.fromJSDate(end as Date) : startD;
+    const isDragged = endD > startD.plus({ minutes: 1 });
+    const ref = this.dialogService.open(DialogVastBlockComponent, {
+      showHeader: false,
+      width: '32rem',
+      styleClass: 'm09-host',
+      modal: true,
+      focusOnShow: false,
+      data: {
+        permanentEmployeeId: permId,
+        employeeName,
+        dateFrom: startD.toISODate() ?? '',
+        dateTo: endD.toISODate() ?? startD.toISODate() ?? '',
+        fromTime: isDragged && this.zoom() === 'day' ? startD.toFormat('HH:mm') : '09:00',
+        toTime: isDragged && this.zoom() === 'day' ? endD.toFormat('HH:mm') : '17:00',
+      },
+    });
+    ref.onClose.subscribe(result => {
+      // Always drop the Bryntum placeholder — the persisted block is its
+      // own record once the dialog confirms.
+      if ((eventRecord as { hasGeneratedId?: boolean }).hasGeneratedId) {
+        (eventRecord as { remove: () => void }).remove();
+      }
+      if (result?.kind === 'vast.block.saved') {
+        const b = result.block;
+        const company = this.store.selectSnapshot(RootState.getCompanyData);
+        if (!company) return;
+        this.permanentBlocksApi
+          .create({
+            companyId: company.id,
+            permanentEmployeeId: b.permanentEmployeeId,
+            dateFrom: b.dateFrom,
+            dateTo: b.dateTo,
+            fromTime: b.fromTime,
+            toTime: b.toTime,
+          })
+          .subscribe({
+            next: () => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Vast blok opgeslagen',
+                detail: `${b.dateFrom} ${b.fromTime}–${b.toTime}`,
+              });
+              this.maybeRefresh();
+            },
+            error: err => {
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Opslaan vast blok mislukt',
+                detail:
+                  (err?.error?.message as string | undefined) ?? 'Probeer het opnieuw.',
+              });
+            },
+          });
+      }
+    });
+  }
+
+  /** Shift batch dialog opener used by Locaties view. */
+  private openShiftDialogForCell(
+    serviceGroupId: string,
+    date: Date | undefined,
+    placeholder: EventModel | null,
+  ): void {
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return;
+
+    // Day-view drag-create: Bryntum sets the placeholder's startDate /
+    // endDate to the drag range. Extract HH:mm so the dialog opens with
+    // the times the operator just dragged. Week view dragging stays
+    // disabled (we only have hour granularity in Day view).
+    let prefillFromTime: string | undefined;
+    let prefillToTime: string | undefined;
+    const startD = placeholder
+      ? ((placeholder as unknown as { startDate?: Date }).startDate ?? null)
+      : null;
+    const endD = placeholder
+      ? ((placeholder as unknown as { endDate?: Date }).endDate ?? null)
+      : null;
+    if (startD && endD && this.zoom() === 'day') {
+      const start = DateTime.fromJSDate(startD as Date);
+      const end = DateTime.fromJSDate(endD as Date);
+      // Only treat as a drag (vs single-cell click) when the range
+      // actually spans more than a tick.
+      if (end > start.plus({ minutes: 1 })) {
+        prefillFromTime = start.toFormat('HH:mm');
+        prefillToTime = end.toFormat('HH:mm');
+      }
+    }
+
+    const ref = this.dialogService.open(DialogShiftBatchComponent, {
+      // The dialog renders its own mockup-09 header + footer; suppress
+      // PrimeNG's default chrome so the layout matches the mockup.
+      showHeader: false,
+      width: '38rem',
+      styleClass: 'm09-host',
+      modal: true,
+      focusOnShow: false,
+      data: {
+        companyId: company.id,
+        date: date ? DateTime.fromJSDate(date).toISODate() : undefined,
+        serviceGroupId,
+        prefillFromTime,
+        prefillToTime,
+      },
+    });
+    ref.onClose.subscribe(result => {
+      // Remove the Bryntum placeholder either way — the shift is its own
+      // record once the dialog confirms.
+      if (placeholder && (placeholder as { hasGeneratedId?: boolean }).hasGeneratedId) {
+        (placeholder as { remove: () => void }).remove();
+      }
+      if (result?.kind === 'shift.batch.published') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Shift aangemaakt',
+          detail: `${result.shift?.from_time} → ${result.shift?.to_time} op ${result.shift?.date_from}`,
+        });
+        this.maybeRefresh();
+      } else if (result?.kind === 'shift.batch.error') {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Aanmaken shift mislukt',
+          detail: 'Controleer datum en service location.',
+        });
+      }
+    });
   }
 
   protected onViewChange(): void {
+    this.maybeRefresh();
+  }
+
+  protected setView(v: PocPlanningView): void {
+    this.view.set(v);
+    localStorage.setItem(PlanningPocComponent.LS_VIEW_KEY, v);
+    // Re-render from the cached forkJoin result so the rows swap NOW; the
+    // background refresh below will overwrite with fresh data when it
+    // arrives. Avoids the "I clicked Locaties but it still shows names"
+    // perception when the API is slow.
+    this.rebuildFromCache();
+    this.maybeRefresh();
+  }
+
+  protected setZoom(z: PocPlanningZoom): void {
+    this.zoom.set(z);
+    localStorage.setItem(PlanningPocComponent.LS_ZOOM_KEY, z);
+    // Two-pass: paint the cache immediately so the toolbar feels
+    // responsive, then kick a fresh refresh in the background so the
+    // events match the new date range. Without the refresh the Day view
+    // could end up showing stale or empty events when zooming out from
+    // a previously cached Week.
+    this.rebuildFromCache();
+    this.maybeRefresh();
+  }
+
+  /**
+   * Bryntum's eventEdit feature config — mirrors the production planning
+   * page. `triggerEvent: 'eventclick'` routes both fresh placeholders
+   * (from drag-create / cell-click) AND existing event clicks through the
+   * `beforeEventEdit` listener, which is where we open ContractDialog.
+   */
+  protected readonly eventEditFeatureConfig = { triggerEvent: 'eventclick' };
+
+  /** Day-zoom navigation arrows (mockup 13). Week mode uses prev/Week chevrons. */
+  protected previousDay(): void {
+    const d = DateTime.fromISO(this.weekStart()).minus({ days: 1 });
+    this.weekStart.set(d.toISODate() ?? this.weekStart());
+    this.maybeRefresh();
+  }
+
+  protected nextDay(): void {
+    const d = DateTime.fromISO(this.weekStart()).plus({ days: 1 });
+    this.weekStart.set(d.toISODate() ?? this.weekStart());
     this.maybeRefresh();
   }
 
@@ -254,127 +816,314 @@ export class PlanningPocComponent implements AfterViewInit {
     this.maybeRefresh();
   }
 
-  protected openShiftBatchDialog(): void {
-    const company = this.store.selectSnapshot(RootState.getCompanyData);
-    const ref = this.dialogService.open(DialogShiftBatchComponent, {
-      header: 'Nieuwe shift (Niveau 2)',
-      width: '46rem',
-      modal: true,
-      data: { companyId: company?.id, date: this.weekStart() },
-    });
-    ref.onClose.subscribe(result => {
-      if (result?.kind === 'shift.batch.published') {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Shift gepubliceerd',
-          detail: `${result.shift?.from_time} → ${result.shift?.to_time} op ${result.shift?.date_from}`,
-        });
-        this.maybeRefresh();
-      } else if (result?.kind === 'shift.batch.error') {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Aanmaken shift mislukt',
-          detail: 'Controleer service location id en datums.',
-        });
-      }
-    });
-  }
+  /**
+   * Count of open shifts (status === 'open') visible in the current week.
+   * Drives the "Open shifts delen (N)" header button — the button hides
+   * when zero. Counts unique shifts; the Names view fans each shift out
+   * across multiple employee rows, but a single open shift only counts once.
+   */
+  protected readonly openShiftCount = computed(() => {
+    const seen = new Set<string>();
+    let n = 0;
+    for (const e of this.events()) {
+      if (e.kind !== 'shift') continue;
+      const raw = e.raw as { id?: string; status?: string } | undefined;
+      if (!raw?.id || raw.status !== 'open') continue;
+      if (seen.has(raw.id)) continue;
+      seen.add(raw.id);
+      n++;
+    }
+    return n;
+  });
 
-  /** Bryntum cell-click → open contract dialog for that employee + date. */
-  protected onCellClick(event: { resourceRecord: ResourceModel; date: Date }): void {
-    if (this.view() !== 'names') return;
-    const resourceId = String(event.resourceRecord?.getData('id'));
-    if (!resourceId) return;
+  /**
+   * Open shifts share dialog (mockup 12). Pre-loads every open shift in the
+   * visible week so the operator can broadcast them in one go. Lives on
+   * its own component so it can grow (partner channels, deadline overrides,
+   * etc.) without bloating the planning shell.
+   */
+  protected openShareDialog(): void {
     const company = this.store.selectSnapshot(RootState.getCompanyData);
-    const ref = this.dialogService.open(DialogContractCreateComponent, {
-      header: 'Nieuw contract (Niveau 1)',
-      width: '40rem',
+    if (!company) return;
+    const ref = this.dialogService.open(DialogShiftShareComponent, {
+      // No PrimeNG header — the dialog component renders its own
+      // "Open shifts delen" title + week-range subtitle (mockup 12).
+      showHeader: false,
       modal: true,
+      width: '46rem',
+      styleClass: 'p-dialog-no-overflow',
       data: {
-        employeeId: resourceId,
-        date: DateTime.fromJSDate(event.date).toISODate(),
-        companyId: company?.id,
+        companyId: company.id,
+        weekIso: this.weekStart(),
+        shifts: this.collectOpenShifts(),
       },
     });
     ref.onClose.subscribe(result => {
-      if (result?.kind === 'contract.create.success') {
+      if (result?.kind === 'shift.share.success') {
         this.messageService.add({
           severity: 'success',
-          summary: 'Contract aangemaakt (Dimona aangevraagd)',
+          summary: 'Open shifts verstuurd',
+          detail: `${result.recipientCount} medewerker(s) verwittigd.`,
         });
         this.maybeRefresh();
-      } else if (result?.kind === 'contract.create.error') {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Contract aanmaken mislukt',
-          detail: result.message,
-        });
       }
     });
   }
 
-  /** Bryntum event-click → open production ContractDialogComponent for
-   *  contracts (edit / cancel / shorten via DPS), shift details for shifts,
-   *  permanent-assignment info for Vast blocks. */
-  protected onEventClick(event: { eventRecord: EventModel }): void {
-    const kind = event.eventRecord?.getData('kind') as PocEvent['kind'] | undefined;
-    if (kind === 'contract') {
-      const resourceId = String(event.eventRecord.getData('resourceId') ?? '');
-      const employee = this.employeesById.get(resourceId);
-      if (!employee) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Medewerker niet in cache',
-          detail: 'Vernieuw de pagina en probeer opnieuw.',
-        });
-        return;
-      }
-      this.dialogService.open(ContractDialogComponent, {
-        showHeader: false,
-        modal: true,
-        width: '60rem',
-        styleClass: 'overflow-hidden',
-        data: {
-          contractEventRecord: event.eventRecord,
-          employee,
-        } satisfies ContractDialogDataModel,
-      }).onClose.subscribe(result => {
-        if (result?.usedMode === 'update' || result?.usedMode === 'cancel') {
-          this.maybeRefresh();
-        }
-      });
-    } else if (kind === 'shift') {
-      const shift = event.eventRecord.getData('raw') as ShiftModel | undefined;
-      const company = this.store.selectSnapshot(RootState.getCompanyData);
-      if (!shift || !company) return;
-      const ref = this.dialogService.open(DialogShiftDetailComponent, {
-        header: 'Shift detail (Niveau 2)',
-        width: '40rem',
-        modal: true,
-        data: { shift, companyId: company.id },
-      });
-      ref.onClose.subscribe(result => {
-        if (result?.kind === 'shift.select.success') {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Kandidaat geselecteerd',
-            detail: 'Contract aangevraagd in DPS (Dimona).',
-          });
-          this.maybeRefresh();
-        }
-      });
-    } else if (kind === 'permanent') {
-      this.messageService.add({
-        severity: 'info',
-        summary: 'Vaste medewerker',
-        detail: 'Bewerk de toewijzing via Beheer locaties → Vaste toewijzingen.',
-      });
+  /** Distinct open shifts in the visible week, pulled from the events signal. */
+  private collectOpenShifts(): ShiftModel[] {
+    const seen = new Map<string, ShiftModel>();
+    for (const e of this.events()) {
+      if (e.kind !== 'shift') continue;
+      const raw = e.raw as ShiftModel | undefined;
+      if (!raw || raw.status !== 'open') continue;
+      seen.set(raw.id, raw);
+    }
+    return Array.from(seen.values());
+  }
+
+  /**
+   * Delegate handler for the in-row "+ Service location" button. The Bryntum
+   * resource cell is rendered as raw HTML (htmlEncode: false) so attaching
+   * an Angular click handler directly isn't an option — we listen at the
+   * host and dispatch on a `data-poc-action` attribute instead.
+   */
+  protected hostClickHandler(ev: MouseEvent): void {
+    const target = ev.target as HTMLElement | null;
+    if (!target?.closest) return;
+    const btn = target.closest('[data-poc-action]') as HTMLElement | null;
+    if (!btn) return;
+    const action = btn.dataset['pocAction'];
+    if (action === 'add-sl') {
+      const branchId = btn.dataset['branchId'] ?? '';
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.openAddServiceLocationDialog(branchId);
+    } else if (action === 'rename-sl') {
+      const slId = btn.dataset['slId'] ?? '';
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.openRenameServiceLocationDialog(slId);
+    } else if (action === 'edit-branch') {
+      const branchId = btn.dataset['branchId'] ?? '';
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.openEditBranchDialog(branchId);
+    } else if (action === 'attach-sl') {
+      const slId = btn.dataset['slId'] ?? '';
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.openAttachVestigingDialog(slId);
     }
   }
+
+  /** Orphan SL → "Koppel aan vestiging" dialog. PATCH the SL with the
+   *  picked branchGroupId, then refresh so the row leaves the bucket. */
+  private openAttachVestigingDialog(slId: string): void {
+    if (!slId || !this.lastData) return;
+    const sl = this.lastData.serviceGroups.find(x => x.id === slId);
+    if (!sl) return;
+    const ref = this.dialogService.open(DialogAttachVestigingComponent, {
+      header: 'Service location koppelen',
+      modal: true,
+      width: '30rem',
+      data: {
+        serviceLocation: sl,
+        branches: this.lastData.branches,
+      },
+    });
+    ref.onClose.subscribe(result => {
+      if (result?.kind === 'sl.attached') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Service location gekoppeld',
+        });
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /** Vestiging-address editing — gear icon on the vestiging-header row.
+   *  Reuses the same Google-Maps autocomplete field as the service-location
+   *  dialog (where it used to live). */
+  private openEditBranchDialog(branchId: string): void {
+    if (!branchId || !this.lastData) return;
+    const branch = this.lastData.branches.find(b => b.id === branchId);
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!branch || !company) return;
+    const ref = this.dialogService.open(DialogEditVestigingComponent, {
+      header: 'Vestiging bewerken',
+      modal: true,
+      width: '32rem',
+      data: { branch, companyId: company.id },
+    });
+    ref.onClose.subscribe(result => {
+      if (result?.kind === 'vestiging.updated') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Vestiging bijgewerkt',
+        });
+        this.maybeRefresh();
+      } else if (result?.kind === 'vestiging.deleted') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Vestiging verwijderd',
+        });
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /** Service-location rename — reuses the same SL dialog (no address). */
+  private openRenameServiceLocationDialog(slId: string): void {
+    this.openEditServiceLocationDialog(slId);
+  }
+
+  /**
+   * Mockup 14: clicking the gear icon on a service-location row opens an
+   * "eigenschappen" dialog (rename + tweak address). Reuses the same
+   * inline-create component but pre-fills the form via dialog data.
+   */
+  private openEditServiceLocationDialog(slId: string): void {
+    if (!slId || !this.lastData) return;
+    const sl = this.lastData.serviceGroups.find(x => x.id === slId);
+    if (!sl) return;
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) return;
+    const branchName =
+      this.lastData.branches.find(b => b.id === sl.branch_group_id)?.name ?? '';
+    const ref = this.dialogService.open(DialogAddServiceLocationComponent, {
+      header: 'Service location bewerken',
+      modal: true,
+      width: '30rem',
+      data: {
+        companyId: company.id,
+        branchGroupId: sl.branch_group_id,
+        branchName,
+        existing: sl,
+      },
+    });
+    ref.onClose.subscribe(result => {
+      if (
+        result?.kind === 'service-location.created' ||
+        result?.kind === 'service-location.updated'
+      ) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Service location opgeslagen',
+          detail: result.row?.name,
+        });
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /**
+   * Inline create flow for service-locations triggered by the "+" button
+   * on a vestiging row. Service-locations are PoC-DB rows that belong to
+   * a DPS engagement-group (vestiging).
+   */
+  private openAddServiceLocationDialog(branchId: string): void {
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company || !branchId) return;
+    const branchName =
+      this.lastData?.branches.find(b => b.id === branchId)?.name ?? '';
+    const ref = this.dialogService.open(DialogAddServiceLocationComponent, {
+      header: 'Nieuwe service location',
+      modal: true,
+      width: '30rem',
+      data: { companyId: company.id, branchGroupId: branchId, branchName },
+    });
+    ref.onClose.subscribe(result => {
+      if (result?.kind === 'service-location.created') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Service location aangemaakt',
+          detail: result.row?.name,
+        });
+        this.maybeRefresh();
+      }
+    });
+  }
+
+  /**
+   * Empty-cell click branches by view:
+   *
+   *  - **Namen**: defer to the production ContractDialogComponent. Bryntum's
+   *    own flow auto-creates a placeholder event on the clicked cell and
+   *    fires `beforeEventEdit` (see ngAfterViewInit wiring). The dialog is
+   *    the same one as on the production planning page, so creating a
+   *    contract here triggers Dimona exactly like in the live app.
+   *  - **Locaties**: open the new-shift dialog (mockup 09). Service-group
+   *    is the resourceId; if the user clicks a branch (vestiging header)
+   *    row we ignore the click.
+   *
+   * Permanent-employee (perm:*) rows are not shift candidates and not
+   * Dimona-bound contracts either, so they're a no-op.
+   */
+  protected onCellClick(event: { resourceRecord: ResourceModel; date: Date }): void {
+    const isBranch = !!event.resourceRecord?.getData('isBranch');
+    if (!event.resourceRecord || isBranch) return;
+    const scheduler = this.schedulerComponent?.instance as Scheduler | undefined;
+    if (!scheduler) return;
+    // Match the production planning flow: add a placeholder event on the
+    // clicked cell and trigger Bryntum's editEvent — that fires
+    // beforeEventEdit, which our listener routes to the right dialog.
+    const [placeholder] = scheduler.eventStore.add({
+      name: 'Nieuw contract',
+      resourceId: event.resourceRecord.getData('id'),
+      startDate: event.date,
+      endDate: event.date,
+    } as Record<string, unknown>);
+    scheduler.editEvent(placeholder, event.resourceRecord);
+  }
+
+  /**
+   * Bound to bryntum-scheduler's (onEventClick). With eventEditFeature
+   * `triggerEvent: 'eventclick'` set, the same click also fires
+   * `beforeEventEdit` — which our handler routes to the correct dialog.
+   * We deliberately keep this stub no-op so we don't end up double-opening.
+   */
+  protected onEventClick(_event: { eventRecord: EventModel }): void {
+    // intentionally empty — see handleBeforeEventEdit
+  }
+
+  /**
+   * Last forkJoin result, kept so view/zoom toggles can rebuild resources +
+   * events synchronously from cache rather than waiting for a fresh fetch.
+   * Without this, clicking Locaties briefly painted with the OLD Names
+   * resources until the refresh completed, which made the toggle feel
+   * broken.
+   */
+  private lastData: {
+    employees: { content?: EmployeeModel[] };
+    contracts: ContractListModel[];
+    shifts: ShiftModel[];
+    permanentEmployees: PermanentEmployeeModel[];
+    permanentBlocks: PermanentBlockModel[];
+    serviceGroups: ServiceGroupModel[];
+    branches: EngagementGroupModel[];
+  } | null = null;
 
   private maybeRefresh(): void {
     const company = this.store.selectSnapshot(RootState.getCompanyData);
     if (company) this.refresh(company.id);
+  }
+
+  /**
+   * Immediately rebuild resources + events from cached data using the
+   * current view + zoom values. Used by setView / setZoom so the user sees
+   * the toggle take effect before the network round-trip lands.
+   */
+  private rebuildFromCache(): void {
+    if (!this.lastData) return;
+    const view = this.view();
+    const resources = this.buildResources(view, this.lastData);
+    const events = this.buildEvents(view, this.lastData);
+    this.resources.set(resources);
+    this.events.set(events);
+    this.cdr.markForCheck();
+    queueMicrotask(() => this.syncSchedulerStores(resources, events));
   }
 
   /** Loads employees, contracts, shifts, permanent-assignments, service-groups, vestigingen
@@ -385,32 +1134,52 @@ export class PlanningPocComponent implements AfterViewInit {
     const endIso = DateTime.fromISO(startIso).plus({ days: 6 }).toISODate() ?? startIso;
     this.loading.set(true);
 
-    // Issue all the reads in parallel.
+    // Each source falls back to empty so one flaky upstream (DPS 5xx,
+    // missing groups, etc.) doesn't blank the entire grid. The error is
+    // logged but the rest of the data still paints.
+    const safe = <T>(obs: Observable<T>, empty: T): Observable<T> =>
+      obs.pipe(
+        catchError(err => {
+          // eslint-disable-next-line no-console
+          console.warn('[planning-poc] source failed, falling back', err);
+          return of(empty);
+        }),
+      );
+
     forkJoin({
-      employees: this.employeesApi.getEmployees({
-        companyId,
-        baseView: true,
-        page: 0,
-        size: 50,
-      }),
-      contracts: this.contractsApi.getContracts({
-        companyId,
-        startDate: startIso,
-        endDate: endIso,
-        page: 0,
-        size: 200,
-      }),
-      shifts: this.shiftsApi.list(companyId, startIso, endIso),
-      permanentAssignments: this.permanentAssignmentsApi.list({
-        companyId,
-        dateFrom: startIso,
-        dateTo: endIso,
-      }),
-      permanentEmployees: this.permanentEmployeesApi.list(companyId),
-      serviceGroups: this.serviceGroupsApi.list(companyId),
-      branches: this.engagementGroupsApi.listForCompany(companyId),
+      employees: safe(
+        this.employeesApi.getEmployees({
+          companyId,
+          baseView: true,
+          page: 0,
+          size: 50,
+        }),
+        { content: [] } as { content: EmployeeModel[] },
+      ),
+      contracts: safe(
+        this.contractsApi.getContracts({
+          companyId,
+          startDate: startIso,
+          endDate: endIso,
+          page: 0,
+          size: 200,
+        }),
+        [] as ContractListModel[],
+      ),
+      shifts: safe(this.shiftsApi.list(companyId, startIso, endIso), []),
+      // Permanent employees show as rows in the Names view; the Vast
+      // blokjes they have for the visible week come from a separate
+      // PoC-DB endpoint so we can clear / rebuild them independently.
+      permanentEmployees: safe(this.permanentEmployeesApi.list(companyId), []),
+      permanentBlocks: safe(
+        this.permanentBlocksApi.list(companyId, startIso, endIso),
+        [] as PermanentBlockModel[],
+      ),
+      serviceGroups: safe(this.serviceGroupsApi.list(companyId), []),
+      branches: safe(this.engagementGroupsApi.listForCompany(companyId), []),
     }).subscribe({
       next: data => {
+        this.lastData = data;
         const view = this.view();
         // Cache employees by id so onEventClick can hand a proper
         // EmployeeModel to the production ContractDialogComponent.
@@ -420,10 +1189,23 @@ export class PlanningPocComponent implements AfterViewInit {
         }
         const resources = this.buildResources(view, data);
         const events = this.buildEvents(view, data);
+        // eslint-disable-next-line no-console
+        console.info(
+          `[planning-poc] view=${view} resources=${resources.length} events=${events.length} ` +
+            `(employees=${data.employees?.content?.length ?? 0}, perm=${data.permanentEmployees?.length ?? 0}, ` +
+            `serviceGroups=${data.serviceGroups?.length ?? 0}, branches=${data.branches?.length ?? 0})`,
+        );
         this.resources.set(resources);
         this.events.set(events);
         this.loading.set(false);
         this.cdr.markForCheck();
+        // Belt-and-suspenders: poke Bryntum directly. The [resources] input
+        // binding *should* sync via the wrapper's ngOnChanges, but when
+        // events + resources both change in the same tick the wrapper can
+        // race against Bryntum's internal eventStore↔resourceStore reconcile
+        // and end up rendering the previous resource set. Forcing the stores
+        // imperatively here guarantees a clean swap.
+        queueMicrotask(() => this.syncSchedulerStores(resources, events));
       },
       error: err => {
         this.loading.set(false);
@@ -432,6 +1214,27 @@ export class PlanningPocComponent implements AfterViewInit {
         console.error('[planning-poc] refresh failed', err);
       },
     });
+  }
+
+  /**
+   * Push resources and events directly into the Bryntum stores via the
+   * @ViewChild instance reference. Used as a fallback so view-toggle swaps
+   * always reach the DOM even if the Angular input binding misses a tick.
+   */
+  private syncSchedulerStores(resources: PocResource[], events: PocEvent[]): void {
+    const scheduler = this.schedulerComponent?.instance as Scheduler | undefined;
+    if (!scheduler) return;
+    try {
+      // Replace the entire data set rather than diff-merging, otherwise
+      // permanent-employee rows from the Names view would linger when we
+      // switch to Locations (different id namespace, no key collision to
+      // trigger removal).
+      scheduler.resourceStore.data = resources;
+      scheduler.eventStore.data = events;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[planning-poc] direct store sync failed', err);
+    }
   }
 
   private buildResources(
@@ -456,19 +1259,74 @@ export class PlanningPocComponent implements AfterViewInit {
       return [...emp, ...perm];
     }
 
-    // V+SL and Day both group service-locations under their parent branch.
-    // We flatten the tree with a `Vestiging › Service location` row label so
-    // we don't depend on Bryntum's tree-resource mode (which needs extra
-    // resourceStore config and was unstable across our theme).
-    const branchById = new Map<string, string>();
-    for (const b of data.branches ?? []) {
-      branchById.set(b.id, (b.name as string | undefined) ?? b.id);
+    // Locaties view: interleave a synthetic "branch header" row per
+    // vestiging with the service-location rows underneath it. Branches
+    // come from DPS as a paged response; service-groups are PoC-DB rows
+    // referencing the branch by id.
+    //
+    // Defensive `Array.isArray` checks: DPS occasionally hands back a
+    // `{ content: [...] }` page object instead of a flat array, depending
+    // on the endpoint. Iterating that with for/of throws and silently
+    // breaks the view toggle.
+    const branches = Array.isArray(data.branches) ? data.branches : [];
+    const serviceGroups = Array.isArray(data.serviceGroups) ? data.serviceGroups : [];
+
+    // Bucket service-groups under their parent branch id. An empty string
+    // branch_group_id (legacy seed data) ends up in the orphan bucket.
+    const byBranch = new Map<string, ServiceGroupModel[]>();
+    for (const sg of serviceGroups) {
+      const key = sg.branch_group_id || '';
+      const arr = byBranch.get(key) ?? [];
+      arr.push(sg);
+      byBranch.set(key, arr);
     }
-    const serviceGroups = (data.serviceGroups ?? []).map(sg => ({
-      id: sg.id,
-      name: `${branchById.get(sg.branch_group_id) ?? '—'} › ${sg.name}`,
-    }));
-    return serviceGroups;
+
+    // Always render the two-level structure: each DPS vestiging is a
+    // parent header, with its service-locations underneath. Limited users
+    // only see vestigingen they have access to (DPS already filters the
+    // /api/companies/:id/groups response per their permissions), so we
+    // can render whatever the API returned without an extra access check.
+    const rows: PocResource[] = [];
+    for (const branch of branches) {
+      rows.push({
+        id: `branch:${branch.id}`,
+        name: (branch.name as string | undefined) ?? branch.id,
+        isBranch: true,
+      });
+      const children = byBranch.get(branch.id) ?? [];
+      for (const sg of children) {
+        rows.push({ id: sg.id, name: sg.name, branchId: branch.id });
+      }
+    }
+
+    // Surface orphan SLs (no parent vestiging) so the operator can fix
+    // them inline — clicking the row opens the attach-vestiging dialog.
+    const knownBranchIds = new Set(branches.map(b => b.id));
+    const orphans = serviceGroups.filter(
+      sg => !sg.branch_group_id || !knownBranchIds.has(sg.branch_group_id),
+    );
+    if (orphans.length && branches.length) {
+      rows.push({
+        id: 'branch:_orphans',
+        name: 'Service locations zonder vestiging — klik om te koppelen',
+        isBranch: true,
+        isOrphanHeader: true,
+      });
+      for (const sg of orphans) {
+        rows.push({ id: sg.id, name: sg.name, isOrphan: true });
+      }
+    }
+
+    // No vestigingen at all → point the user at Pool → Nieuwe vestiging.
+    if (rows.length === 0) {
+      rows.push({
+        id: 'branch:_empty',
+        name: 'Nog geen vestigingen — voeg er een toe via Pool → + Nieuwe vestiging.',
+        isBranch: true,
+      });
+    }
+
+    return rows;
   }
 
   private buildEvents(
@@ -476,21 +1334,33 @@ export class PlanningPocComponent implements AfterViewInit {
     data: {
       contracts: ContractListModel[];
       shifts: ShiftModel[];
-      permanentAssignments: PermanentAssignmentModel[];
       serviceGroups: ServiceGroupModel[];
       permanentEmployees: PermanentEmployeeModel[];
+      permanentBlocks?: PermanentBlockModel[];
     },
   ): PocEvent[] {
     const events: PocEvent[] = [];
 
     // Contracts (DPS) appear in the Names view; in V+SL / Day they're hidden
     // because we don't yet know which service-location a contract is at.
+    //
+    // Important: we spread the mapped event (timetable / dateFrom / dateTo
+    // / position) onto the PocEvent so ContractDialog can read them via
+    // `contractEventRecord.getData('timetable')`. Without the spread, a
+    // click on an existing contract would crash deep inside the dialog
+    // because timetable came back undefined. (Bug reported 2026-05-12:
+    // "Can't click an existing contract to edit".)
     if (view === 'names') {
       for (const contract of data.contracts ?? []) {
         const e = mapContractToSchedulerEvent(contract);
         if (!(e.startDate instanceof Date) || !(e.endDate instanceof Date)) continue;
         events.push({
-          id: `contract:${e.id}`,
+          // Use the contract's own id (no prefix) so DPS endpoints that
+          // expect the raw uuid still match. Bryntum doesn't care about
+          // the prefix, but ContractDialog uses `getData('id')` to fetch
+          // the contract by id.
+          ...(e as unknown as Record<string, unknown>),
+          id: contract.id,
           resourceId: String(e.resourceId),
           startDate: e.startDate,
           endDate: e.endDate,
@@ -498,95 +1368,137 @@ export class PlanningPocComponent implements AfterViewInit {
           cls: 'poc-event poc-event-contract',
           kind: 'contract',
           raw: contract,
-        });
+        } as PocEvent & Record<string, unknown>);
       }
     }
 
-    // Shifts (PoC-DB):
-    //  - V+SL / Day: shown on their service_group resource.
-    //  - Names: fan out to target_employee_ids (SELECTION) — broadcast-to-all
-    //    shifts are rendered on every employee row as a faint "ghost" so the
-    //    operator sees where they could land. Anything not targeting an
-    //    employee is dropped from Names (it stays visible in V+SL).
+    // Shifts (PoC-DB) — explode each shift record into ≤ N blocks so the
+    // grid is honest about who's assigned vs. what's still open. Pilot
+    // feedback (round 2026-05-12): creating a shift with capacity=3 and
+    // 2 assigned employees used to render a single "Open shift × 3" pill,
+    // hiding the fact that 2 seats were already named. The new model:
+    //
+    //   • One block per assigned target_employee_id (kind=contract;
+    //     stacks on the SL row in Locaties view, lands on the employee
+    //     row in Names view). Title = the employee's name.
+    //   • One block for the remaining seats (kind=shift; title =
+    //     "N open shift{s}"). The badge value comes from
+    //     applications_count (positive reactions from the pool), NOT
+    //     capacity — capacity already lives in the title.
+    //
+    // V+SL / Day: shown on the service_group resource.
+    // Names: assigned blocks fan out to each target_employee_id;
+    //        open block fans out as a ghost to ALL_POOL pool members
+    //        when target_type === 'ALL_POOL'.
     for (const s of data.shifts ?? []) {
       const start = DateTime.fromISO(`${s.date_from}T${s.from_time}`).toJSDate();
       const end = DateTime.fromISO(`${s.date_to}T${s.to_time}`).toJSDate();
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
-      if (view === 'names') {
-        const targetIds =
-          s.target_type === 'SELECTION'
-            ? s.target_employee_ids ?? []
-            : s.target_type === 'ALL_POOL'
-              ? Array.from(this.employeesById.keys())
-              : [];
-        const ghostCls = s.target_type === 'ALL_POOL' ? ' poc-event-shift-ghost' : '';
-        for (const empId of targetIds) {
-          events.push({
-            id: `shift:${s.id}:${empId}`,
-            resourceId: empId,
-            startDate: start,
-            endDate: end,
-            name: `Open shift × ${s.capacity}`,
-            cls: `poc-event poc-event-shift poc-event-shift-${s.status}${ghostCls}`,
-            kind: 'shift',
-            raw: s,
-          });
-        }
-      } else {
+
+      const assignedIds = s.target_employee_ids ?? [];
+      const openSeats = Math.max(0, (s.capacity ?? 1) - assignedIds.length);
+      const applications = s.applications_count ?? 0;
+
+      // 1) Assigned blocks — one per target_employee_id. Renders with the
+      // contract style (indigo, "this seat is filled") but stays kind='shift'
+      // so a click opens the m09 edit dialog (operator can re-assign,
+      // change times, etc.). Using kind='contract' would route the click
+      // to ContractDialog and crash because `raw` is a Shift, not a
+      // Contract.
+      for (const empId of assignedIds) {
+        const emp = this.employeesById.get(empId);
+        const empName = emp
+          ? `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || 'Toegewezen'
+          : 'Toegewezen';
+        const resourceId = view === 'names' ? empId : s.service_group_id;
         events.push({
-          id: `shift:${s.id}`,
-          resourceId: s.service_group_id,
+          id: `shift:${s.id}:assigned:${empId}`,
+          resourceId,
           startDate: start,
           endDate: end,
-          name: `Open shift × ${s.capacity}`,
-          cls: `poc-event poc-event-shift poc-event-shift-${s.status}`,
+          name: empName,
+          // Indigo "filled" chrome, plus a marker class so the renderer
+          // can suppress the open-shift badge.
+          cls: 'poc-event poc-event-contract poc-event-shift-assigned',
           kind: 'shift',
-          raw: s,
+          raw: { ...s, applications_count: 0 },
         });
+      }
+
+      // 2) Open block — only when there are seats left. The badge will
+      // render `+applications_count` (handled by eventBarRenderer), not
+      // capacity.
+      if (openSeats > 0) {
+        const label = `${openSeats} open shift${openSeats === 1 ? '' : 's'}`;
+        const baseCls = `poc-event poc-event-shift poc-event-shift-${s.status}`;
+        if (view === 'names') {
+          // Names view: fan out the OPEN portion to the broadcast targets.
+          //  - SELECTION + leftover seats → broadcast targets are still
+          //    the named selection (so we render the ghost on every
+          //    listed candidate).
+          //  - ALL_POOL → every pool member sees a ghost block.
+          //  - NONE / GROUP → no fan-out (the open block only shows in
+          //    Locaties view).
+          const fanIds =
+            s.target_type === 'ALL_POOL'
+              ? Array.from(this.employeesById.keys())
+              : s.target_type === 'SELECTION'
+                ? assignedIds // selection broadcasts to the listed candidates
+                : [];
+          for (const empId of fanIds) {
+            // Skip duplicating on an already-assigned employee row — the
+            // contract block is enough; no point showing them an "open"
+            // ghost for the same shift on top of it.
+            if (assignedIds.includes(empId)) continue;
+            events.push({
+              id: `shift:${s.id}:open:${empId}`,
+              resourceId: empId,
+              startDate: start,
+              endDate: end,
+              name: label,
+              cls: baseCls + ' poc-event-shift-ghost',
+              kind: 'shift',
+              raw: { ...s, applications_count: applications, capacity: openSeats },
+            });
+          }
+        } else {
+          events.push({
+            id: `shift:${s.id}:open`,
+            resourceId: s.service_group_id,
+            startDate: start,
+            endDate: end,
+            name: label,
+            cls: baseCls,
+            kind: 'shift',
+            raw: { ...s, applications_count: applications, capacity: openSeats },
+          });
+        }
       }
     }
 
-    // Permanent assignments (Vast) appear in V+SL (recurring per weekday) and
-    // also in Names if the permanent employee is a resource.
-    const weekStart = DateTime.fromISO(this.weekStart());
-    for (const assignment of data.permanentAssignments ?? []) {
-      const validFrom = DateTime.fromISO(assignment.valid_from);
-      const validTo = assignment.valid_to ? DateTime.fromISO(assignment.valid_to) : null;
-      for (const [weekday, slot] of Object.entries(assignment.weekday_pattern ?? {})) {
-        const dayIdx = WEEKDAY_INDEX[weekday];
-        if (!dayIdx) continue;
-        const day = weekStart.plus({ days: dayIdx - 1 });
-        if (day < validFrom) continue;
-        if (validTo && day > validTo) continue;
-        const start = DateTime.fromISO(`${day.toISODate()}T${slot.from}`).toJSDate();
-        const end = DateTime.fromISO(`${day.toISODate()}T${slot.to}`).toJSDate();
+    // Vast blokjes — flat date+hour ranges stored in PoC-DB
+    // permanent_blocks. They only show on the Names view (a Vast block is
+    // pinned to one permanent employee, not to a service-location).
+    if (view === 'names') {
+      const permById = new Map(
+        (data.permanentEmployees ?? []).map(p => [p.id, p] as const),
+      );
+      for (const b of data.permanentBlocks ?? []) {
+        const emp = permById.get(b.permanent_employee_id);
+        if (!emp) continue;
+        const start = DateTime.fromISO(`${b.date_from}T${b.from_time}`).toJSDate();
+        const end = DateTime.fromISO(`${b.date_to}T${b.to_time}`).toJSDate();
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
-
-        if (view === 'names') {
-          // Resource = the permanent employee (prefixed "perm:" to disambiguate from DPS employee ids).
-          events.push({
-            id: `perm:${assignment.id}:${weekday}`,
-            resourceId: `perm:${assignment.permanent_employee_id}`,
-            startDate: start,
-            endDate: end,
-            name: 'Vast',
-            cls: 'poc-event poc-event-permanent',
-            kind: 'permanent',
-            raw: assignment,
-          });
-        } else {
-          // Resource = the service-group row.
-          events.push({
-            id: `perm:${assignment.id}:${weekday}`,
-            resourceId: assignment.service_group_id,
-            startDate: start,
-            endDate: end,
-            name: 'Vast',
-            cls: 'poc-event poc-event-permanent',
-            kind: 'permanent',
-            raw: assignment,
-          });
-        }
+        events.push({
+          id: `vast:${b.id}`,
+          resourceId: `perm:${b.permanent_employee_id}`,
+          startDate: start,
+          endDate: end,
+          name: `${emp.first_name} ${emp.last_name}`,
+          cls: 'poc-event poc-event-permanent',
+          kind: 'permanent',
+          raw: b,
+        });
       }
     }
 

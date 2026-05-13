@@ -23,6 +23,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 
 import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { DialogService } from 'primeng/dynamicdialog';
 import { ButtonModule } from 'primeng/button';
 import { PaginatorModule } from 'primeng/paginator';
 import { TableModule } from 'primeng/table';
@@ -32,6 +33,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { AuthStore, ChangeSidenavVisibility, RootState } from '@dps/core/store';
 import { CompanyGroupApiService, EmployeeApiService, InvitationApiService } from '@dps/core/api';
 import { ActionCenterDialogComponent, PageHeaderComponent } from '@dps/shared/components';
+import { DialogAddPermanentEmployeeComponent } from '@dps/shared/components/dialog-add-permanent-employee/dialog-add-permanent-employee.component';
 import {
   EmployeeInvitationModel,
   EmployeeInvitationStatusEnum,
@@ -70,7 +72,7 @@ import { OverlayBadgeModule } from 'primeng/overlaybadge';
     FloatLabelModule,
     OverlayBadgeModule,
   ],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, DialogService],
   templateUrl: './company-invitations.component.html',
   styleUrl: './company-invitations.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -91,7 +93,8 @@ export class CompanyInvitationsComponent implements OnInit {
     private employeeApiService: EmployeeApiService,
     private companyGroupApiService: CompanyGroupApiService,
     private authStore: AuthStore,
-    private store: Store
+    private store: Store,
+    private dialogService: DialogService
   ) {}
 
   readonly employeeInvitationStatusEnum = EmployeeInvitationStatusEnum;
@@ -171,6 +174,34 @@ export class CompanyInvitationsComponent implements OnInit {
 
   navigateToCreateInvitationPage(): void {
     this.router.navigate([InvitationsRouteEnum.CREATE], { relativeTo: this.route });
+  }
+
+  /**
+   * Open the permanent-employee creation dialog. Bypasses the existing
+   * invitation/Dimona flow — vaste medewerkers go straight into PoC-DB.
+   * After creation we re-fire the filters subject so the user sees the
+   * count refresh; the planning grid picks the new row up on next refresh.
+   */
+  openAddPermanentDialog(): void {
+    this.company$.pipe(take(1)).subscribe(company => {
+      const ref = this.dialogService.open(DialogAddPermanentEmployeeComponent, {
+        header: 'Vaste medewerker toevoegen',
+        modal: true,
+        width: '28rem',
+        data: { companyId: company.id },
+      });
+      ref.onClose.subscribe(result => {
+        if (result?.kind === 'permanent-employee.created') {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Vaste medewerker aangemaakt',
+            detail: `${result.row.first_name} ${result.row.last_name}`,
+          });
+          // Re-fire the filter pipeline so any list refreshes.
+          this.filtersForm.patchValue(this.filtersForm.value);
+        }
+      });
+    });
   }
 
   copyInvitationLink(invitation: EmployeeInvitationModel): void {

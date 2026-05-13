@@ -80,17 +80,6 @@
   </a>
 
   <a
-    [pTooltip]="'COMPANY_SIDENAV.LOCATIONS' | translate"
-    [tooltipDisabled]="isMenuExpanded()"
-    [routerLink]="[companyRouteEnum.LOCATIONS]"
-    [routerLinkActive]="activeLinkClasses"
-    [class]="linkClasses"
-  >
-    <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.LOCATIONS] }}"></span>
-    <span class="link-text">{{ 'COMPANY_SIDENAV.LOCATIONS' | translate }}</span>
-  </a>
-
-  <a
     [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"
     [tooltipDisabled]="isMenuExpanded()"
     [routerLink]="[companyRouteEnum.PLANNING]"
@@ -103,17 +92,23 @@
     </span>
   </a>
 
+  <!--
+    Actuals (prestatiebevestiging) — PoC clone with our own UI, DPS API.
+    Badge shows pending-count loaded via LoadActualsCount; updates on
+    membership change and after each /actuals fetch.
+  -->
   <a
-    [pTooltip]="'COMPANY_SIDENAV.PLANNING_POC' | translate"
+    [pTooltip]="'COMPANY_SIDENAV.ACTUALS' | translate"
     [tooltipDisabled]="isMenuExpanded()"
-    [routerLink]="[companyRouteEnum.PLANNING_POC]"
+    [routerLink]="[companyRouteEnum.ACTUALS]"
     [routerLinkActive]="activeLinkClasses"
     [class]="linkClasses"
   >
-    <span
-      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.PLANNING_POC] }}"
-    ></span>
-    <span class="link-text">{{ 'COMPANY_SIDENAV.PLANNING_POC' | translate }}</span>
+    <span class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.ACTUALS] }}"></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.ACTUALS' | translate }}</span>
+    @if (companyContractConfirmationsCount() > 0) {
+      <span class="sidebar-badge">{{ companyContractConfirmationsCount() }}</span>
+    }
   </a>
 
   <a

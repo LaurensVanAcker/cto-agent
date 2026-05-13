@@ -22,11 +22,14 @@ export const COMPANY_ROUTES: Routes = [
             c => c.CompanyOnboardingComponent
           ),
       },
+      // Old DPS planning page is out of scope — operators that still want it
+      // can use the production app directly. PLANNING resolves to the PoC
+      // planning surface (Bryntum grid + mockups 09/10/11/12/13).
       {
-        path: CompanyRouteEnum.PLANNING,
-        loadComponent: () =>
-          import('./modules/planning/company-planning.component').then(
-            c => c.CompanyPlanningComponent
+        path: CompanyRouteEnum.PLANNING, // 'planning-poc' as URL slug
+        loadChildren: () =>
+          import('./modules/planning-poc/planning-poc.routes').then(
+            m => m.PLANNING_POC_ROUTES,
           ),
       },
       {
@@ -54,19 +57,18 @@ export const COMPANY_ROUTES: Routes = [
         loadChildren: () => import('./modules/pool/pool.routes').then(m => m.POOL_ROUTES),
       },
       {
-        path: CompanyRouteEnum.LOCATIONS,
-        loadChildren: () =>
-          import('./modules/locations/company-locations.routes').then(
-            m => m.COMPANY_LOCATIONS_ROUTES,
+        path: CompanyRouteEnum.ACTUALS,
+        loadComponent: () =>
+          import('./modules/actuals/company-actuals.component').then(
+            c => c.CompanyActualsComponent,
           ),
       },
-      {
-        path: CompanyRouteEnum.PLANNING_POC,
-        loadChildren: () =>
-          import('./modules/planning-poc/planning-poc.routes').then(
-            m => m.PLANNING_POC_ROUTES,
-          ),
-      },
+      // Legacy '/planning' deep links — keep them resolvable so anything that
+      // still hands out the old URL doesn't 404.
+      { path: 'planning', redirectTo: CompanyRouteEnum.PLANNING, pathMatch: 'full' },
+      // 'locations' admin page is gone (service-locations are managed inline
+      // on the planning grid). Redirect any leftover deep link to /pool.
+      { path: 'locations', redirectTo: CompanyRouteEnum.POOL, pathMatch: 'full' },
       {
         path: CompanyRouteEnum.MYSTAFFLER_PREVIEW,
         loadChildren: () =>

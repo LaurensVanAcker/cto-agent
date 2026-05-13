@@ -17,7 +17,7 @@ import { ButtonModule } from 'primeng/button';
 import { CompanyRouteEnum } from 'src/app/pages/company/company.routes.model';
 import { AppRouteEnum } from 'src/app/app.routes.model';
 import { CompanyMembership, UserRole } from '@dps/shared/models';
-import { AuthStore, ChangeSidenavVisibility, RootState } from '@dps/core/store';
+import { AuthStore, ChangeSidenavVisibility, LoadActualsCount, RootState } from '@dps/core/store';
 import { AuthApiService } from '@dps/core/api/auth';
 import { AuthRoutePath } from '../../../pages/auth';
 import { COMPANY_ROUTES_ICONS_MAP } from '@dps/shared/configs';
@@ -87,6 +87,9 @@ export class MainMenuComponent {
   );
   readonly isGroupsEnabled = this.store.selectSignal(RootState.isCompanyGroupsEnabled);
   readonly currCompany = this.store.selectSignal(RootState.getCompanyData);
+  readonly companyContractConfirmationsCount = this.store.selectSignal(
+    RootState.getCompanyActualsCount,
+  );
   readonly selectedMembership = computed<CompanyMembership | null>(
     () =>
       this.authStore
@@ -96,6 +99,7 @@ export class MainMenuComponent {
   readonly userCompanyMemberships = toSignal(
     this.authStore.getCurrUserData$().pipe(map(user => user.companyMemberships))
   );
+
 
   constructor(
     private store: Store,
@@ -117,7 +121,10 @@ export class MainMenuComponent {
   }
 
   onMembershipChange(membership: CompanyMembership): void {
-    // PoC step 1: dropped the LoadActualsCount dispatch — actuals module is stripped.
+    // Actuals count is loaded after membership change so the sidebar
+    // badge stays in sync with whichever company the operator just
+    // switched to. The action handler is in root.state.ts.
+    this.store.dispatch(new LoadActualsCount());
     this.router.navigate([AppRouteEnum.COMPANY, membership.companyId, CompanyRouteEnum.PLANNING]);
     this.userApiService
       .setUserLastViewedCompany(membership.userId, membership.companyId)

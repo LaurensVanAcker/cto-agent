@@ -11,4 +11,5 @@ export const environment = {
   boemmLoginUrl: '/api/admin-login',
   featureFlagClientId: '',
   googleMeasurementId: '',
+  externalDpsBaseUrl: 'https://qa.dps.boemm.eu',
 };

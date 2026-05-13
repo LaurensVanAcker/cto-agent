@@ -29,6 +29,15 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./pages/demo/demo-planning.routes').then(m => m.DEMO_PLANNING_ROUTES),
   },
+  // Auth-free dialog gallery — one button per popup so reviewers can
+  // compare each m09/m12/m14 dialog against the mockups without a DPS
+  // session. Backend calls inside the dialogs 401 silently (auth
+  // interceptor skips its /login redirect on /demo/* routes).
+  {
+    path: 'demo/dialogs',
+    loadChildren: () =>
+      import('./pages/demo/demo-dialogs.routes').then(m => m.DEMO_DIALOGS_ROUTES),
+  },
   // PoC: search page, signin (Cognito-callback helper) and admin (BoemmAD)
   // routes are stripped — see step 1 in the PoC plan.
   { path: '**', redirectTo: AppRouteEnum.COMPANY },

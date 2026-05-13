@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { debounceTime, distinctUntilChanged, filter, startWith, switchMap, take, tap } from 'rxjs';
@@ -21,15 +21,22 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { MenuModule } from 'primeng/menu';
-import { MenuItem, MessageService } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { ChipModule } from 'primeng/chip';
 import { TagModule } from 'primeng/tag';
+import { Popover } from 'primeng/popover';
+import { PaginatorModule } from 'primeng/paginator';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService } from 'primeng/dynamicdialog';
 
 import { AppRouteEnum } from 'src/app/app.routes.model';
 import { RootState, AuthStore } from '@dps/core/store';
 import { CompanyGroupApiService, EmployeeApiService } from '@dps/core/api';
+import {
+  EngagementGroupApiService,
+  EngagementGroupModel,
+} from '@dps/core/api/engagement-group/engagement-group.api.service';
 import { EmployeeGroupEngagement, EmployeeModel, Group, UserRole } from '@dps/shared/models';
 import {
   EmployeeMyStafflerStatus,
@@ -96,8 +103,11 @@ interface PoolRow {
     ToastModule,
     ChipModule,
     TagModule,
+    Popover,
+    PaginatorModule,
+    ConfirmDialogModule,
   ],
-  providers: [MessageService, DialogService],
+  providers: [MessageService, DialogService, ConfirmationService],
   templateUrl: './pool.component.html',
   styleUrl: './pool.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -107,8 +117,10 @@ export class PoolComponent {
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly invitesApi = inject(MystafflerInviteApiService);
   private readonly groupsApi = inject(CompanyGroupApiService);
+  private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly dialogService = inject(DialogService);
   private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
   private readonly authStore = inject(AuthStore);
   private readonly store = inject(Store);
   private readonly router = inject(Router);
@@ -116,8 +128,18 @@ export class PoolComponent {
 
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
   protected readonly statusFilter = signal<StatusFilter>('all');
+  /** Vestigingen list shown in the "Locaties bekijken" popover. */
+  protected readonly branches = signal<EngagementGroupModel[]>([]);
   protected readonly loading = signal(false);
   protected readonly rows = signal<PoolRow[]>([]);
+  /** Per-row context for the per-row 3-dot menu (set on open). */
+  protected readonly currRow = signal<PoolRow | null>(null);
+  /** New-vestiging popover form. */
+  protected readonly newBranchNameControl = new FormControl<string>('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.minLength(2)],
+  });
+  protected readonly creatingBranch = signal(false);
   protected readonly company = this.store.selectSignal(RootState.getCompanyData);
   protected readonly hasGroupColumn = computed(() =>
     this.authStore.hasRoles([UserRole.GROUP_USER, UserRole.COMPANY_USER]),
@@ -156,7 +178,18 @@ export class PoolComponent {
     this.store
       .select(RootState.getCompanyData)
       .pipe(filter(Boolean), take(1))
-      .subscribe(() => this.refresh());
+      .subscribe(company => {
+        this.refresh();
+        // Pre-load the vestigingen list so the "Locaties bekijken" popover
+        // opens instantly without a network roundtrip on click.
+        this.engagementGroupsApi.listForCompany(company.id).subscribe({
+          next: rows => {
+            this.branches.set(rows ?? []);
+            this.cdr.markForCheck();
+          },
+          error: () => this.branches.set([]),
+        });
+      });
   }
 
   protected setFilter(value: StatusFilter): void {
@@ -335,32 +368,36 @@ export class PoolComponent {
     });
   }
 
-  /** Builds the per-row Action menu items based on the employee's status. */
+  /**
+   * Builds the per-row Action menu items based on the employee's status.
+   * Mockup 15 spec: "Vestigingen toewijzen" + "Wachtwoord resetten".
+   * We keep two PoC-only extras gated by status (resend invite / mark
+   * active for demo) so the pilot operator has a way to test the invite
+   * flow without rebuilding the seed.
+   */
   protected menuItemsFor(row: PoolRow): MenuItem[] {
     const items: MenuItem[] = [
       {
-        label: 'Toewijzen aan vestigingen',
+        label: 'Vestigingen toewijzen',
         icon: 'dps-icon dps-icon-building',
         command: () => this.assignGroups(row),
       },
-    ];
-    if (row.status === 'invited') {
-      items.push({
-        label: 'Uitnodiging opnieuw versturen',
-        icon: 'dps-icon dps-icon-mail',
-        command: () => this.resendInvite(row),
-      });
-    }
-    if (row.status === 'active') {
-      items.push({
+      {
         label: 'Wachtwoord resetten',
-        icon: 'dps-icon dps-icon-lock_reset',
+        icon: 'dps-icon dps-icon-lock',
         command: () =>
           this.messageService.add({
             severity: 'info',
             summary: 'Wachtwoord reset',
             detail: 'TODO — wire to /api/users/:id/reset-password.',
           }),
+      },
+    ];
+    if (row.status === 'invited') {
+      items.push({
+        label: 'Uitnodiging opnieuw versturen',
+        icon: 'dps-icon dps-icon-double_arrow_right',
+        command: () => this.resendInvite(row),
       });
     }
     if (row.status !== 'active') {
@@ -371,6 +408,111 @@ export class PoolComponent {
       });
     }
     return items;
+  }
+
+  // ── Vestigingen popover (create / rename / remove) ──────────────────────
+
+  /** Reload the vestigingen list (used after a CRUD action). */
+  private reloadBranches(): void {
+    const company = this.company();
+    if (!company) return;
+    this.engagementGroupsApi.listForCompany(company.id).subscribe({
+      next: rows => {
+        this.branches.set(rows ?? []);
+        this.cdr.markForCheck();
+      },
+      error: () => this.branches.set([]),
+    });
+  }
+
+  protected createBranch(popover: Popover): void {
+    if (this.newBranchNameControl.invalid) return;
+    const company = this.company();
+    if (!company) return;
+    this.creatingBranch.set(true);
+    this.groupsApi
+      // CreateGroupModel extends Group; the backend only needs name +
+      // company. We supply enough fields to satisfy the type and let DPS
+      // fill the id / etc. server-side.
+      .createGroup(company.id, {
+        id: '',
+        name: this.newBranchNameControl.value.trim(),
+        companyId: company.id,
+        employees: [],
+      } as never)
+      .subscribe({
+        next: () => {
+          this.creatingBranch.set(false);
+          this.newBranchNameControl.reset();
+          popover.hide();
+          this.reloadBranches();
+          this.refresh();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Vestiging toegevoegd',
+          });
+        },
+        error: err => {
+          this.creatingBranch.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Aanmaken vestiging mislukt',
+            detail: this.parseError(err),
+          });
+        },
+      });
+  }
+
+  protected renameBranchPrompt(branch: EngagementGroupModel): void {
+    const newName = window.prompt('Nieuwe naam voor de vestiging', branch.name);
+    if (!newName || newName.trim() === branch.name) return;
+    this.groupsApi
+      .updateGroup({ ...(branch as unknown as Group), name: newName.trim() })
+      .subscribe({
+        next: () => {
+          this.reloadBranches();
+          this.refresh();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Vestiging hernoemd',
+          });
+        },
+        error: err =>
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Hernoemen mislukt',
+            detail: this.parseError(err),
+          }),
+      });
+  }
+
+  protected removeBranchPrompt(branch: EngagementGroupModel): void {
+    const company = this.company();
+    if (!company) return;
+    this.confirmationService.confirm({
+      message: `Vestiging "${branch.name}" verwijderen? Medewerkers verliezen hun toewijzing.`,
+      acceptLabel: 'Verwijderen',
+      rejectLabel: 'Annuleren',
+      acceptButtonProps: { severity: 'danger' },
+      accept: () => {
+        this.groupsApi.removeGroup(company.id, branch.id).subscribe({
+          next: () => {
+            this.reloadBranches();
+            this.refresh();
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Vestiging verwijderd',
+            });
+          },
+          error: err =>
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Verwijderen mislukt',
+              detail: this.parseError(err),
+            }),
+        });
+      },
+    });
   }
 
   private parseError(err: unknown): string {

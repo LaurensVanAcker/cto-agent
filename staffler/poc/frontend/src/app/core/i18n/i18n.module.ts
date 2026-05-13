@@ -46,13 +46,13 @@ export class I18nModule {
     private primeConfig: PrimeNG
   ) {
     registerLocaleData(localeNl, AppLocaleEnum.NL);
-    this.translateService.langs.push(...Object.values(AppLocaleEnum));
-    let defaultLocale = localStorage.getItem(APP_LOCALE_KEY);
-    if (!defaultLocale || !this.translateService.getLangs().includes(defaultLocale)) {
-      defaultLocale = environment.envName === EnvNameEnum.DEV ? AppLocaleEnum.EN : AppLocaleEnum.NL;
-    }
+    // PoC: Dutch is the only supported locale. No language switcher, no
+    // localStorage override, no DEV-mode English fallback. The pilot
+    // customers are Flemish; everything else is dead weight.
+    this.translateService.langs.push(AppLocaleEnum.NL);
+    const defaultLocale = AppLocaleEnum.NL;
     this.translateService.setDefaultLang(defaultLocale);
-    this.translateService.use(this.translateService.defaultLang);
+    this.translateService.use(defaultLocale);
 
     this.translateService.onLangChange.asObservable().subscribe(({ lang, translations }) => {
       document.documentElement.lang = lang;

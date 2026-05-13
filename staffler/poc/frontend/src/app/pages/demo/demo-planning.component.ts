@@ -43,21 +43,12 @@ interface Event {
   kind: 'contract' | 'shift' | 'permanent' | 'availability';
 }
 
-// Bryntum's material theme exposes these color classes via b-sch-color-<name>.
-// Picking the names that map closest to the mockup 10 palette.
-const COLOR_BY_KIND: Record<Event['kind'], string> = {
-  contract: 'indigo',
-  shift: 'orange',
-  permanent: 'teal',
-  availability: 'green',
-};
-
-/** Bryntum picks the color class from the `cls` field reliably; setting
- *  `eventColor` on the data record alone wasn't being recognized in our
- *  build. We hard-append `b-sch-color-<name>` to the event cls so the
- *  theme's color rules take effect. */
+// Bryntum's `b-sch-color-*` classes set `--event-color: #fff` for white-text
+// styling, which inverts the v5 palette (we want dark text on a pale block).
+// Drop those entirely; the `.poc-event-*` classes alone drive the block
+// styling via global rules in styles.scss.
 function clsFor(kind: Event['kind'], extra = ''): string {
-  return `poc-event poc-event-${kind} b-sch-color-${COLOR_BY_KIND[kind]} ${extra}`.trim();
+  return `poc-event poc-event-${kind} ${extra}`.trim();
 }
 
 /**
@@ -132,6 +123,54 @@ export class DemoPlanningComponent {
     }
   });
 
+  /**
+   * Event-bar renderer mirroring planning-poc — paints the v5 block markup
+   * so the demo route accurately previews the real planning layout
+   * (no API calls needed).
+   */
+  private readonly eventBarRenderer = ({
+    eventRecord,
+  }: {
+    eventRecord: { getData: (key: string) => unknown };
+  }): string => {
+    const kind = eventRecord.getData('kind') as Event['kind'] | undefined;
+    const name = String(eventRecord.getData('name') ?? '');
+    const start = eventRecord.getData('startDate') as Date | undefined;
+    const end = eventRecord.getData('endDate') as Date | undefined;
+    const fmt = (d: Date | undefined): string =>
+      d ? DateTime.fromJSDate(d).toFormat('HH:mm') : '';
+
+    if (kind === 'permanent') {
+      return `
+        <div class="poc-event-title">
+          <span class="poc-vast-tag">Vast</span>
+          <span>${name.replace(/^Vast\s*[-—]?\s*/, '')}</span>
+        </div>
+        <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+    }
+    if (kind === 'shift') {
+      // New semantics (2026-05-12 pilot feedback): title shows the count
+      // of OPEN seats ("2 open shifts"), badge shows POSITIVE REACTIONS
+      // from the pool ("+5"). We parse both out of the mock name.
+      const seatsMatch = name.match(/seats=(\d+)/);
+      const appsMatch = name.match(/apps=(\d+)/);
+      const seats = seatsMatch ? Number(seatsMatch[1]) : 1;
+      const apps = appsMatch ? Number(appsMatch[1]) : 0;
+      const title = `${seats} open shift${seats === 1 ? '' : 's'}`;
+      const badge =
+        apps > 0
+          ? `<span class="poc-open-badge" aria-label="${apps} reacties">${apps}</span>`
+          : '';
+      return `
+        ${badge}
+        <div class="poc-event-title">${title}</div>
+        <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+    }
+    return `
+      <div class="poc-event-title">${name}</div>
+      <div class="poc-event-times">${fmt(start)} – ${fmt(end)}</div>`;
+  };
+
   /** Bryntum scheduler config — flips to vertical for the Dag zoom. */
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
     if (this.zoom() === 'day') {
@@ -150,20 +189,21 @@ export class DemoPlanningComponent {
           ],
         },
         mode: 'vertical',
-        eventStyle: 'border',
+        eventStyle: 'plain',
+        eventRenderer: this.eventBarRenderer,
         rowHeight: 60,
         barMargin: 4,
+        allowOverlap: true,
       } as unknown as Partial<SchedulerConfig>;
     }
     return {
       ...GENERAL_SCHEDULER_CONFIG,
-      // Use Bryntum's built-in 'colored' eventStyle which fills the event
-      // background with the per-event eventColor field. Combined with our
-      // poc-event-* classes this gives us the mockup-10 indigo / teal / orange
-      // palette without fighting Bryntum's encapsulation.
-      eventStyle: 'border',
+      eventStyle: 'plain',
+      eventRenderer: this.eventBarRenderer,
       rowHeight: 65,
-    } as Partial<SchedulerConfig>;
+      // Lane-stack assigned + open shifts on the same row (Locaties view).
+      allowOverlap: true,
+    } as unknown as Partial<SchedulerConfig>;
   });
 
   /** Mock employees (Names view) — matches the names in mockup 10. */
@@ -197,12 +237,16 @@ export class DemoPlanningComponent {
     // Locaties / Dag view: prepend the branch name so the row label encodes
     // the vestiging > service-location hierarchy without needing Bryntum's
     // resource-store tree mode.
+    //
+    // We deliberately omit the `group` field — Bryntum would otherwise
+    // try to render a grouping header per branch and squash the
+    // service-group rows behind it, so reviewers couldn't see all four
+    // SLs at once in the demo.
     return this.serviceGroups.map(sg => {
       const branch = this.branches.find(b => b.id === sg.branchId)?.name ?? '';
       return {
         id: sg.id,
         name: `${branch} › ${sg.name}`,
-        group: branch,
       };
     });
   });
@@ -223,7 +267,7 @@ export class DemoPlanningComponent {
         endDate: day(2).set({ hour: 17 }).toJSDate(),   // Wed 17:00 (multi-day)
         name: 'Anouk',
         cls: clsFor('contract'),
-        eventColor: COLOR_BY_KIND.contract,
+        eventColor: undefined as unknown as string,
         kind: 'contract',
       });
       events.push({
@@ -233,7 +277,7 @@ export class DemoPlanningComponent {
         endDate: day(3).set({ hour: 18 }).toJSDate(),
         name: 'Bart',
         cls: clsFor('contract'),
-        eventColor: COLOR_BY_KIND.contract,
+        eventColor: undefined as unknown as string,
         kind: 'contract',
       });
       events.push({
@@ -243,7 +287,7 @@ export class DemoPlanningComponent {
         endDate: day(1).set({ hour: 18 }).toJSDate(),
         name: 'Jeff',
         cls: clsFor('contract'),
-        eventColor: COLOR_BY_KIND.contract,
+        eventColor: undefined as unknown as string,
         kind: 'contract',
       });
 
@@ -256,7 +300,7 @@ export class DemoPlanningComponent {
           endDate: day(d).set({ hour: d === 4 ? 13 : 17 }).toJSDate(),
           name: 'Sarah',
           cls: clsFor('permanent'),
-          eventColor: COLOR_BY_KIND.permanent,
+          eventColor: undefined as unknown as string,
           kind: 'permanent',
         });
       }
@@ -268,22 +312,25 @@ export class DemoPlanningComponent {
           endDate: day(d).set({ hour: 18 }).toJSDate(),
           name: 'Thomas',
           cls: clsFor('permanent'),
-          eventColor: COLOR_BY_KIND.permanent,
+          eventColor: undefined as unknown as string,
           kind: 'permanent',
         });
       }
       return events;
     }
 
-    // Locaties / Dag view: shifts on service-group rows.
+    // Locaties / Dag view: shifts on service-group rows. Names encode
+    // `seats=N apps=M` so the renderer can render the title ("N open
+    // shifts") and badge (M applicants). Matches the new buildEvents
+    // semantics in planning-poc.
     events.push({
       id: 's-1',
       resourceId: 'sg-gent-toog',
       startDate: day(2).set({ hour: 17 }).toJSDate(),
       endDate: day(2).set({ hour: 23 }).toJSDate(),
-      name: 'Open shift × 2',
+      name: 'seats=2 apps=5',
       cls: clsFor('shift'),
-      eventColor: COLOR_BY_KIND.shift,
+      eventColor: undefined as unknown as string,
       kind: 'shift',
     });
     events.push({
@@ -291,9 +338,9 @@ export class DemoPlanningComponent {
       resourceId: 'sg-gent-kassa',
       startDate: day(3).set({ hour: 12 }).toJSDate(),
       endDate: day(3).set({ hour: 22 }).toJSDate(),
-      name: 'Open shift × 1',
+      name: 'seats=1 apps=0',
       cls: clsFor('shift', 'poc-event-shift-draft'),
-      eventColor: COLOR_BY_KIND.shift,
+      eventColor: undefined as unknown as string,
       kind: 'shift',
     });
     events.push({
@@ -301,9 +348,35 @@ export class DemoPlanningComponent {
       resourceId: 'sg-gent-terras',
       startDate: day(5).set({ hour: 14 }).toJSDate(),
       endDate: day(5).set({ hour: 23 }).toJSDate(),
-      name: 'Open shift × 3',
+      name: 'seats=3 apps=2',
       cls: clsFor('shift'),
-      eventColor: COLOR_BY_KIND.shift,
+      eventColor: undefined as unknown as string,
+      kind: 'shift',
+    });
+
+    // Mixed shift demo (1 assigned + 1 open) — illustrates the new
+    // "split-block" rendering. The assigned slot lands as an indigo
+    // contract-style block with the employee's name; the open slot is
+    // a separate amber-dashed block on the same row stacking via
+    // allowOverlap.
+    events.push({
+      id: 's-mix-assigned',
+      resourceId: 'sg-antw-bar',
+      startDate: day(4).set({ hour: 18 }).toJSDate(),
+      endDate: day(4).set({ hour: 23 }).toJSDate(),
+      name: 'Joke Carton',
+      cls: 'poc-event poc-event-contract',
+      eventColor: undefined as unknown as string,
+      kind: 'contract',
+    });
+    events.push({
+      id: 's-mix-open',
+      resourceId: 'sg-antw-bar',
+      startDate: day(4).set({ hour: 18 }).toJSDate(),
+      endDate: day(4).set({ hour: 23 }).toJSDate(),
+      name: 'seats=1 apps=3',
+      cls: clsFor('shift'),
+      eventColor: undefined as unknown as string,
       kind: 'shift',
     });
     // Vast on service-group rows (Sarah on Toog, Thomas on Kassa)
@@ -315,7 +388,7 @@ export class DemoPlanningComponent {
         endDate: day(d).set({ hour: d === 4 ? 13 : 17 }).toJSDate(),
         name: 'Vast — Sarah',
         cls: clsFor('permanent'),
-        eventColor: COLOR_BY_KIND.permanent,
+        eventColor: undefined as unknown as string,
         kind: 'permanent',
       });
     }

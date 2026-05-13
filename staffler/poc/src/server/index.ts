@@ -104,6 +104,13 @@ app.addHook("onRequest", async (req, reply) => {
 // helpers
 function asResponse(err: unknown) {
   if (err instanceof StafflerError) {
+    // Surface DPS errors in the backend log instead of swallowing them. The
+    // frontend gets the kind/status/message it needs to render a sensible
+    // toast or fallback; the operator gets enough context to debug the
+    // upstream failure.
+    console.warn(
+      `[dps ${err.status}] kind=${err.kind} traceId=${err.traceId} msg=${err.message} errors=${JSON.stringify(err.errors)}`,
+    );
     return {
       status: err.status || 500,
       body: {
@@ -114,6 +121,7 @@ function asResponse(err: unknown) {
       },
     };
   }
+  console.warn("[proxy] unexpected error", err);
   return {
     status: 500,
     body: { kind: "internal", message: (err as Error)?.message ?? String(err) },
@@ -245,18 +253,16 @@ app.get<{ Params: { id: string } }>("/api/companies/:id", async (req, reply) => 
 });
 
 // GET /api/employees
-app.get<{ Querystring: { companyId: string; nameLike?: string; page?: string; size?: string } }>(
+// Forwards every query param the frontend sends — DPS supports baseView,
+// sortBy, groupIds, etc., and stripping them produced a 500 from the
+// gateway. Cleaner: just relay the raw query string.
+app.get(
   "/api/employees",
   async (req, reply) => {
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
     try {
-      return await clientFor(session).listEmployees({
-        companyId: req.query.companyId,
-        nameLike: req.query.nameLike,
-        page: req.query.page ? parseInt(req.query.page) : 0,
-        size: req.query.size ? parseInt(req.query.size) : 20,
-      });
+      return await clientFor(session).rawAuthed<unknown>("GET", req.url);
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);
@@ -266,17 +272,16 @@ app.get<{ Querystring: { companyId: string; nameLike?: string; page?: string; si
 );
 
 // GET /api/contracts
-app.get<{ Querystring: { companyId: string; startDate: string; endDate: string } }>(
+// Same rationale as /api/employees: pass the raw query string through. The
+// frontend's ContractApiService sends page/size/sortBy/statuses/etc., all
+// of which DPS understands and our typed wrapper would otherwise drop.
+app.get(
   "/api/contracts",
   async (req, reply) => {
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
     try {
-      return await clientFor(session).listContracts({
-        companyId: req.query.companyId,
-        startDate: req.query.startDate,
-        endDate: req.query.endDate,
-      });
+      return await clientFor(session).rawAuthed<unknown>("GET", req.url);
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);
@@ -306,6 +311,31 @@ app.get<{ Params: { id: string } }>(
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
     try {
       return await clientFor(session).listCompanyGroups(req.params.id);
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
+// POST /api/companies/:id/employees/:eid/groups  → assign vestigingen.
+// Pool view's "Vestigingen toewijzen" action POSTs the full new list of
+// groups. Before this route existed the call 404'd at the proxy (only
+// listCompanyGroups was wired) and the operator saw a "Toewijzen mislukt"
+// toast. We just rawAuthed-forward to DPS — the request body is already
+// in DPS's expected shape.
+app.post<{ Params: { id: string; eid: string }; Body: unknown }>(
+  "/api/companies/:id/employees/:eid/groups",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    try {
+      return await clientFor(session).rawAuthed<unknown>(
+        "POST",
+        `/api/companies/${req.params.id}/employees/${req.params.eid}/groups`,
+        req.body,
+      );
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);
@@ -533,6 +563,68 @@ app.post<{
   },
 );
 
+// Permanent blocks (Vast blokjes — date range + hour range, no Dimona).
+// Created from the planning-poc Names view when the operator clicks an
+// empty cell on a permanent-employee row.
+
+app.get<{ Querystring: { companyId?: string; dateFrom?: string; dateTo?: string } }>(
+  "/api/permanent-blocks",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.companyId) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId required" };
+    }
+    return pocDb.listPermanentBlocks({
+      companyId: req.query.companyId,
+      dateFrom: req.query.dateFrom,
+      dateTo: req.query.dateTo,
+    });
+  },
+);
+
+app.post<{
+  Body: {
+    companyId: string;
+    permanentEmployeeId: string;
+    dateFrom: string;
+    dateTo: string;
+    fromTime: string;
+    toTime: string;
+  };
+}>(
+  "/api/permanent-blocks",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const b = req.body;
+    if (!b?.companyId || !b?.permanentEmployeeId || !b?.dateFrom || !b?.dateTo || !b?.fromTime || !b?.toTime) {
+      reply.status(400);
+      return { kind: "validation", message: "companyId, permanentEmployeeId, dates, hours required" };
+    }
+    return pocDb.createPermanentBlock({
+      company_id: b.companyId,
+      permanent_employee_id: b.permanentEmployeeId,
+      date_from: b.dateFrom,
+      date_to: b.dateTo,
+      from_time: b.fromTime,
+      to_time: b.toTime,
+    });
+  },
+);
+
+app.delete<{ Params: { id: string } }>(
+  "/api/permanent-blocks/:id",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const ok = pocDb.deletePermanentBlock(req.params.id);
+    if (!ok) { reply.status(404); return { kind: "not_found" }; }
+    return { ok: true };
+  },
+);
+
 // Shifts (PoC-DB; open vraag voor temporary invulling)
 app.get<{ Querystring: { companyId?: string; dateFrom?: string; dateTo?: string } }>(
   "/api/shifts",
@@ -602,6 +694,33 @@ app.post<{ Params: { id: string } }>(
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
     const updated = pocDb.publishShift(req.params.id);
+    if (!updated) { reply.status(404); return { kind: "not_found" }; }
+    return updated;
+  },
+);
+
+// PATCH /api/shifts/:id/share — update target + deadline on an open shift.
+// Used by the batch-share dialog (mockup 12) to broadcast open shifts to
+// the pool / specific employees / external partners in one go.
+app.patch<{
+  Params: { id: string };
+  Body: {
+    targetType?: string;
+    targetEmployeeIds?: string[];
+    targetGroupIds?: string[];
+    reactionDeadline?: string;
+  };
+}>(
+  "/api/shifts/:id/share",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const patch: Record<string, unknown> = {};
+    if (req.body?.targetType) patch.target_type = req.body.targetType;
+    if (req.body?.targetEmployeeIds) patch.target_employee_ids = req.body.targetEmployeeIds;
+    if (req.body?.targetGroupIds) patch.target_group_ids = req.body.targetGroupIds;
+    if (req.body?.reactionDeadline) patch.deadline = req.body.reactionDeadline;
+    const updated = pocDb.patchShift(req.params.id, patch);
     if (!updated) { reply.status(404); return { kind: "not_found" }; }
     return updated;
   },
@@ -860,27 +979,65 @@ app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
 // ── static serving (alleen als Angular gebouwd is) ──────────────────────
 
 const distRoot = join(__dirname, "..", "..", "dist", "frontend", "browser");
-if (existsSync(distRoot)) {
+const distExists = existsSync(distRoot);
+if (distExists) {
   await app.register(staticPlugin, {
     root: distRoot,
     prefix: "/",
   });
-
-  // SPA fallback: alles wat niet matcht en niet onder /api zit, serve index.html
-  app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith("/api")) {
-      reply.status(404).send({ kind: "not_found", path: req.url });
-      return;
-    }
-    reply.sendFile("index.html");
-  });
-
   app.log.info(`Serving Angular SPA from ${distRoot}`);
 } else {
   app.log.warn(
     `Angular dist not found at ${distRoot}. Run \`cd frontend && npm run build\` to enable static serving. Until then, use \`ng serve\` on :4200 with proxy.conf.json.`,
   );
 }
+
+// Single not-found handler that covers both modes:
+//
+//  1. `/api/*` paths we don't have a specific handler for → pass through to
+//     DPS using the user's cookie session. This keeps the frontend working
+//     against the full DPS surface (notification preferences, invitations,
+//     contract confirmation counts, etc.) without having to enumerate every
+//     endpoint in this proxy.
+//  2. Everything else: if `dist/` exists, fall back to `index.html` so the
+//     Angular router can handle deep links. Otherwise a plain 404.
+//
+// The pass-through is a safety net only — explicit handlers above (login,
+// poc-db tables, contract/employees wrappers) take priority because they
+// add cookie-session logic, validation, or PoC-DB writes that DPS doesn't
+// know about. For paths we've intentionally not wrapped (e.g. read-only
+// reference endpoints), this avoids a stream of "Route not found" 404s
+// silently breaking the frontend.
+const PASSTHROUGH_VERBS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+app.setNotFoundHandler(async (req, reply) => {
+  if (!req.url.startsWith("/api")) {
+    if (distExists) return reply.sendFile("index.html");
+    reply.status(404);
+    return { kind: "not_found", path: req.url };
+  }
+
+  // Only authed methods can pass through — and only with a valid cookie
+  // session. Without that we can't forward the x-boemm-skey to DPS so the
+  // caller gets a 401 instead of an opaque 500.
+  const method = (req.method ?? "GET").toUpperCase();
+  if (!PASSTHROUGH_VERBS.has(method)) {
+    reply.status(404);
+    return { kind: "not_found", path: req.url, method };
+  }
+  const session = pickSession(req);
+  if (!session) {
+    reply.status(401);
+    return { kind: "unauthenticated" };
+  }
+  try {
+    const body = await clientFor(session).rawAuthed<unknown>(method, req.url, req.body);
+    return body;
+  } catch (err) {
+    const e = asResponse(err);
+    reply.status(e.status);
+    return e.body;
+  }
+});
 
 // boot
 

@@ -11,4 +11,9 @@ export const environment = {
   boemmLoginUrl: '/api/admin-login',
   featureFlagClientId: '',
   googleMeasurementId: '',
+  // Single source of truth for the production DPS app — used to deep-link
+  // and to embed the Actuals (Prestatiebevestiging) page in an iframe at
+  // /company/:id/actuals. Switch to https://myplanning.digitalpayrollservices.be
+  // for prod by editing this one value.
+  externalDpsBaseUrl: 'https://qa.dps.boemm.eu',
 };

@@ -1,0 +1,102 @@
+<header class="actuals-header">
+  <div class="flex align-items-center gap-3">
+    <button type="button" class="back-btn" (click)="back()" aria-label="Terug naar planning">
+      <span class="dps-icon dps-icon-chevron rotate-180"></span>
+    </button>
+    <div class="flex flex-column">
+      <h1 class="m-0 text-2xl font-semibold">Prestatiebevestiging</h1>
+      <span class="text-sm text-color-secondary">
+        Bevestig de gewerkte uren per dag. Pending acties blijven in de
+        actiebar staan tot de operator ze afhandelt.
+      </span>
+    </div>
+    <span class="flex-1"></span>
+    <p-button
+      icon="dps-icon dps-icon-refresh"
+      severity="secondary"
+      [text]="true"
+      (onClick)="refresh()"
+      pTooltip="Vernieuwen"
+    />
+  </div>
+
+  <div class="filter-row">
+    <p-selectButton
+      class="planning-segment"
+      [options]="statusOptions"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="setStatusFilter($event)"
+      optionLabel="label"
+      optionValue="value"
+      [allowEmpty]="false"
+    />
+
+    <span class="text-sm text-color-secondary">
+      <strong class="text-primary">{{ pendingCount() }}</strong>
+      pending van {{ rows().length }}
+    </span>
+  </div>
+</header>
+
+<section class="actuals-body">
+  @if (loading()) {
+    <div class="loader-wrap">
+      <p-progressSpinner styleClass="actuals-spinner" />
+      <span>Prestaties ophalen...</span>
+    </div>
+  } @else if (fetchError()) {
+    <div class="empty-state error-state">
+      <span class="dps-icon dps-icon-warning"></span>
+      <strong>Prestaties ophalen mislukt</strong>
+      <span class="text-sm text-color-secondary">{{ fetchError() }}</span>
+      <p-button
+        label="Opnieuw proberen"
+        icon="dps-icon dps-icon-refresh"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="refresh()"
+      />
+    </div>
+  } @else if (filteredRows().length === 0) {
+    <div class="empty-state">
+      <span class="dps-icon dps-icon-check"></span>
+      <strong>Geen prestaties om te bevestigen</strong>
+      <span class="text-sm text-color-secondary">
+        Alle gewerkte uren in de huidige periode zijn afgehandeld.
+      </span>
+    </div>
+  } @else {
+    <ul class="actual-list" role="list">
+      @for (row of filteredRows(); track row.id) {
+        <li class="actual-card">
+          <div class="actual-card-main">
+            <div class="actual-card-title">
+              <strong>{{ row.position }}</strong>
+              <span class="text-sm text-color-secondary">
+                {{ dateRangeLabel(row) }}
+              </span>
+            </div>
+            <div class="actual-card-meta">
+              <span class="status-pill" [class]="rowStatusLabel(row).cls">
+                {{ rowStatusLabel(row).label }}
+              </span>
+              <span class="text-xs text-color-secondary">
+                {{ row.workTime.length }}
+                {{ row.workTime.length === 1 ? 'dag' : 'dagen' }}
+              </span>
+            </div>
+          </div>
+          <div class="actual-card-actions">
+            <p-button
+              icon="dps-icon dps-icon-check"
+              label="Bevestigen"
+              (onClick)="openConfirm(row)"
+            />
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<p-toast position="bottom-right" />
