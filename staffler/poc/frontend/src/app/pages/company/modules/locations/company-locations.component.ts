@@ -25,11 +25,24 @@ import {
   CreateServiceGroupPayload,
   ServiceGroupApiService,
   ServiceGroupModel,
+  OpeningHours,
+  OpeningHoursDay,
 } from '@dps/core/api/service-group/service-group.api.service';
 import {
   EngagementGroupApiService,
   EngagementGroupModel,
 } from '@dps/core/api/engagement-group/engagement-group.api.service';
+
+type WeekDay = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+const WEEKDAYS: ReadonlyArray<{ id: WeekDay; short: string; long: string }> = [
+  { id: 1, short: 'Ma', long: 'maandag' },
+  { id: 2, short: 'Di', long: 'dinsdag' },
+  { id: 3, short: 'Wo', long: 'woensdag' },
+  { id: 4, short: 'Do', long: 'donderdag' },
+  { id: 5, short: 'Vr', long: 'vrijdag' },
+  { id: 6, short: 'Za', long: 'zaterdag' },
+  { id: 7, short: 'Zo', long: 'zondag' },
+];
 
 interface ServiceGroupForm {
   id: string | null;
@@ -38,6 +51,13 @@ interface ServiceGroupForm {
   addressLine1: string;
   postalCode: string;
   city: string;
+  /** Mutable working copy of OpeningHours used by the per-weekday editor.
+   *  Missing entries are treated as "gesloten". */
+  openingHours: Record<WeekDay, OpeningHoursDay | null>;
+}
+
+function emptyOpeningHours(): Record<WeekDay, OpeningHoursDay | null> {
+  return { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null };
 }
 
 function emptyForm(): ServiceGroupForm {
@@ -48,6 +68,7 @@ function emptyForm(): ServiceGroupForm {
     addressLine1: '',
     postalCode: '',
     city: '',
+    openingHours: emptyOpeningHours(),
   };
 }
 
@@ -116,6 +137,14 @@ export class CompanyLocationsComponent {
   }
 
   protected openEdit(row: ServiceGroupModel): void {
+    const oh = row.opening_hours ?? {};
+    const filled: Record<WeekDay, OpeningHoursDay | null> = emptyOpeningHours();
+    for (const wd of [1, 2, 3, 4, 5, 6, 7] as const) {
+      const entry = oh[wd];
+      if (entry && typeof entry.from === 'string' && typeof entry.to === 'string') {
+        filled[wd] = { from: entry.from, to: entry.to };
+      }
+    }
     this.form = {
       id: row.id,
       name: row.name,
@@ -123,8 +152,65 @@ export class CompanyLocationsComponent {
       addressLine1: row.address_line1 ?? '',
       postalCode: row.postal_code ?? '',
       city: row.city ?? '',
+      openingHours: filled,
     };
     this.dialogVisible.set(true);
+  }
+
+  // -- opening hours helpers (template-friendly) --
+
+  protected readonly weekdays = WEEKDAYS;
+
+  /** Toggles "gesloten" for a weekday. Switching off opens with a sensible
+   *  default (09:00–17:00); switching on clears the day. */
+  protected toggleClosed(day: WeekDay, closed: boolean): void {
+    this.form.openingHours[day] = closed ? null : { from: '09:00', to: '17:00' };
+  }
+
+  protected isClosed(day: WeekDay): boolean {
+    return !this.form.openingHours[day];
+  }
+
+  protected setDayFrom(day: WeekDay, value: string): void {
+    const cur = this.form.openingHours[day];
+    if (!cur) return;
+    this.form.openingHours[day] = { ...cur, from: value };
+  }
+
+  protected setDayTo(day: WeekDay, value: string): void {
+    const cur = this.form.openingHours[day];
+    if (!cur) return;
+    this.form.openingHours[day] = { ...cur, to: value };
+  }
+
+  protected dayValue(day: WeekDay): OpeningHoursDay | null {
+    return this.form.openingHours[day];
+  }
+
+  /** Compact 7-pill summary used on the service-locations table. Falls
+   *  back to a dash when nothing is set (matches the address column). */
+  protected openingSummary(oh: OpeningHours | undefined): Array<{
+    short: string;
+    long: string;
+    open: boolean;
+    from: string;
+    to: string;
+  }> {
+    return WEEKDAYS.map(d => {
+      const entry = oh?.[d.id];
+      return {
+        short: d.short,
+        long: d.long,
+        open: !!entry,
+        from: entry?.from ?? '',
+        to: entry?.to ?? '',
+      };
+    });
+  }
+
+  protected hasAnyOpeningHours(oh: OpeningHours | undefined): boolean {
+    if (!oh) return false;
+    return WEEKDAYS.some(d => !!oh[d.id]);
   }
 
   protected closeDialog(): void {
@@ -142,6 +228,16 @@ export class CompanyLocationsComponent {
     if (!company) return;
 
     this.saving.set(true);
+    // Collapse the working copy back to a `Partial<Record<WeekDay,…>>`
+    // shape — drop null entries so the wire format matches the server's
+    // OpeningHours (null = "gesloten" is encoded by absence). Keeps the
+    // payload compact for the typical "Mon-Fri 09-17" case.
+    const openingHours: OpeningHours = {};
+    for (const wd of [1, 2, 3, 4, 5, 6, 7] as const) {
+      const v = this.form.openingHours[wd];
+      if (v) openingHours[wd] = v;
+    }
+
     const payload: CreateServiceGroupPayload = {
       companyId: company.id,
       branchGroupId: this.form.branchGroupId,
@@ -149,6 +245,7 @@ export class CompanyLocationsComponent {
       addressLine1: this.form.addressLine1.trim() || undefined,
       postalCode: this.form.postalCode.trim() || undefined,
       city: this.form.city.trim() || undefined,
+      openingHours,
     };
 
     const obs = this.form.id

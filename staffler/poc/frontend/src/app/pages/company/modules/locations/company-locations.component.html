@@ -54,6 +54,7 @@
           <th>Naam</th>
           <th>Vestiging</th>
           <th>Adres</th>
+          <th class="w-14rem">Open</th>
           <th class="w-6rem text-right">Acties</th>
         </tr>
       </ng-template>
@@ -68,6 +69,29 @@
                 @if (row.postal_code || row.city) {
                   <span class="text-color-secondary">
                     {{ row.postal_code }} {{ row.city }}
+                  </span>
+                }
+              </span>
+            } @else {
+              <span class="text-color-secondary font-italic">—</span>
+            }
+          </td>
+          <td>
+            <!--
+              Compact 7-pill strip — open days are filled, closed days
+              fade to a hollow dot. Hover for the exact hours. When no
+              opening hours are set we surface a dash like the address
+              column so the cell isn't a misleading seven empty pills.
+            -->
+            @if (hasAnyOpeningHours(row.opening_hours)) {
+              <span class="oh-strip">
+                @for (d of openingSummary(row.opening_hours); track d.short) {
+                  <span
+                    class="oh-pill"
+                    [class.open]="d.open"
+                    [pTooltip]="d.open ? d.long + ' ' + d.from + ' → ' + d.to : d.long + ' gesloten'"
+                  >
+                    {{ d.short }}
                   </span>
                 }
               </span>
@@ -97,7 +121,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="4">
+          <td colspan="5">
             <span class="text-color-secondary font-italic">
               Nog geen service locations aangemaakt voor dit bedrijf.
             </span>
@@ -162,6 +186,46 @@
         <span class="text-sm">Gemeente</span>
         <input pInputText [(ngModel)]="form.city" />
       </label>
+    </div>
+
+    <!--
+      Opening hours per weekday (mockup 14). Each row: weekday label
+      + "gesloten" checkbox; when open, two time inputs slide in
+      next to it. We keep the editor compact so the dialog still
+      fits in 30rem.
+    -->
+    <div class="flex flex-column gap-2 mt-2">
+      <span class="text-sm font-medium">Openingsuren</span>
+      <div class="flex flex-column gap-1 oh-editor">
+        @for (d of weekdays; track d.id) {
+          <div class="oh-row">
+            <span class="oh-row-label">{{ d.long }}</span>
+            <label class="oh-row-closed">
+              <input
+                type="checkbox"
+                [checked]="isClosed(d.id)"
+                (change)="toggleClosed(d.id, $any($event.target).checked)"
+              />
+              <span>Gesloten</span>
+            </label>
+            @if (!isClosed(d.id)) {
+              <input
+                type="time"
+                class="oh-row-time"
+                [value]="dayValue(d.id)?.from"
+                (input)="setDayFrom(d.id, $any($event.target).value)"
+              />
+              <span class="oh-row-arrow">→</span>
+              <input
+                type="time"
+                class="oh-row-time"
+                [value]="dayValue(d.id)?.to"
+                (input)="setDayTo(d.id, $any($event.target).value)"
+              />
+            }
+          </div>
+        }
+      </div>
     </div>
   </div>
 

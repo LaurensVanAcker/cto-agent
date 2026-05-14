@@ -428,6 +428,7 @@ app.post<{
     addressLine2?: string;
     postalCode?: string;
     city?: string;
+    openingHours?: import("../store/poc-db.js").OpeningHours;
   };
 }>(
   "/api/service-groups",
@@ -450,6 +451,7 @@ app.post<{
       address_line2: b.addressLine2 ?? null,
       postal_code: b.postalCode ?? null,
       city: b.city ?? null,
+      opening_hours: b.openingHours ?? {},
     });
   },
 );
@@ -464,6 +466,7 @@ app.put<{
     addressLine2?: string;
     postalCode?: string;
     city?: string;
+    openingHours?: import("../store/poc-db.js").OpeningHours;
   };
 }>(
   "/api/service-groups/:id",
@@ -477,6 +480,7 @@ app.put<{
     if (req.body.addressLine2 !== undefined) patch.address_line2 = req.body.addressLine2 || null;
     if (req.body.postalCode !== undefined) patch.postal_code = req.body.postalCode || null;
     if (req.body.city !== undefined) patch.city = req.body.city || null;
+    if (req.body.openingHours !== undefined) patch.opening_hours = req.body.openingHours;
     const updated = pocDb.updateServiceGroup(req.params.id, patch);
     if (!updated) { reply.status(404); return { kind: "not_found" }; }
     return updated;

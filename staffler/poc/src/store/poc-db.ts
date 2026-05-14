@@ -18,6 +18,17 @@ const __dirname = dirname(__filename);
 const DATA_DIR = join(__dirname, "..", "..", "data");
 const DB_FILE = join(DATA_DIR, "poc-db.json");
 
+/**
+ * Per-weekday opening window. `null` for a weekday means "gesloten op die
+ * dag"; presence of a non-null entry on every key (1..7, ISO weekday) is
+ * not required — missing keys also mean "gesloten". Keep `from` < `to`.
+ */
+export interface OpeningHoursDay {
+  from: string; // "HH:mm"
+  to: string;   // "HH:mm"
+}
+export type OpeningHours = Partial<Record<1 | 2 | 3 | 4 | 5 | 6 | 7, OpeningHoursDay | null>>;
+
 export interface ServiceGroup {
   id: string;
   company_id: string;
@@ -27,6 +38,9 @@ export interface ServiceGroup {
   address_line2: string | null;
   postal_code: string | null;
   city: string | null;
+  /** Per-weekday opening hours. Null on a key (or missing key) means
+   *  "gesloten". Per mockup 14: optional, defaults to {} on creation. */
+  opening_hours: OpeningHours;
   deleted_at: string | null; // ISO timestamp or null
   created_at: string;
   updated_at: string;
@@ -170,7 +184,15 @@ class PocDb {
     try {
       const raw = readFileSync(DB_FILE, "utf-8");
       const parsed = JSON.parse(raw) as Partial<DbShape>;
-      return { ...emptyDb(), ...parsed };
+      const merged = { ...emptyDb(), ...parsed };
+      // Migrations for fields added after the initial PoC-DB shape was
+      // persisted. We keep these cheap — service-group rows on disk
+      // pre-dated `opening_hours`, so default to {} (= gesloten elke dag,
+      // operator vult invult).
+      for (const sg of merged.service_groups) {
+        if (!sg.opening_hours) sg.opening_hours = {};
+      }
+      return merged;
     } catch {
       return emptyDb();
     }
@@ -194,15 +216,19 @@ class PocDb {
   }
 
   createServiceGroup(
-    input: Omit<ServiceGroup, "id" | "deleted_at" | "created_at" | "updated_at">,
+    input: Omit<ServiceGroup, "id" | "deleted_at" | "created_at" | "updated_at" | "opening_hours"> & {
+      opening_hours?: OpeningHours;
+    },
   ): ServiceGroup {
     const now = new Date().toISOString();
+    const { opening_hours, ...rest } = input;
     const row: ServiceGroup = {
       id: randomUUID(),
       deleted_at: null,
       created_at: now,
       updated_at: now,
-      ...input,
+      opening_hours: opening_hours ?? {},
+      ...rest,
     };
     this.data.service_groups.push(row);
     this.save();

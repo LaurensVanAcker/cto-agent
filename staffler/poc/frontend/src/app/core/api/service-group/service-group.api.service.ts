@@ -5,6 +5,18 @@ import { Observable } from 'rxjs';
 import { environment } from '@dps/env';
 
 /**
+ * Per-weekday opening window for a service location. `null` (or a missing
+ * key) means "gesloten op die dag". Times in `HH:mm`.
+ */
+export interface OpeningHoursDay {
+  from: string;
+  to: string;
+}
+export type OpeningHours = Partial<
+  Record<1 | 2 | 3 | 4 | 5 | 6 | 7, OpeningHoursDay | null>
+>;
+
+/**
  * PoC-DB service group (= sub-row under a vestiging in the planning grid,
  * e.g. "Toog Gent", "Bar Sluizeken"). Lives in the Fastify proxy's
  * in-memory store, not in DPS.
@@ -18,6 +30,10 @@ export interface ServiceGroupModel {
   address_line2: string | null;
   postal_code: string | null;
   city: string | null;
+  /** Pre-2026-05 PoC-DB rows may not have this on disk; the server
+   *  backfills to `{}` on load. Optional in the model so old payloads
+   *  that don't include it still typecheck on the client. */
+  opening_hours?: OpeningHours;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -31,6 +47,7 @@ export interface CreateServiceGroupPayload {
   addressLine2?: string;
   postalCode?: string;
   city?: string;
+  openingHours?: OpeningHours;
 }
 
 export type UpdateServiceGroupPayload = Partial<Omit<CreateServiceGroupPayload, 'companyId'>>;
