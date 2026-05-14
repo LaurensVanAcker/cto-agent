@@ -11,6 +11,10 @@ export enum CompanyRouteEnum {
   INVITATIONS = 'invitations',
   GROUPS = 'groups',
   POOL = 'pool',
+  // Restored after pilot feedback (2026-05-14): "key" icon admin page
+  // where COMPANY USERS get accessGroups (vestigingen) assigned. Pool is
+  // the EMPLOYEE side (uitzendkrachten + invites). Don't mix the two.
+  USER_ACCOUNTS = 'user-accounts',
   // Prestatiebevestiging — the PoC owns the UI now (no more iframe);
   // the API still hits production DPS. List + per-day confirm dialog.
   ACTUALS = 'actuals',

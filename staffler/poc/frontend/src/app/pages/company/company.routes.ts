@@ -63,6 +63,19 @@ export const COMPANY_ROUTES: Routes = [
           import('./modules/actuals/company-actuals.routes').then(m => m.COMPANY_ACTUALS_ROUTES),
         canActivate: [COMPANY_ACTUALS_ENABLED_GUARD],
       },
+      // Restored: company-user admin (the "key" icon in the sidebar). Per
+      // QA reference (https://mystaffler.dev.wlnob.boemm.eu) this is the
+      // page where COMPANY USERS get assigned to accessGroups (which we
+      // call "vestigingen" now). Different from /pool — Pool is the
+      // EMPLOYEE (uitzendkracht) side with invite + last-login. Both end
+      // up assigned to vestigingen, but via different admin surfaces.
+      {
+        path: CompanyRouteEnum.USER_ACCOUNTS,
+        loadChildren: () =>
+          import('./modules/user-accounts/user-accounts.routes').then(
+            m => m.COMPANY_USER_ACCOUNTS_ROUTES,
+          ),
+      },
       // Legacy '/planning' deep links — keep them resolvable so anything that
       // still hands out the old URL doesn't 404.
       { path: 'planning', redirectTo: CompanyRouteEnum.PLANNING, pathMatch: 'full' },

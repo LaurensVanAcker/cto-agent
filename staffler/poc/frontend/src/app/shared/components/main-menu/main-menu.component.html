@@ -55,6 +55,25 @@
     planning).
   -->
 
+  <!--
+    User accounts — the "key" icon. Restored after pilot feedback
+    (2026-05-14): this is where COMPANY USERS (admin people who log in
+    to the planning portal) get assigned to vestigingen. Different from
+    /pool which is the EMPLOYEE (uitzendkracht) side.
+  -->
+  <a
+    [pTooltip]="'COMPANY_SIDENAV.USER_ACCOUNTS' | translate"
+    [tooltipDisabled]="isMenuExpanded()"
+    [routerLink]="[companyRouteEnum.USER_ACCOUNTS]"
+    [routerLinkActive]="activeLinkClasses"
+    [class]="linkClasses"
+  >
+    <span
+      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.USER_ACCOUNTS] }}"
+    ></span>
+    <span class="link-text">{{ 'COMPANY_SIDENAV.USER_ACCOUNTS' | translate }}</span>
+  </a>
+
   <a
     [pTooltip]="'COMPANY_SIDENAV.POOL' | translate"
     [tooltipDisabled]="isMenuExpanded()"
