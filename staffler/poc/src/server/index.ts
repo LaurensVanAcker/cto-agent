@@ -915,6 +915,28 @@ app.post<{
   },
 );
 
+// DELETE /api/availabilities/:id — uitzendkracht intrekt een availability
+// vanuit MyStaffler. 404 als de id onbekend is, 409 als de availability
+// al gelocked is door een contract (verwijder eerst het contract).
+app.delete<{ Params: { id: string } }>(
+  "/api/availabilities/:id",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const existed = pocDb.raw().availabilities.some((a) => a.id === req.params.id);
+    if (!existed) { reply.status(404); return { kind: "not_found" }; }
+    const removed = pocDb.deleteAvailability(req.params.id);
+    if (!removed) {
+      reply.status(409);
+      return {
+        kind: "conflict",
+        message: "Deze beschikbaarheid is al gekoppeld aan een contract.",
+      };
+    }
+    return { ok: true };
+  },
+);
+
 // ── MyStaffler pool (BCJ-19425) ────────────────────────────────────────────
 
 // GET /api/mystaffler-invites?companyId=

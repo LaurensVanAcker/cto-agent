@@ -555,6 +555,18 @@ class PocDb {
     return row;
   }
 
+  /** Delete an availability row. Returns true if removed, false if the
+   *  id was unknown. Locked availabilities (already promoted to a
+   *  contract) are kept — the underlying contract owns the slot now. */
+  deleteAvailability(id: string): boolean {
+    const idx = this.data.availabilities.findIndex((a) => a.id === id);
+    if (idx < 0) return false;
+    if (this.data.availabilities[idx].status === "locked") return false;
+    this.data.availabilities.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
   // -- mystaffler_invites --
 
   listMyStafflerInvites(companyId: string): MyStafflerInvite[] {

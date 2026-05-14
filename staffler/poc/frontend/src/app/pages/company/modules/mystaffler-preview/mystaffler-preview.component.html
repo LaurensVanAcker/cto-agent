@@ -154,13 +154,32 @@
                   </div>
                   <div class="day-blocks">
                     @if (day.availability) {
-                      <div class="block block-availability">
+                      <!--
+                        Click-to-remove. We use a button so it's
+                        keyboard-reachable and the cursor flips to pointer.
+                        Locked slots are kept disabled — the operator sees
+                        a lock icon and a tailored toast on click.
+                      -->
+                      <button
+                        type="button"
+                        class="block block-availability as-button"
+                        [class.is-locked]="day.availability.status === 'locked'"
+                        (click)="removeAvailability(day.availability)"
+                        [attr.aria-label]="
+                          day.availability.status === 'locked'
+                            ? 'Beschikbaarheid gelocked, niet verwijderbaar'
+                            : 'Beschikbaarheid verwijderen'
+                        "
+                      >
+                        @if (day.availability.status === 'locked') {
+                          <span class="dps-icon dps-icon-lock"></span>
+                        }
                         Beschikbaar
                         <span class="block-times">
                           {{ day.availability.from_time }} →
                           {{ day.availability.to_time }}
                         </span>
-                      </div>
+                      </button>
                     } @else {
                       <button
                         type="button"

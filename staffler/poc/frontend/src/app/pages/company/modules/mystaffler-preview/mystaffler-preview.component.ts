@@ -225,6 +225,41 @@ export class MystafflerPreviewComponent {
       });
   }
 
+  /** Remove an availability the operator created from MyStaffler. Same
+   *  refresh hook as create — the green band on the planning grid
+   *  reflects the change on next navigation. Locked slots (already
+   *  promoted to a contract) cannot be deleted; the server 409s and we
+   *  surface a tailored toast. */
+  protected removeAvailability(av: AvailabilityModel): void {
+    if (!av?.id) return;
+    if (av.status === 'locked') {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Niet verwijderbaar',
+        detail: 'Deze beschikbaarheid hangt aan een contract.',
+      });
+      return;
+    }
+    this.availabilityApi.remove(av.id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Beschikbaarheid verwijderd',
+        });
+        this.refresh();
+      },
+      error: (err: { status?: number }) => {
+        this.messageService.add({
+          severity: 'error',
+          summary:
+            err?.status === 409
+              ? 'Niet verwijderbaar — gekoppeld aan een contract.'
+              : 'Verwijderen mislukt.',
+        });
+      },
+    });
+  }
+
   private loadEmployees(companyId: string): void {
     this.employeesApi
       .getEmployees({ companyId, baseView: true, page: 0, size: 100 })

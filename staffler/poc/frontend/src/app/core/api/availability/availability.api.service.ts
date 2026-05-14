@@ -68,4 +68,11 @@ export class AvailabilityApiService {
   }): Observable<AvailabilityModel> {
     return this.http.post<AvailabilityModel>(this.url, payload);
   }
+
+  /** Uitzendkracht trekt zijn beschikbaarheid in vanuit MyStaffler. Server
+   *  retourneert 409 als de slot al gekoppeld is aan een contract — in
+   *  dat geval moet eerst het contract verwijderd worden. */
+  remove(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${this.url}/${id}`);
+  }
 }

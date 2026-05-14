@@ -189,6 +189,31 @@
   color: #155e75;
 }
 
+// Click-to-remove affordance — the availability block is now a button.
+.block-availability.as-button {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  // Keep the border-left from the base rule (specificity)
+  border-left: 4px solid #0e7490;
+  transition: background-color 100ms ease;
+}
+.block-availability.as-button:hover {
+  background: #cffafe;
+}
+.block-availability.as-button.is-locked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.block-availability.as-button.is-locked:hover {
+  background: #ecfeff;
+}
+
 .block-empty {
   background: #f8fafc;
   border: 1px dashed #cbd5e1;
