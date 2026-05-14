@@ -4,3 +4,10 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# Claude Code / claude-flow tooling caches — not source of truth
+.claude/
+.claude-flow/
+.hive-mind/
+.swarm/
+CLAUDE.md

@@ -13,22 +13,39 @@
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-weight: 700;
+  color: var(--color-brand);
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.brand:hover { text-decoration: none; }
+
+.brand-pill {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--color-primary);
-  font-size: 16px;
+  background: var(--color-primary-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .links {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   flex: 1;
 }
 .links a {
-  color: var(--color-text);
-  padding: 4px 0;
+  color: var(--color-text-soft);
+  padding: 6px 0;
   border-bottom: 2px solid transparent;
+  font-weight: 500;
 }
-.links a:hover { text-decoration: none; border-bottom-color: var(--color-border); }
+.links a:hover { text-decoration: none; color: var(--color-text); border-bottom-color: var(--color-border); }
 .links a.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);

@@ -1,21 +1,34 @@
-/* Global styles, klein en simpel voor PoC */
+/* Global styles. Tokens overgenomen uit mockup 08 (Staffler-stijl). */
 
 :root {
-  --color-primary: #fc074f;
-  --color-primary-hover: #d80644;
-  --color-text: #222;
-  --color-muted: #888;
-  --color-bg: #fafafa;
+  /* brand */
+  --color-primary: #3c51f0;            /* Staffler indigo, used for nav + accents */
+  --color-primary-soft: rgba(60, 81, 240, 0.20);
+  --color-brand: #fc074f;              /* magenta accent for CTAs + active state */
+  --color-brand-hover: #d80644;
+  --color-brand-soft: rgba(252, 7, 79, 0.08);
+
+  /* neutrals (slate scale, matches mockup 08) */
+  --color-text: #0f172a;
+  --color-text-soft: #334155;
+  --color-muted: #64748b;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-border: #e0e0e0;
+  --color-surface-100: #f1f5f9;
+  --color-border: #e2e8f0;
+
+  /* status */
   --color-error: #d80644;
   --color-success: #008c41;
+
+  /* spacing + shape */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 32px;
-  --radius: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
 }
 
 * {
@@ -25,7 +38,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Helvetica Neue", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
   font-size: 14px;
@@ -36,36 +49,38 @@ h1 { font-size: 22px; margin: 0 0 var(--space-2); }
 h2 { font-size: 18px; margin: 0 0 var(--space-2); }
 h3 { font-size: 16px; margin: 0 0 var(--space-2); }
 
-a { color: var(--color-primary); text-decoration: none; }
+a { color: var(--color-brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 button, .btn {
   display: inline-block;
-  background: var(--color-primary);
+  background: var(--color-brand);
   color: white;
   border: 0;
   border-radius: var(--radius);
-  padding: 7px 14px;
+  padding: 8px 16px;
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: none;
 }
-button:hover, .btn:hover { background: var(--color-primary-hover); }
+button:hover, .btn:hover { background: var(--color-brand-hover); }
 button:disabled { opacity: 0.4; cursor: default; }
-button.secondary { background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary); }
-button.secondary:hover { background: rgba(252, 7, 79, 0.08); }
+button.secondary { background: transparent; color: var(--color-brand); border: 1px solid var(--color-brand); }
+button.secondary:hover { background: var(--color-brand-soft); }
 
 input, select {
-  padding: 7px 9px;
+  padding: 8px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font: inherit;
   background: var(--color-surface);
+  color: var(--color-text);
 }
 input:focus, select:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(252, 7, 79, 0.15);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 label { display: block; font-size: 13px; color: var(--color-muted); margin-bottom: var(--space-1); }
@@ -73,8 +88,9 @@ label { display: block; font-size: 13px; color: var(--color-muted); margin-botto
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 table { border-collapse: collapse; width: 100%; }
@@ -93,7 +109,7 @@ th { font-weight: 600; color: var(--color-muted); font-size: 12px; text-transfor
   display: inline-block;
   width: 12px; height: 12px;
   border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
+  border-top-color: var(--color-brand);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

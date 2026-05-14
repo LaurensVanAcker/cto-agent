@@ -47,9 +47,7 @@ export class ContractsComponent {
     this.error.set(null);
     try {
       const start = this.weekStart();
-      const endD = new Date(start);
-      endD.setDate(endD.getDate() + 6);
-      const end = endD.toISOString().slice(0, 10);
+      const end = addDaysIso(start, 6);
       const result = await this.staffler.listContracts({
         companyId: id,
         startDate: start,
@@ -69,6 +67,20 @@ export class ContractsComponent {
     const d = new Date();
     const dow = d.getDay();
     d.setDate(d.getDate() - ((dow + 6) % 7));
-    return d.toISOString().slice(0, 10);
+    return toLocalIsoDate(d);
   }
+}
+
+function toLocalIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return toLocalIsoDate(dt);
 }

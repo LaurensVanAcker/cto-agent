@@ -1,7 +1,9 @@
 <div class="login-page">
+  <div class="login-overlay"></div>
+
   <div class="card login-card">
-    <h1>Staffler PoC</h1>
-    <p class="muted">Login met je QA test-account.</p>
+    <div class="wordmark">staffler</div>
+    <p class="muted login-tagline">Log in met je QA test-account.</p>
 
     <form (submit)="$event.preventDefault(); submit()">
       <label for="user">Email</label>
@@ -31,7 +33,7 @@
       }
 
       <button type="submit" [disabled]="busy()">
-        @if (busy()) { <span class="spinner"></span> } @else { Login }
+        @if (busy()) { <span class="spinner"></span> } @else { Inloggen }
       </button>
     </form>
   </div>

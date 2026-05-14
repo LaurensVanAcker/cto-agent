@@ -1,14 +1,37 @@
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  padding: var(--space-4);
+  background: url('/assets/images/background.jpeg') center / cover no-repeat var(--color-bg);
+}
+
+.login-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.55), rgba(60, 81, 240, 0.30));
 }
 
 .login-card {
-  width: 360px;
+  position: relative;
+  z-index: 1;
+  width: 400px;
   max-width: 100%;
+  padding: var(--space-5);
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--color-brand);
+  margin-bottom: var(--space-1);
+}
+
+.login-tagline {
+  margin: 0 0 var(--space-4);
 }
 
 .login-card form {
@@ -24,6 +47,8 @@
 .login-card button {
   margin-top: var(--space-3);
   align-self: stretch;
+  padding: 10px 16px;
+  font-weight: 500;
 }
 
 .login-card .err {
