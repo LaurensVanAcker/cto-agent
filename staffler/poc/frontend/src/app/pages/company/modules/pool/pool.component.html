@@ -11,11 +11,12 @@
     Toolbar: "Nieuwe vestiging toevoegen" + search input on the same row to
     save vertical space (per /groups layout).
   -->
-  <div class="flex align-items-center gap-2 flex-wrap">
+  <div class="flex align-items-stretch gap-2 flex-wrap pool-toolbar">
     <p-button
       icon="dps-icon dps-icon-group_add"
       label="Nieuwe vestiging maken"
       class="flex-none"
+      styleClass="pool-toolbar-btn"
       (onClick)="newBranchPopover.toggle($event)"
     />
 
@@ -125,9 +126,20 @@
         @if (hasGroupColumn()) {
           <td>
             @if (row.assignedGroups.length > 0) {
-              <div class="flex flex-wrap align-items-center gap-2" style="min-height: 3rem">
-                @for (g of row.assignedGroups; track g.id) {
-                  <p-chip [label]="g.name" />
+              <div class="flex flex-wrap align-items-center gap-2 pool-chip-cell" style="min-height: 3rem">
+                @for (g of row.assignedGroups; track g.id; let groupIndex = $index) {
+                  <p-chip>
+                    <span>{{ g.name }}</span>
+                    <span
+                      class="dps-icon dps-icon-delete pool-chip-remove"
+                      role="button"
+                      [attr.aria-label]="'Verwijder ' + g.name"
+                      pTooltip="Vestiging verwijderen"
+                      tooltipPosition="top"
+                      appendTo="body"
+                      (click)="removeGroupFromEmployee(row, groupIndex)"
+                    ></span>
+                  </p-chip>
                 }
               </div>
             } @else {

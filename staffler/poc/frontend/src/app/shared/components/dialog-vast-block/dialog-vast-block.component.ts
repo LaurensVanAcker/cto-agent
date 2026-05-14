@@ -23,6 +23,10 @@ interface DialogData {
   /** Initial hour range when the operator dragged to size the block. */
   fromTime?: string;
   toTime?: string;
+  /** Existing PoC-DB block id when the operator clicks a saved block.
+   *  Presence flips the dialog from create-only to edit-with-delete:
+   *  the "Vast blok verwijderen" action becomes available. */
+  blockId?: string;
 }
 
 /**
@@ -60,6 +64,7 @@ export class DialogVastBlockComponent {
   };
 
   protected readonly employeeName = this.config.data?.employeeName ?? 'Vaste medewerker';
+  protected readonly blockId = this.config.data?.blockId ?? null;
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -103,5 +108,17 @@ export class DialogVastBlockComponent {
         toTime: this.form.toTime,
       },
     });
+  }
+
+  /** Soft-confirmed delete. Emits a `vast.block.deleted` intent — the
+   *  caller (planning-poc) DELETEs against PoC-DB and refreshes the grid.
+   *  Only available when the dialog opened on an existing block. */
+  protected deleteBlock(): void {
+    if (!this.blockId || this.saving()) return;
+    const ok = window.confirm(
+      `Vast blok van ${this.employeeName} verwijderen? Dit kan niet ongedaan gemaakt worden.`,
+    );
+    if (!ok) return;
+    this.ref.close({ kind: 'vast.block.deleted', blockId: this.blockId });
   }
 }

@@ -73,6 +73,25 @@
   }
 </div>
 
-<div class="flex justify-content-end mt-3">
+<div class="flex justify-content-between mt-3">
+  <!--
+    Cancel-shift action lives on the left so it doesn't compete with
+    "Sluiten" on the right. Only shown for draft / open shifts; once a
+    contract has landed (closed / fulfilled) cancelling here would
+    leave a stale DPS contract behind, so we hide the button instead
+    of relying on the server to 409.
+  -->
+  @if (canCancelShift()) {
+    <p-button
+      label="Shift annuleren"
+      severity="danger"
+      [text]="true"
+      icon="dps-icon dps-icon-delete"
+      [loading]="cancelling()"
+      (onClick)="cancelShift()"
+    />
+  } @else {
+    <span></span>
+  }
   <p-button label="Sluiten" severity="secondary" [text]="true" (onClick)="close()" />
 </div>

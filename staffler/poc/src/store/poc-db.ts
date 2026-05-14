@@ -353,6 +353,50 @@ class PocDb {
 
   createShift(input: Omit<Shift, "id" | "created_at" | "updated_at">): Shift {
     const now = new Date().toISOString();
+
+    // Pilot feedback (2026-05-14): if a new shift matches an existing
+    // draft/open shift on the same service location + date + hours, the
+    // operator almost always means "add more seats", not "create a near-
+    // identical duplicate row". Merge instead of insert. Closed / fulfilled
+    // / cancelled shifts are *not* candidates — those are historical and
+    // re-using them would mutate audit-relevant state. We also leave
+    // status untouched: a draft stays a draft, an open stays open.
+    const dup = this.data.shifts.find(
+      (s) =>
+        (s.status === "draft" || s.status === "open") &&
+        s.company_id === input.company_id &&
+        s.service_group_id === input.service_group_id &&
+        s.date_from === input.date_from &&
+        s.date_to === input.date_to &&
+        s.from_time === input.from_time &&
+        s.to_time === input.to_time &&
+        (s.pause_from ?? null) === (input.pause_from ?? null) &&
+        (s.pause_to ?? null) === (input.pause_to ?? null),
+    );
+    if (dup) {
+      const mergedTargetEmployees = Array.from(
+        new Set([...(dup.target_employee_ids ?? []), ...(input.target_employee_ids ?? [])]),
+      );
+      const mergedTargetGroups = Array.from(
+        new Set([...(dup.target_group_ids ?? []), ...(input.target_group_ids ?? [])]),
+      );
+      dup.capacity = (dup.capacity ?? 1) + (input.capacity ?? 1);
+      dup.target_employee_ids = mergedTargetEmployees;
+      dup.target_group_ids = mergedTargetGroups;
+      // If either side broadcast (target_type !== NONE), prefer that side
+      // so the resulting shift keeps its broadcast wiring.
+      if (dup.target_type === "NONE" && input.target_type !== "NONE") {
+        dup.target_type = input.target_type;
+      }
+      // The latest deadline wins — operators typically extend, not shrink.
+      if (input.deadline && (!dup.deadline || input.deadline > dup.deadline)) {
+        dup.deadline = input.deadline;
+      }
+      dup.updated_at = now;
+      this.save();
+      return dup;
+    }
+
     const row: Shift = {
       id: randomUUID(),
       created_at: now,
@@ -360,6 +404,33 @@ class PocDb {
       ...input,
     };
     this.data.shifts.push(row);
+    this.save();
+    return row;
+  }
+
+  /** Lookup a single shift by id without filtering by company. Used by
+   *  routes that already authenticated the caller and just need to
+   *  disambiguate 404 vs 409. */
+  findShift(id: string): Shift | null {
+    return this.data.shifts.find((s) => s.id === id) ?? null;
+  }
+
+  /**
+   * Cancel a shift. Only draft / open shifts may be cancelled — closed,
+   * fulfilled or already-cancelled shifts are no-ops returning the
+   * existing row unchanged so the route can disambiguate via the
+   * returned status. Stores `cancel_reason` if provided for audit.
+   */
+  cancelShift(id: string, reason?: string | null): Shift | null {
+    const row = this.data.shifts.find((s) => s.id === id);
+    if (!row) return null;
+    if (row.status === "cancelled") return row;
+    if (row.status !== "draft" && row.status !== "open") return null;
+    row.status = "cancelled";
+    row.updated_at = new Date().toISOString();
+    if (reason) {
+      (row as Shift & { cancel_reason?: string }).cancel_reason = reason;
+    }
     this.save();
     return row;
   }
@@ -453,6 +524,20 @@ class PocDb {
     });
   }
 
+  /** Bulk variant used by the planning grid to paint green hour-blocks
+   *  across every visible employee in one round-trip. Returns rows whose
+   *  employee_id is in the supplied set and date falls inside the window. */
+  listAvailabilitiesBulk(employeeIds: string[], from?: string, to?: string): Availability[] {
+    if (employeeIds.length === 0) return [];
+    const set = new Set(employeeIds);
+    return this.data.availabilities.filter((a) => {
+      if (!set.has(a.employee_id)) return false;
+      if (from && a.date < from) return false;
+      if (to && a.date > to) return false;
+      return true;
+    });
+  }
+
   createAvailability(
     input: Omit<Availability, "id" | "created_at" | "updated_at">,
   ): Availability {
@@ -530,10 +615,15 @@ class PocDb {
   seedDemo(input: {
     companyId: string;
     branchGroupIds: string[];
+    /** DPS employee ids for the company, used to seed a varied set of
+     *  availability blocks (this week + next week) so the Names grid
+     *  shows green hour-blocks per pilot feedback 2026-05-14. */
+    employeeIds?: string[];
   }): {
     created: {
       serviceGroups: ServiceGroup[];
       permanentEmployees: PermanentEmployee[];
+      availabilities: number;
     };
     skipped: boolean;
   } {
@@ -541,7 +631,7 @@ class PocDb {
     const existingPermanentEmployees = this.listPermanentEmployees(input.companyId);
     if (existingServiceGroups.length > 0 || existingPermanentEmployees.length > 0) {
       return {
-        created: { serviceGroups: [], permanentEmployees: [] },
+        created: { serviceGroups: [], permanentEmployees: [], availabilities: 0 },
         skipped: true,
       };
     }
@@ -587,8 +677,76 @@ class PocDb {
         last_name: "Carton",
       }),
     ];
+
+    // Seed availabilities for this week + next week so the Names grid
+    // shows the green hour-blocks per mockup. Pattern alternates between
+    // employees to keep the grid visually varied:
+    //   - 1st employee: Mon–Wed 09–17 (full days)
+    //   - 2nd employee: Tue, Thu 12–22 (lunch + evening)
+    //   - 3rd employee: Fri 17–23 + Sat 09–15
+    //   - 4th+ : Mon–Fri 09–13 (mornings)
+    const patterns: Array<Array<{ dayOfWeek: number; from: string; to: string }>> = [
+      [
+        { dayOfWeek: 1, from: "09:00", to: "17:00" },
+        { dayOfWeek: 2, from: "09:00", to: "17:00" },
+        { dayOfWeek: 3, from: "09:00", to: "17:00" },
+      ],
+      [
+        { dayOfWeek: 2, from: "12:00", to: "22:00" },
+        { dayOfWeek: 4, from: "12:00", to: "22:00" },
+      ],
+      [
+        { dayOfWeek: 5, from: "17:00", to: "23:00" },
+        { dayOfWeek: 6, from: "09:00", to: "15:00" },
+      ],
+      [
+        { dayOfWeek: 1, from: "09:00", to: "13:00" },
+        { dayOfWeek: 2, from: "09:00", to: "13:00" },
+        { dayOfWeek: 3, from: "09:00", to: "13:00" },
+        { dayOfWeek: 4, from: "09:00", to: "13:00" },
+        { dayOfWeek: 5, from: "09:00", to: "13:00" },
+      ],
+    ];
+
+    let availabilitiesCount = 0;
+    const employees = input.employeeIds ?? [];
+    if (employees.length > 0) {
+      // Anchor Monday of this week (local date for the server's clock).
+      const today = new Date();
+      const day = today.getDay();
+      const mondayOffset = (day + 6) % 7;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      const toIso = (d: Date): string => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      };
+      for (let i = 0; i < employees.length; i++) {
+        const pattern = patterns[i % patterns.length];
+        for (const slot of pattern) {
+          // This week + next week (mondayOffset + 7).
+          for (const weekOffset of [0, 7]) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + (slot.dayOfWeek - 1) + weekOffset);
+            this.createAvailability({
+              employee_id: employees[i],
+              date: toIso(date),
+              from_time: slot.from,
+              to_time: slot.to,
+              status: "open",
+              locked_by_contract_id: null,
+            });
+            availabilitiesCount++;
+          }
+        }
+      }
+    }
+
     return {
-      created: { serviceGroups, permanentEmployees },
+      created: { serviceGroups, permanentEmployees, availabilities: availabilitiesCount },
       skipped: false,
     };
   }

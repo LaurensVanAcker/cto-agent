@@ -2,10 +2,14 @@
 // v5-13-dag). The colour palette + spacing values live next to the rules
 // they're used in so it's obvious which mockup variable they map to.
 
-$indigo: #3c51f0;
+// Mockup-verbatim indigo. v5-10-names .block uses #1E1864 for border and
+// text on a rgba(30,24,100,0.10) tint — keep these in lockstep with
+// styles.scss `.poc-event-contract` so the same hex shows in both
+// company-planning (PoC) and demo-planning.
+$indigo: #1e1864;
 $indigo-soft: #eef2ff;
-$indigo-text: #312e81;
-$indigo-border: #a5b4fc;
+$indigo-text: #1e1864;
+$indigo-border: #1e1864;
 $magenta: #fc074f;
 $teal: #115e59;
 $teal-soft: #f0fdfa;
@@ -241,26 +245,35 @@ $muted: #64748b;
   letter-spacing: 0.3px;
 }
 
-::ng-deep .poc-branch-row .poc-add-sl {
+// Single 3-dot overflow menu trigger on a vestiging-header row.
+// Replaces the previous gear + plus pair (two icons in conflicting
+// styling). The button is intentionally subtle: only a hover lift,
+// no permanent border / brand stripe, so it doesn't compete with the
+// vestiging name for attention.
+::ng-deep .poc-branch-row .poc-branch-menu {
   border: none;
-  background: white;
-  color: #{$magenta};
-  width: 24px;
-  height: 24px;
+  background: transparent;
+  color: #{$muted};
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  font-size: 18px;
-  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 0 0 1px #{$magenta};
-  transition: background-color 100ms ease;
+  padding: 0;
+  transition: background-color 100ms ease, color 100ms ease;
 }
 
-::ng-deep .poc-branch-row .poc-add-sl:hover {
-  background: #{$magenta};
-  color: white;
+::ng-deep .poc-branch-row .poc-branch-menu:hover,
+::ng-deep .poc-branch-row .poc-branch-menu:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  color: #{$text-strong};
+  outline: none;
+}
+
+::ng-deep .poc-branch-row .poc-branch-menu .dps-icon {
+  font-size: 18px;
 }
 
 ::ng-deep .poc-sl-row {
@@ -368,9 +381,10 @@ $muted: #64748b;
   text-overflow: ellipsis;
 }
 
-// Default = assigned contract block (indigo)
+// Default = assigned contract block (indigo). Mockup tokens:
+// background: rgba(30,24,100,0.10), border #1E1864, color #1E1864.
 ::ng-deep .b-sch-event-wrap.poc-event-contract .b-sch-event {
-  background: rgba(60, 81, 240, 0.10);
+  background: rgba(30, 24, 100, 0.10);
   border-color: #{$indigo};
   color: #{$indigo-text};
 }
@@ -388,6 +402,21 @@ $muted: #64748b;
   background: #{$teal-soft};
   border-color: #{$teal};
   color: #{$teal};
+}
+
+// Availability (green) — soft "beschikbaar" hour-block painted behind
+// each employee row in the Medewerkers grid. Lower z so contracts /
+// shifts land on top in the lane stack; non-interactive cursor and
+// muted color so it reads as context, not as a primary block.
+::ng-deep .b-sch-event-wrap.poc-event-availability .b-sch-event {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(22, 163, 74, 0.40);
+  color: #166534;
+  font-weight: 500;
+  cursor: default;
+}
+::ng-deep .b-sch-event-wrap.poc-event-availability {
+  z-index: 0 !important;
 }
 
 // Ghosted broadcast-to-all-pool open shift (Names view fan-out)

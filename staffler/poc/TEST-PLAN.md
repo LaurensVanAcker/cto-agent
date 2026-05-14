@@ -59,7 +59,7 @@ Legend:
 | D4 | Add slot button (+ Shift toevoegen) | 🟢 Adds open slot |
 | D5 | Open shift → "Persoon kiezen" | 🟢 Rich dropdown with statute + last shift |
 | D6 | Open shift → "Open laten" | 🟢 Slot stays open |
-| D7 | Wage-package missing banner | 🟡 Shows amber banner when ≥1 assigned slot still on Standaard pakket |
+| D7 | Wage-package missing banner | 🟡 Shows amber banner when ≥1 assigned slot has no loonpakket picked |
 | D8 | Submit with no service location | 🟢 Disabled button + tooltip |
 | D9 | Submit with no werkuren | 🟢 Disabled button + tooltip |
 | D10 | Submit with toTime < fromTime | 🟢 Validation error |

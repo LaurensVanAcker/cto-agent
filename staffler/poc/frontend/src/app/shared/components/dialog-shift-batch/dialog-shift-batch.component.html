@@ -11,7 +11,11 @@
   <header class="m09-header">
     <div>
       <h2>
-        Nieuwe shift voor <span class="pos">{{ positionLabel() }}</span>
+        @if (mode === 'single') {
+          Nieuwe shift voor <span class="pos">{{ positionLabel() }}</span>
+        } @else {
+          Nieuwe shifts voor <span class="pos">{{ positionLabel() }}</span>
+        }
       </h2>
     </div>
     <button class="m09-x" type="button" (click)="cancel()" aria-label="Sluiten">
@@ -117,8 +121,10 @@
     </div>
 
     <!-- Slots -->
-    <label class="m09-field-label">Shifts</label>
-    <div class="m09-slot-list">
+    @if (mode !== 'single') {
+      <label class="m09-field-label">Shifts</label>
+    }
+    <div class="m09-slot-list" [class.m09-slot-list-single]="mode === 'single'">
       @for (slot of slots(); track $index) {
         <div
           class="m09-slot"
@@ -128,7 +134,9 @@
           [class.hoverable]="slot.kind === 'open'"
         >
           <div class="m09-slot-head">
-            <div class="m09-num">{{ $index + 1 }}</div>
+            @if (mode !== 'single') {
+              <div class="m09-num">{{ $index + 1 }}</div>
+            }
 
             @switch (slot.kind) {
               @case ('assigned') {
@@ -136,10 +144,20 @@
                   @if (slot.employeeName) {
                     {{ slot.employeeName }}
                   } @else {
+                    <!--
+                      Persoon-kiezen p-select — mockup 09 column 2 layout.
+                      Grouped into three sections (Beschikbaar / Andere
+                      medewerkers / Vaste werknemers) via PrimeNG's native
+                      group support. Group header colour is driven by the
+                      `variant` field via .persoon-kiezen-panel SCSS rules.
+                    -->
                     <p-select
                       class="flex-1 persoon-kiezen"
                       panelStyleClass="persoon-kiezen-panel"
-                      [options]="employeeOptions()"
+                      [options]="employeeGroups()"
+                      [group]="true"
+                      optionGroupLabel="label"
+                      optionGroupChildren="items"
                       [filter]="true"
                       filterBy="label,statute,phone"
                       [ngModel]="slot.employeeId"
@@ -149,48 +167,42 @@
                       placeholder="Kies medewerker"
                       appendTo="body"
                     >
+                      <ng-template let-grp pTemplate="group">
+                        <div
+                          class="persoon-group-header"
+                          [class.is-available]="grp.variant === 'available'"
+                          [class.is-other]="grp.variant === 'other'"
+                          [class.is-fixed]="grp.variant === 'fixed'"
+                        >
+                          <span class="persoon-group-label">{{ grp.label }}</span>
+                          <span class="persoon-group-count">{{ grp.count }}</span>
+                        </div>
+                      </ng-template>
                       <ng-template let-opt pTemplate="item">
-                        <div class="persoon-row">
+                        <div
+                          class="persoon-row"
+                          [class.is-fixed]="opt.isPermanent"
+                        >
+                          <span class="persoon-avatar">{{ opt.initials }}</span>
                           <div class="persoon-main">
                             <div class="persoon-name">
                               {{ opt.firstName }} {{ opt.lastName }}
                             </div>
-                            <div class="persoon-meta">
-                              <span>{{ opt.statute }}</span>
-                              <span>{{ opt.lastShift }}</span>
-                              @if (opt.phone) {
-                                <span>{{ opt.phone }}</span>
-                              }
-                            </div>
+                            @if (opt.statute) {
+                              <div class="persoon-meta">
+                                <span>{{ opt.statute }}</span>
+                              </div>
+                            }
                           </div>
-                          <span
-                            class="stat-tag"
-                            [class.flexi]="opt.statuteTag === 'flexi'"
-                            [class.student]="opt.statuteTag === 'student'"
-                            [class.bediende]="opt.statuteTag === 'bediende'"
-                            [class.arbeider]="opt.statuteTag === 'arbeider'"
-                          >
-                            {{ opt.statuteTag }}
-                          </span>
-                          <!--
-                            Vestiging chips removed 2026-05-12 — pilot
-                            feedback: "I don't need to see what vestigingen
-                            someone is assigned to in the dropdown, it's
-                            too much." Statute + last-shift + availability
-                            give the operator enough signal; vestiging
-                            assignments live elsewhere (pool view).
-                          -->
-                          <span
-                            class="availability-badge"
-                            [class.match]="opt.availability === 'match'"
-                            [class.partial]="opt.availability === 'partial'"
-                            [class.none]="opt.availability === 'none'"
-                            [class.conflict]="opt.availability === 'conflict'"
-                          >
-                            {{ opt.availability === 'match' ? 'beschikbaar' :
-                                opt.availability === 'partial' ? 'deels' :
-                                opt.availability === 'conflict' ? 'conflict' : '—' }}
-                          </span>
+                          @if (opt.availabilityRange) {
+                            <span
+                              class="availability-badge"
+                              [class.match]="opt.availability === 'match'"
+                              [class.partial]="opt.availability === 'partial'"
+                            >
+                              {{ opt.availabilityRange }}
+                            </span>
+                          }
                         </div>
                       </ng-template>
                     </p-select>
@@ -225,14 +237,16 @@
               }
             }
 
-            <button
-              type="button"
-              class="m09-undo"
-              (click)="removeSlot($index)"
-              aria-label="Verwijder slot"
-            >
-              <span class="dps-icon dps-icon-close"></span>
-            </button>
+            @if (mode !== 'single') {
+              <button
+                type="button"
+                class="m09-undo"
+                (click)="removeSlot($index)"
+                aria-label="Verwijder slot"
+              >
+                <span class="dps-icon dps-icon-close"></span>
+              </button>
+            }
           </div>
 
           @if (slot.kind === 'assigned' && slot.employeeName) {
@@ -243,41 +257,60 @@
               <p-select
                 class="m09-pakket-select-pn"
                 [options]="loonpakketOptions"
-                [ngModel]="slot.loonpakketId ?? 'default'"
+                [ngModel]="slot.loonpakketId"
                 (ngModelChange)="onSlotLoonpakketChanged($index, $event)"
                 optionLabel="label"
                 optionValue="value"
+                placeholder="Kies een loonpakket"
                 appendTo="body"
               />
+              <!--
+                Inline loonpakket-mismatch banner per mockup 09 column 3.
+                Renders right under the loonpakket select when either no
+                package is picked yet, or the picked one belongs to a
+                different vestiging. Aanmaken stub closes the banner; the
+                real "create wage-template" call lands in v1.
+              -->
+              @if (shouldShowLoonpakketBanner(slot, $index)) {
+                <div class="m09-banner-warn m09-banner-inline" role="status">
+                  <span class="dps-icon dps-icon-warning"></span>
+                  <div class="m09-banner-body">
+                    <strong>Dit loonpakket hoort niet bij {{ positionLabel() }}.</strong>
+                    <span>
+                      Voor {{ firstName(slot.employeeName) }} bestaat er nog geen
+                      {{ bannerPakketLabel(slot) }} op deze vestiging. Wil je
+                      dit loonpakket nu aanmaken?
+                    </span>
+                    <button
+                      type="button"
+                      class="m09-banner-action"
+                      (click)="onCreateLoonpakket($index)"
+                    >
+                      Loonpakket aanmaken
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           }
         </div>
       }
 
-      <button type="button" class="m09-add-slot" (click)="addSlot()">
-        <span class="dps-icon dps-icon-add"></span> Shift toevoegen
-      </button>
+      @if (mode !== 'single') {
+        <button type="button" class="m09-add-slot" (click)="addSlot()">
+          <span class="dps-icon dps-icon-add"></span> Shift toevoegen
+        </button>
+      }
     </div>
 
     <!--
-      Wage-package missing banner: shows when one or more assigned slots
-      still sit on the "Standaard pakket" placeholder. Keeps the dialog
-      explicit about loonpakketten — the operator sees the names that
-      still need a real pick without scrolling slot-by-slot.
+      The "Loonpakket ontbreekt" banner used to live here, summarising all
+      assigned slots that still lacked a loonpakket. Per mockup 09 v2 we
+      moved this affordance INSIDE each slot — the operator sees the
+      mismatch in context with an "Aanmaken" stub right under the
+      loonpakket select, which scales better when multiple slots have
+      different issues.
     -->
-    @if (slotsMissingLoonpakket().length) {
-      <div class="m09-banner m09-banner-warn" role="status">
-        <span class="dps-icon dps-icon-warning"></span>
-        <div class="m09-banner-body">
-          <strong>Loonpakket ontbreekt</strong>
-          <span>
-            Kies een specifiek loonpakket voor
-            {{ slotsMissingLoonpakket().join(', ') }} — anders publiceren we
-            de shift met "Standaard pakket".
-          </span>
-        </div>
-      </div>
-    }
 
     <!-- Deadline reactie (only when an open slot exists) -->
     @if (hasOpenSlot()) {

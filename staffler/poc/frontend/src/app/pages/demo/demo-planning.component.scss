@@ -77,7 +77,10 @@
   position: relative;
   border: 1px solid var(--surface-border, #e2e8f0);
   border-radius: 8px;
-  overflow: hidden;
+  // Was overflow:hidden — clipped the open-shift "+N" badge that pokes
+  // out of the top-right corner of an event. The border-radius is still
+  // honoured because Bryntum renders the schedule inside an inner canvas.
+  overflow: visible;
   background: white;
   min-height: 600px;
   flex: 1 1 auto;

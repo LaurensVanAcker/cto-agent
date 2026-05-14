@@ -367,9 +367,26 @@ app.post<{ Querystring: { companyId?: string } }>(
       // Soldier on with an empty list; the seed still creates rows but
       // their `branch_group_id` will be empty until the operator picks one.
     }
+    // Pilot feedback (2026-05-14): the Medewerkers grid is empty-looking
+    // without seeded availabilities. Pull the first page of company
+    // employees so seedDemo can paint a varied set of green hour-blocks
+    // across this week + next week. Fall back to an empty list on
+    // failure — the rest of the seed still proceeds.
+    let employeeIds: string[] = [];
+    try {
+      const page = (await clientFor(session).listEmployees({
+        companyId: req.query.companyId,
+        page: 0,
+        size: 50,
+      })) as { content?: Array<{ id: string }> };
+      employeeIds = (page.content ?? []).map((e) => e.id);
+    } catch {
+      // intentionally empty — availability seed is best-effort.
+    }
     return pocDb.seedDemo({
       companyId: req.query.companyId,
       branchGroupIds,
+      employeeIds,
     });
   },
 );
@@ -699,6 +716,28 @@ app.post<{ Params: { id: string } }>(
   },
 );
 
+// POST /api/shifts/:id/cancel — set a draft/open shift to "cancelled".
+// 404 if the id is unknown; 409 if the shift is already past the draft/open
+// stage (closed / fulfilled), so the caller can show a tailored error.
+app.post<{ Params: { id: string }; Body: { reason?: string | null } }>(
+  "/api/shifts/:id/cancel",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const updated = pocDb.cancelShift(req.params.id, req.body?.reason ?? null);
+    if (!updated) {
+      // null means either unknown id OR the shift is past the draft/open
+      // stage. Re-read the row to disambiguate so we return the right
+      // status code (404 vs 409).
+      const exists = pocDb.findShift(req.params.id);
+      if (!exists) { reply.status(404); return { kind: "not_found" }; }
+      reply.status(409);
+      return { kind: "conflict", message: "Shift is niet meer annuleerbaar." };
+    }
+    return updated;
+  },
+);
+
 // PATCH /api/shifts/:id/share — update target + deadline on an open shift.
 // Used by the batch-share dialog (mockup 12) to broadcast open shifts to
 // the pool / specific employees / external partners in one go.
@@ -792,15 +831,52 @@ app.post<{
   },
 );
 
-// Availabilities
-app.get<{ Querystring: { employeeId?: string; from?: string; to?: string } }>(
+// Availabilities — three modes:
+//   - `employeeId=…`        : single-employee list (uitzendkracht view)
+//   - `employeeIds=ID1,ID2` : explicit bulk list (caller already has ids)
+//   - `companyId=…`         : server resolves the company's employee ids
+//                             via Staffler, then bulk-lists. Used by the
+//                             planning grid so the frontend doesn't have
+//                             to round-trip /api/employees first.
+// All three filter by the optional [from, to] date window.
+app.get<{
+  Querystring: {
+    employeeId?: string;
+    employeeIds?: string;
+    companyId?: string;
+    from?: string;
+    to?: string;
+  };
+}>(
   "/api/availabilities",
   async (req, reply) => {
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (req.query.employeeIds !== undefined) {
+      const ids = req.query.employeeIds.split(",").map((s) => s.trim()).filter(Boolean);
+      return pocDb.listAvailabilitiesBulk(ids, req.query.from, req.query.to);
+    }
+    if (req.query.companyId) {
+      try {
+        const page = (await clientFor(session).listEmployees({
+          companyId: req.query.companyId,
+          page: 0,
+          size: 100,
+        })) as { content?: Array<{ id: string }> };
+        const ids = (page.content ?? []).map((e) => e.id);
+        return pocDb.listAvailabilitiesBulk(ids, req.query.from, req.query.to);
+      } catch (err) {
+        const e = asResponse(err);
+        reply.status(e.status);
+        return e.body;
+      }
+    }
     if (!req.query.employeeId) {
       reply.status(400);
-      return { kind: "validation", message: "employeeId required" };
+      return {
+        kind: "validation",
+        message: "employeeId, employeeIds or companyId required",
+      };
     }
     return pocDb.listAvailabilities(req.query.employeeId, req.query.from, req.query.to);
   },

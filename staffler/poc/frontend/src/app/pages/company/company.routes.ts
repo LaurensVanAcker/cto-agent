@@ -6,10 +6,11 @@ import {
   COMPANY_GROUPS_ENABLED_GUARD,
   GROUP_USER_ROLE_GUARD,
 } from './modules/groups/company-groups.guard';
+import { COMPANY_ACTUALS_ENABLED_GUARD } from './modules/actuals/company-actuals.guard';
 
-// PoC step 1 strip: TIME_REGISTRATION, ACTUALS, PROFILE (company-user
-// profile page) and USER_ACCOUNTS submodules are removed. Their routes,
-// guards and source files are gone. Re-add later if the PoC scope grows.
+// PoC step 1 strip: TIME_REGISTRATION, PROFILE (company-user profile page) and
+// USER_ACCOUNTS submodules are removed. ACTUALS is restored to use the original
+// DPS prestatie-bevestigen flow verbatim. Re-add the others later if scope grows.
 export const COMPANY_ROUTES: Routes = [
   {
     path: `:${CompanyRoutePathParam.COMPANY_ID}`,
@@ -58,10 +59,9 @@ export const COMPANY_ROUTES: Routes = [
       },
       {
         path: CompanyRouteEnum.ACTUALS,
-        loadComponent: () =>
-          import('./modules/actuals/company-actuals.component').then(
-            c => c.CompanyActualsComponent,
-          ),
+        loadChildren: () =>
+          import('./modules/actuals/company-actuals.routes').then(m => m.COMPANY_ACTUALS_ROUTES),
+        canActivate: [COMPANY_ACTUALS_ENABLED_GUARD],
       },
       // Legacy '/planning' deep links — keep them resolvable so anything that
       // still hands out the old URL doesn't 404.

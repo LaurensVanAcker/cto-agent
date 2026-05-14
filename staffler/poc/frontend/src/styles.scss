@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap');
+// Staffler brand typography per brandbook p7: "De typografie staat in het
+// Helvetica Neue font. Betrouwbaar, stabiel en tijdloos." Apple devices
+// ship Helvetica Neue; everywhere else we degrade through Helvetica → Arial
+// → sans-serif so the same wordmark/letterforms come through on Windows
+// and Linux. No webfont import — Helvetica is not licensed for hosting.
 @import 'primeflex/primeflex.min.css';
 @import 'assets/fonts/dps-icons.css';
 @import '@bryntum/scheduler/scheduler.material.min.css';
@@ -509,49 +513,202 @@ dps-contract-dialog .p-button.p-button-primary:hover {
   background: #d70643 !important;
 }
 
-// ── Persoon-kiezen rich dropdown (mockup 06) ─────────────────────────────
-// Wider panel (so all 5 grid columns fit) and bigger rows.
+// Loading banner — thin strip at the top of the dialog while the API
+// call resolves. Replaces the fullscreen spinner that used to hide the
+// Save button entirely. See contract-dialog.component.html for the
+// rationale.
+dps-contract-dialog .contract-dialog-loading-banner {
+  padding: 6px 12px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+dps-contract-dialog .contract-dialog-loading-banner .p-progress-spinner-circle {
+  stroke: #92400e !important;
+}
+
+// ── Top row: Datum + Service location side-by-side ───────────────────────
+// Pilot feedback 2026-05-13: "datum en service location moeten op één rij,
+// niet boven elkaar — verspilt verticale ruimte in de popup." Use flex
+// + flex-wrap so on narrow viewports the controls drop to two rows
+// instead of overflowing. The address-autocomplete-field renders a
+// dps-address-autocomplete-field whose internal label was the source of
+// the vertical stacking; we suppress it here and replace it with our own
+// uppercase mini-label outside the field so both controls align at the
+// same baseline.
+dps-contract-dialog .contract-dialog-top-row {
+  margin-bottom: 8px;
+}
+
+dps-contract-dialog .contract-dialog-top-row dps-address-autocomplete-field > label {
+  display: none;
+}
+
+dps-contract-dialog .contract-dialog-field-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+// Address autocomplete field should fill the remaining width on the
+// top row. The wrapper component renders its own `<input>` chrome —
+// make sure it matches the datepicker (height, border) so the row
+// reads as one consistent control bar.
+dps-contract-dialog .contract-dialog-service-location {
+  min-width: 16rem;
+}
+
+dps-contract-dialog .contract-dialog-service-location dps-address-autocomplete-field {
+  display: block;
+}
+
+dps-contract-dialog .contract-dialog-service-location dps-address-autocomplete-field input {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  padding: 9px 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  width: 100%;
+}
+
+// ── Persoon-kiezen rich dropdown (mockup 09 column 2) ────────────────────
+// 3 grouped sections — Beschikbaar (pink/brand band) / Andere medewerkers
+// (muted) / Vaste werknemers (teal). Each row: 26px avatar + name +
+// statute + availability range pill (green for full match, orange for
+// partial, nothing when none).
 .persoon-kiezen-panel.p-select-overlay {
-  min-width: 640px !important;
-  max-width: 720px;
+  min-width: 360px !important;
+  max-width: 420px;
+  border-radius: 12px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
 .persoon-kiezen-panel .p-select-list-container {
   padding: 0;
 }
 
-.persoon-kiezen-panel .p-select-option {
-  padding: 0 !important;
+// Search header — restyle PrimeNG's filter chrome to the mockup's
+// "Zoek op naam" look.
+.persoon-kiezen-panel .p-select-header {
+  padding: 12px 14px;
+  background: #fafafc;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.persoon-kiezen-panel .p-select-option:last-child {
-  border-bottom: none;
+.persoon-kiezen-panel .p-select-filter {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  background: transparent !important;
+}
+
+// Each option has zero padding because .persoon-row owns the spacing.
+.persoon-kiezen-panel .p-select-option {
+  padding: 0 !important;
+}
+
+// Group header — coloured per `variant` (set by the groupTemplate).
+.persoon-kiezen-panel .p-select-option-group {
+  padding: 0 !important;
+  background: transparent;
+}
+
+.persoon-kiezen-panel .persoon-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #64748b;
+}
+
+// Brand/magenta band for the "Beschikbaar" group — pink soft fill +
+// magenta text so the operator's eye lands here first.
+.persoon-kiezen-panel .persoon-group-header.is-available {
+  background: #ffe9f0;
+  color: #fc074f;
+}
+
+.persoon-kiezen-panel .persoon-group-header.is-fixed {
+  color: #115e59;
+}
+
+.persoon-kiezen-panel .persoon-group-count {
+  background: #f1f1f6;
+  color: #64748b;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.persoon-kiezen-panel .persoon-group-header.is-available .persoon-group-count {
+  background: #fff;
+  color: #fc074f;
+}
+
+.persoon-kiezen-panel .persoon-group-header.is-fixed .persoon-group-count {
+  background: #ccfbf1;
+  color: #115e59;
 }
 
 .persoon-row {
   display: grid;
-  // 3 columns: name+meta | statute pill | availability badge.
-  // (Vestiging chips removed 2026-05-12 — too noisy per pilot feedback.)
-  grid-template-columns: 1fr 110px 130px;
-  gap: 14px;
+  grid-template-columns: 26px 1fr auto;
+  gap: 10px;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 14px;
   font-size: 12px;
   width: 100%;
 }
 
-// Empty stand-in so the original grid column count + visual rhythm still
-// works even if we re-introduce vestiging chips later. Zero width when
-// nothing is rendered.
-.persoon-row .persoon-groups-spacer {
-  display: none;
+.persoon-row .persoon-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #312e81;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+// Fixed (permanent) rows render the avatar in teal-soft / teal so the
+// row is visually consistent with the "Vaste werknemer" slot styling
+// elsewhere in the dialog.
+.persoon-row.is-fixed .persoon-avatar {
+  background: #f0fdfa;
+  color: #115e59;
+}
+
+.persoon-row .persoon-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .persoon-row .persoon-name {
   font-weight: 600;
   font-size: 13px;
   color: #0f172a;
+  line-height: 1.2;
 }
 
 .persoon-row .persoon-meta {
@@ -563,58 +720,54 @@ dps-contract-dialog .p-button.p-button-primary:hover {
   gap: 4px;
 }
 
-.persoon-row .persoon-meta span + span::before {
-  content: ' · ';
-  margin-right: 4px;
-}
-
-.persoon-row .stat-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  justify-self: start;
-}
-
-.persoon-row .stat-tag.flexi { background: #ddd6fe; color: #5b21b6; }
-.persoon-row .stat-tag.student { background: #fed7aa; color: #9a3412; }
-.persoon-row .stat-tag.bediende { background: #bfdbfe; color: #1e40af; }
-.persoon-row .stat-tag.arbeider { background: #bbf7d0; color: #166534; }
-
-.persoon-row .persoon-groups {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.persoon-row .group-tag {
-  background: #f1f5f9;
-  color: #334155;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
-}
-
 .persoon-row .availability-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   justify-self: end;
+  flex-shrink: 0;
 }
 
-.persoon-row .availability-badge.match { background: #d1fae5; color: #065f46; }
-.persoon-row .availability-badge.match::before { content: '✓'; }
-.persoon-row .availability-badge.partial { background: #fef3c7; color: #92400e; }
-.persoon-row .availability-badge.partial::before { content: '~'; }
-.persoon-row .availability-badge.none { background: #f1f5f9; color: #64748b; }
-.persoon-row .availability-badge.none::before { content: '—'; }
-.persoon-row .availability-badge.conflict { background: #fee2e2; color: #991b1b; }
-.persoon-row .availability-badge.conflict::before { content: '✕'; }
+.persoon-row .availability-badge.match {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.persoon-row .availability-badge.match::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #047857;
+}
+
+.persoon-row .availability-badge.partial {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.persoon-row .availability-badge.partial::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b45309;
+}
+
+// PrimeNG hover/focus state per row — soften the indigo per fixed
+// styling on the Vast group rows.
+.persoon-kiezen-panel .p-select-option:hover .persoon-row {
+  background: #eef2ff;
+}
+
+.persoon-kiezen-panel .p-select-option:hover .persoon-row.is-fixed {
+  background: #f0fdfa;
+}
 
 // ── Service location dialog header (mockup 14) ─────────────────────────
 // Title + magenta SL-name accent + parent-vestiging subtitle. The header
@@ -750,13 +903,21 @@ dps-contract-dialog .p-button.p-button-primary:hover {
   justify-content: center;
   border: 2px solid white;
   box-shadow: 0 2px 6px rgba(252, 7, 79, 0.35);
-  z-index: 6;
+  z-index: 50;
 }
 
 // The event-wrap clips children by default — opt the wrap into
 // overflow:visible so the badge isn't trimmed at the event edges.
 .b-sch-event-wrap {
   overflow: visible !important;
+}
+
+// Neighbouring events render later in the DOM and paint *over* a badge
+// that sticks out (top:-8/right:-8) from an earlier event. Promoting the
+// wrap that owns a badge to its own stacking context lifts the badge
+// above any sibling row content.
+.b-sch-event-wrap:has(.poc-open-badge) {
+  z-index: 20 !important;
 }
 
 // Default event chrome — overridden per kind below
@@ -783,30 +944,44 @@ dps-contract-dialog .p-button.p-button-primary:hover {
 // .b-sch-event-wrap form too for safety in case Bryntum ever changes the
 // inheritance.
 
-// Assigned contract — indigo
+// Assigned contract — indigo. Hex values lifted verbatim from
+// v5-10-names .block { background, border, color }.
 .b-sch-event.poc-event-contract,
 .b-sch-event-wrap .b-sch-event.poc-event-contract {
-  --event-color: #312e81 !important;
-  --event-background-color: rgba(60, 81, 240, 0.10) !important;
-  --event-border-color: #3c51f0 !important;
+  --event-color: #1e1864 !important;
+  --event-background-color: rgba(30, 24, 100, 0.10) !important;
+  --event-border-color: #1e1864 !important;
+  color: #1e1864 !important;
+  background-color: rgba(30, 24, 100, 0.10) !important;
+  border-color: #1e1864 !important;
+  background-image: none !important;
   border-style: solid !important;
 }
 
-// Open shift — amber dashed
+// Open shift — amber dashed. Verbatim from v5-10-names .block.open.
 .b-sch-event.poc-event-shift,
 .b-sch-event-wrap .b-sch-event.poc-event-shift {
   --event-color: #92400e !important;
   --event-background-color: #fef3c7 !important;
   --event-border-color: #b45309 !important;
+  color: #92400e !important;
+  background-color: #fef3c7 !important;
+  border-color: #b45309 !important;
+  background-image: none !important;
   border-style: dashed !important;
 }
 
-// Draft shift — striped amber
+// Draft shift — striped amber. Overrides background-image with the
+// stripe pattern (defeats both the dps-company-actuals stripe and the
+// Bryntum default).
 .b-sch-event.poc-event-shift-draft,
 .b-sch-event-wrap .b-sch-event.poc-event-shift-draft {
   --event-color: #78350f !important;
   --event-background-color: transparent !important;
   --event-border-color: #b45309 !important;
+  color: #78350f !important;
+  background-color: transparent !important;
+  border-color: #b45309 !important;
   background-image: repeating-linear-gradient(
     -45deg,
     rgba(245, 158, 11, 0.30),
@@ -817,12 +992,16 @@ dps-contract-dialog .p-button.p-button-primary:hover {
   border-style: dashed !important;
 }
 
-// Permanent (Vast) — teal
+// Permanent (Vast) — teal. Verbatim from v5-10-names .block.fixed.
 .b-sch-event.poc-event-permanent,
 .b-sch-event-wrap .b-sch-event.poc-event-permanent {
   --event-color: #115e59 !important;
   --event-background-color: #f0fdfa !important;
   --event-border-color: #115e59 !important;
+  color: #115e59 !important;
+  background-color: #f0fdfa !important;
+  border-color: #115e59 !important;
+  background-image: none !important;
   border-style: solid !important;
 }
 
@@ -832,6 +1011,9 @@ dps-contract-dialog .p-button.p-button-primary:hover {
   --event-color: #92400e !important;
   --event-border-color: rgba(245, 158, 11, 0.7) !important;
   --event-background-color: transparent !important;
+  color: #92400e !important;
+  background-color: transparent !important;
+  border-color: rgba(245, 158, 11, 0.7) !important;
   opacity: 0.45 !important;
   background-image: repeating-linear-gradient(
     -45deg,
@@ -850,8 +1032,9 @@ body {
 }
 
 body {
-  font-family: 'Inter';
-  letter-spacing: 0.5px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.2px;
+  color: #3e2b30;
 }
 
 a {
@@ -986,6 +1169,28 @@ dps-company-actuals {
       color: var(--p-red-500);
     }
   }
+
+  // "Vandaag" header label: Bryntum renders the `today-range` timerange's
+  // `name` ("Vandaag", set in company-actuals.component.ts:271) as a
+  // `<label>` inside the timerange div in the header canvas. That div is
+  // positioned over the daily header row and the label ends up on the same
+  // baseline as the date number ("wo 13"), causing the two strings to
+  // overlap visually.
+  //
+  // The full magenta column header (`b-sch-dayheadercell-today` in
+  // styles.scss line ~105) already provides a strong, unambiguous "today"
+  // indicator — magenta fill + bold white date + 3px top stripe — so the
+  // textual "Vandaag" label is redundant. Hide it (display:none on the
+  // label, transparent background on the wrapper so the magenta header
+  // cell shows through cleanly).
+  .b-grid-header .b-sch-timerange.today-range {
+    background-color: transparent !important;
+    pointer-events: none;
+
+    label {
+      display: none;
+    }
+  }
 }
 
 /* Customizations to the designer theme should be defined here */
@@ -1051,4 +1256,54 @@ $smallScreenSize: 425px;
 
 .p-step-title {
   font-size: 1rem;
+}
+
+// ── Shared "PoC banner" card (mockup 10/11 stijl) ──────────────────────
+// Promoted from the planning-poc scoped scss so the prestatiebevestiging
+// (actuals) page and any future module can use the same chrome without
+// re-defining it. Soft indigo card + icon-tile + title/subtitle.
+.poc-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  border-radius: 8px;
+  color: #1e3a8a;
+  font-size: 13px;
+  margin-bottom: 1rem;
+}
+
+.poc-banner-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poc-banner-icon .dps-icon {
+  font-size: 18px;
+}
+
+.poc-banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.poc-banner-body strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.poc-banner-body span {
+  font-size: 12px;
+  color: #475569;
 }

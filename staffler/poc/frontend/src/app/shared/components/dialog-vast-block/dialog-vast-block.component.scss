@@ -214,6 +214,25 @@ $radius-lg: 12px;
   letter-spacing: 0.5px;
 }
 
+// Destructive action (only rendered for existing blocks). Visually
+// distinct from cancel/confirm so the operator can't fat-finger it.
+.m09-btn-danger {
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: $radius;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #ef4444;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.08);
+  }
+}
+
 .m09-btn-confirm {
   padding: 9px 18px;
   background: $magenta;

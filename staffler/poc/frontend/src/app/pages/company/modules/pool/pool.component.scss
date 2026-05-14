@@ -2,40 +2,50 @@
   background: #f8fafc;
 }
 
+// Mockup 15: status filter chips are squarish (6px radius), not pill-shaped.
+// Body uses the same shape as `.btn-ghost`; the count badge stays soft
+// (10px) so the digit reads as a counter, not a button.
 .filter-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid var(--surface-border, #e2e8f0);
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
   background: white;
   color: #334155;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
 .filter-chip:hover {
-  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .filter-chip.active {
   background: var(--primary-50, #ffe6ee);
   border-color: var(--primary, #fc074f);
   color: var(--primary, #fc074f);
+  font-weight: 600;
 }
 
 .filter-chip .chip-count {
-  font-weight: 600;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 999px;
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
+  background: #e2e8f0;
+  color: #334155;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .filter-chip.active .chip-count {
-  background: rgba(252, 7, 79, 0.15);
+  background: var(--primary, #fc074f);
+  color: white;
 }
 
 .ms-active,
@@ -111,4 +121,60 @@
   color: #94a3b8;
   font-size: 14px;
   cursor: help;
+}
+
+// Toolbar: PrimeNG's default button (~46px) was visibly taller than the
+// 40px p-inputtext beside it. Force both children to the same 40px
+// height and tighten the button's vertical padding accordingly.
+.pool-toolbar {
+  :host ::ng-deep .pool-toolbar-btn,
+  ::ng-deep .pool-toolbar-btn {
+    height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+:host ::ng-deep .pool-toolbar-btn {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+// Vestiging-chip trash icon — hidden until the chip (or its row) is
+// hovered. Mirrors the original DPS `remove-group-icon` affordance from
+// commit 0ceb738.
+.pool-chip-cell {
+  ::ng-deep .p-chip {
+    transition: background-color 120ms ease;
+  }
+
+  .pool-chip-remove {
+    margin-left: 0.35rem;
+    color: var(--primary, #fc074f);
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  ::ng-deep .p-chip:hover .pool-chip-remove,
+  .pool-chip-remove:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+    outline: none;
+  }
+
+  .pool-chip-remove:hover {
+    color: #c40640;
+  }
+}
+
+// Also reveal the trash on full-row hover so the affordance is
+// discoverable even on touch / pointer-coarse devices where :hover on
+// the chip itself may not fire.
+:host ::ng-deep p-table tr:hover .pool-chip-remove {
+  opacity: 1;
+  transform: scale(1);
 }

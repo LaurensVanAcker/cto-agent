@@ -23,6 +23,7 @@ import {
   firstValueFrom,
   map,
   Observable,
+  of,
   shareReplay,
   startWith,
   Subject,
@@ -201,22 +202,29 @@ export class ContractDialogComponent implements OnInit {
   readonly isLoadingContractData = signal(false);
   readonly dictionaryItemOptionLabel = DICTIONARY_ITEM_OPTION_LABEL;
   readonly dictionaryItemOptionValue = DICTIONARY_ITEM_OPTION_VALUE;
-  readonly company = this.store.selectSnapshot(RootState.getCompanyData) as CompanyDetailModel;
+  // Company is null on the auth-less /demo/dialogs gallery route. Guard
+  // the API calls with optional chaining so the dialog still renders
+  // (with empty wage options) instead of throwing at field-init time.
+  readonly company = this.store.selectSnapshot(
+    RootState.getCompanyData
+  ) as CompanyDetailModel | null;
   readonly isLoadingWages = signal(false);
-  readonly wages$: Observable<Array<EmployeeWageModel>> = this.employeeWageApiService
-    .getEmployeeWages({
-      employeeId: this.data.employee.id,
-      companyId: this.company.id,
-    })
-    .pipe(
-      tap(wages => {
-        if (wages.length === 1) {
-          this.wageControl.setValue(wages[0]);
-          this.wageControl.disable();
-        }
-      }),
-      tap(() => this.isLoadingWages.set(false))
-    );
+  readonly wages$: Observable<Array<EmployeeWageModel>> = this.company?.id
+    ? this.employeeWageApiService
+        .getEmployeeWages({
+          employeeId: this.data.employee.id,
+          companyId: this.company.id,
+        })
+        .pipe(
+          tap(wages => {
+            if (wages.length === 1) {
+              this.wageControl.setValue(wages[0]);
+              this.wageControl.disable();
+            }
+          }),
+          tap(() => this.isLoadingWages.set(false))
+        )
+    : of([]).pipe(tap(() => this.isLoadingWages.set(false)));
   readonly travelAllowances$ = this.dictionaryApiService.getDictionary('travelallowances');
   readonly defaultTaxRates$ = this.dictionaryApiService.getDictionary('defaulttaxrates');
   readonly reasons$ = this.dictionaryApiService.getDictionary('reasons');
@@ -245,7 +253,7 @@ export class ContractDialogComponent implements OnInit {
     switchMap(([query]) =>
       this.contractApiService.getShiftTemplates({
         nameLike: query,
-        companyId: this.company.id,
+        companyId: this.company?.id ?? '',
       })
     ),
     shareReplay(1)
@@ -440,7 +448,7 @@ export class ContractDialogComponent implements OnInit {
 
       this.contractApiService
         .getShiftTemplates({
-          companyId: this.company.id,
+          companyId: this.company?.id ?? '',
         })
         .subscribe(shiftTemplate => {
           if (shiftTemplate.length) {
@@ -453,16 +461,77 @@ export class ContractDialogComponent implements OnInit {
           }
         });
 
-      this.datesRangeControl.setValue([
-        this.data.contractEventRecord.getData('startDate'),
-        this.data.contractEventRecord.getData('endDate'),
-      ]);
+      // Seed the datepicker. Priority order:
+      //   1. Explicit `initialDate` from DynamicDialogConfig.data — set by
+      //      the planning surface when the user click/drags an empty cell.
+      //   2. Bryntum event record's startDate/endDate (legacy path:
+      //      planning surface adds a placeholder event before opening).
+      //   3. Today, as a final fallback so the picker is never empty.
+      const initialDate = this.data.initialDate
+        ? DateTime.fromISO(this.data.initialDate).toJSDate()
+        : null;
+      const startFromEvent = this.data.contractEventRecord.getData('startDate') as Date | null;
+      const endFromEvent = this.data.contractEventRecord.getData('endDate') as Date | null;
+      const fallback = new Date();
+      const startDate = initialDate ?? startFromEvent ?? fallback;
+      const endDate = initialDate ?? endFromEvent ?? startDate;
+      this.datesRangeControl.setValue([startDate, endDate]);
     }
 
     if (this.isEditMode) {
+      // Pre-seed the form from the Bryntum event record (the planning
+      // surface already passes the schedule on the placeholder) so the
+      // dialog renders with werkuren / pauzes / dates filled in even
+      // BEFORE /api/contracts/:id resolves. If the GET fails the dialog
+      // still shows the values the user can see in the grid, with a
+      // banner explaining the load is pending. Bug reported 2026-05-13:
+      // "Save-knop verdwijnt en alles is leeg tot het laadt."
+      const eventRecord = this.data.contractEventRecord;
+      const recordStart = eventRecord.getData('startDate') as Date | null;
+      const recordEnd = eventRecord.getData('endDate') as Date | null;
+      const recordTimetable = eventRecord.getData('timetable') as
+        | ContractTimetableModel
+        | undefined;
+      if (recordStart && recordEnd) {
+        this.datesRangeControl.setValue([recordStart, recordEnd], { emitEvent: true });
+        // After datesRangeControl.setValue, the listener regenerated the
+        // schedule FormArray with blanks. Now patch the schedule days
+        // from the record's timetable so werkuren / pauzes are visible
+        // immediately (rather than waiting for the GET).
+        const initialSchedule = recordTimetable?.schedule ?? [];
+        initialSchedule.forEach((day, index) => {
+          const fg = this.scheduleFormArray.at(index);
+          if (!fg) return;
+          fg.patchValue(
+            {
+              date: day.date ?? null,
+              fromTime: day.fromTime ?? null,
+              toTime: day.toTime ?? null,
+              pauseFromTime: day.pauseFromTime ?? null,
+              pauseToTime: day.pauseToTime ?? null,
+              shiftTemplateName: day.shiftTemplateName ?? null,
+            },
+            { emitEvent: false }
+          );
+          // Mark this index as confirmed so the Save button's
+          // "schedule fully confirmed" gate isn't tripped by the
+          // pre-fill alone.
+          this.confirmedScheduleDaysIndexes.add(index);
+        });
+      }
+
       this.isLoadingContractData.set(true);
       this.contractApiService
         .getContract(this.data.contractEventRecord.getData('id'))
+        .pipe(
+          // Always clear the loading flag, even when /api/contracts/:id
+          // 404s or 5xxs. Without this the spinner spins forever and the
+          // operator never sees the Save button — they assume the dialog
+          // is broken and close it. With the fallback the dialog at least
+          // shows the form with the placeholder data so the user can
+          // amend and re-submit.
+          finalize(() => this.isLoadingContractData.set(false))
+        )
         .subscribe(contract => {
           this.originalContract = structuredClone(contract);
           const startDate: Date = DateTime.fromISO(contract.dateFrom).toJSDate();
@@ -482,6 +551,30 @@ export class ContractDialogComponent implements OnInit {
             paritairComite: contract.paritairComite,
           } as EmployeeWageModel);
           this.form.patchValue(contract);
+          // The dates-range listener regenerated the schedule FormArray
+          // with fresh blank controls, so `form.patchValue(contract)`
+          // above doesn't reach `timetable.schedule[i].pauseFromTime` /
+          // `pauseToTime` reliably (FormArray.patchValue only patches
+          // items at indices that already exist, and the listener fires
+          // asynchronously w.r.t. the patch). Patch each schedule day
+          // explicitly so werkuren AND pauzes are pre-filled on edit.
+          // Bug reported 2026-05-13: pauze fields empty on edit.
+          const scheduleFromContract = contract.timetable?.schedule ?? [];
+          scheduleFromContract.forEach((day, index) => {
+            const fg = this.scheduleFormArray.at(index);
+            if (!fg) return;
+            fg.patchValue(
+              {
+                date: day.date ?? null,
+                fromTime: day.fromTime ?? null,
+                toTime: day.toTime ?? null,
+                pauseFromTime: day.pauseFromTime ?? null,
+                pauseToTime: day.pauseToTime ?? null,
+                shiftTemplateName: day.shiftTemplateName ?? null,
+              },
+              { emitEvent: false }
+            );
+          });
           if (
             !this.authStore.hasRoles([
               UserRole.FULL_ADMIN,
@@ -514,7 +607,8 @@ export class ContractDialogComponent implements OnInit {
               this.datesRangeControl.disable({ emitEvent: false });
             }
           }
-          this.isLoadingContractData.set(false);
+          // Note: loading flag is cleared by the finalize() above so it
+          // also resolves on errors.
         });
 
       const { schedule } = this.data.contractEventRecord.getData('timetable');
@@ -525,7 +619,7 @@ export class ContractDialogComponent implements OnInit {
       if (this.isCompanyActualsEnabled && contractEndDatetime < this.today) {
         this.contractConfirmationApiService
           .getContractsConfirmations({
-            companyId: this.company.id,
+            companyId: this.company?.id ?? '',
             contractId: this.data.contractEventRecord.getData('id'),
             statuses: [ContractConfirmationStatus.CONFIRMED, ContractConfirmationStatus.ABSENT],
           })
@@ -549,7 +643,7 @@ export class ContractDialogComponent implements OnInit {
       revenueOfficeCode: selectedWage.revenueOfficeCode,
       status: ContractStatusEnum.ACTIVE,
       employeeId: this.data.employee.id,
-      companyId: this.company.id,
+      companyId: this.company?.id ?? '',
     };
 
     this.contractApiService

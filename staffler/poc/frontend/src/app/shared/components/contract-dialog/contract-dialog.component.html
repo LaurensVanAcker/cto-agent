@@ -34,23 +34,73 @@
   </div>
 </header>
 
+<!--
+  Loading banner — replaces the full-body spinner so the form (and the
+  Save button) stay visible while /api/contracts/:id resolves. Pilot
+  feedback 2026-05-13: "Save-knop verdwijnt in edit mode tot het laadt,
+  als de call vasthangt is mijn dialog kapot." Now the spinner is a thin
+  strip at the top and the body keeps the placeholder schedule the user
+  clicked on, so they can still save/close even if the GET stalls.
+-->
 @if (isLoadingContractData()) {
-  <div class="flex flex-1 align-items-center justify-content-center">
-    <p-progressSpinner></p-progressSpinner>
+  <div class="contract-dialog-loading-banner flex align-items-center justify-content-center gap-2">
+    <p-progressSpinner styleClass="w-1rem h-1rem"></p-progressSpinner>
+    <small>{{ 'CONTRACT.LOADING_CONTRACT' | translate }}</small>
   </div>
-} @else {
-  <p-datepicker
-    selectionMode="range"
-    appendTo="body"
-    rangeSeparator=">"
-    inputStyleClass="w-15rem"
-    [showIcon]="true"
-    [readonlyInput]="true"
-    [minDate]="minDate"
-    [maxDate]="maxDate"
-    [formControl]="datesRangeControl"
-  ></p-datepicker>
+}
 
+<!--
+  Datum + Service location (employment-address) on the same row.
+  Pilot feedback 2026-05-13: "popup verspilt verticale ruimte, datum en
+  service location moeten naast elkaar." On narrow viewports the flex
+  wraps so the controls re-stack instead of overflowing.
+-->
+<div class="contract-dialog-top-row flex flex-wrap align-items-end gap-3">
+    <div class="flex flex-column">
+      <label class="contract-dialog-field-label">
+        {{ 'CONTRACT.DATE_LABEL' | translate }}
+      </label>
+      <p-datepicker
+        selectionMode="range"
+        appendTo="body"
+        rangeSeparator=">"
+        inputStyleClass="w-15rem"
+        [showIcon]="true"
+        [readonlyInput]="true"
+        [minDate]="minDate"
+        [maxDate]="maxDate"
+        [formControl]="datesRangeControl"
+      ></p-datepicker>
+    </div>
+
+    <div class="flex flex-column flex-auto contract-dialog-service-location">
+      <label class="contract-dialog-field-label">
+        {{ 'CONTRACT.EMPLOYMENT_ADDRESS_LABEL' | translate }}
+      </label>
+      @if (form.controls.employmentAddress.value) {
+        <dps-address-autocomplete-field
+          label=""
+          [control]="form.controls.employmentAddress"
+        ></dps-address-autocomplete-field>
+      } @else {
+        <input
+          type="text"
+          pInputText
+          [value]="'CONTRACT.EMPLOYMENT_ADDRESS_PLACEHOLDER' | translate"
+          [disabled]="true"
+          class="flex-auto"
+        />
+      }
+    </div>
+  </div>
+
+  <!--
+    Position / wage selector row. In create mode the operator picks a
+    wage; in edit mode we surface the (immutable) position-statute pair
+    coming from the loaded contract. Guarded against undefined while
+    `originalContract` is still loading so a failed API call doesn't
+    crash the template — Save button stays usable either way.
+  -->
   <div class="flex justify-content-between gap-3">
     @if (isCreateMode) {
       @if (wages$ | async; as wages) {
@@ -83,7 +133,7 @@
       } @else {
         <p-skeleton styleClass="w-15rem h-2rem"></p-skeleton>
       }
-    } @else {
+    } @else if (originalContract) {
       <input
         type="text"
         pInputText
@@ -93,13 +143,6 @@
       />
     }
   </div>
-
-  @if (form.controls.employmentAddress.value) {
-    <dps-address-autocomplete-field
-      [label]="'CONTRACT.EMPLOYMENT_ADDRESS_LABEL' | translate"
-      [control]="form.controls.employmentAddress"
-    ></dps-address-autocomplete-field>
-  }
 
   @if (isCancelMode) {
     <section class="flex flex-column p-3 gap-3 border-round surface-100">
@@ -235,22 +278,29 @@
           {{ 'CONTRACT.PC_124_CONTRACT_DURATION' | translate }}
         </span>
       }
-      @if (scheduleFormArray.valid && isAllContractSchedulesConfirmed) {
-        <p-button
-          class="align-self-end"
-          [label]="'CONTRACT.CONFIRM_CONTRACT_BUTTON' | translate"
-          [loading]="isProcessingContract()"
-          [disabled]="form.invalid || !isAllContractSchedulesConfirmed || isLoadingWages() || (isPC124Selected && isSingleDayContract)"
-          (onClick)="createContract()"
-        ></p-button>
-      } @else {
-        <span class="text-red-500">
+      <!--
+        Save button is ALWAYS rendered in create mode (just disabled
+        until the form is valid + every schedule day confirmed). The
+        previous design hid the button entirely until the form was
+        complete, which made it look broken — pilot feedback
+        2026-05-13: "Save-knop verdwijnt in popup, ik weet niet hoe ik
+        kan opslaan." The disabled state shows the operator there IS a
+        save action; the helper text below explains the missing prereq.
+      -->
+      <p-button
+        class="align-self-end"
+        [label]="'CONTRACT.CONFIRM_CONTRACT_BUTTON' | translate"
+        [loading]="isProcessingContract()"
+        [disabled]="form.invalid || !isAllContractSchedulesConfirmed || !scheduleFormArray.valid || isLoadingWages() || (isPC124Selected && isSingleDayContract)"
+        (onClick)="createContract()"
+      ></p-button>
+      @if (!scheduleFormArray.valid || !isAllContractSchedulesConfirmed) {
+        <small class="text-red-500">
           {{ 'CONTRACT.FILL_IN_ALL_CONTRACT_SCHEDULES' | translate }}
-        </span>
+        </small>
       }
     }
   </footer>
-}
 
 <ng-template #scheduleTemplate>
   <section class="flex flex-column border-round p-3 surface-100">

@@ -1,12 +1,26 @@
 @import 'functions';
 
+// Staffler brand (light/airy per brandbook p18). Stripped the dark overlay
+// + pink-on-pink header that hid the logo and locale selector. The brand
+// mark sits on a clean white surface; the watermark beeldmerk gives a
+// subtle accent without "zware of donkere achtergronden".
 :host {
-  background: url('src/assets/images/background.jpeg');
-  background-size: cover;
+  background: #ffffff;
 }
 
 header {
-  background-color: transparentizeColor(var(--p-primary-color), 0.8);
+  background-color: transparent;
+  // Make the header content readable on any backdrop: the logo and locale
+  // selector get their colours from their own rules (logo fills #fc074f,
+  // selector inherits from text colour).
+  color: var(--color-primary, #fc074f);
+}
+
+header img {
+  // SVGInject would have re-coloured this to white; without that helper
+  // we let the logo render in its native magenta and drop the inline
+  // "fill: white" trick (it never applied to <img>).
+  filter: none;
 }
 
 .background-logo {
@@ -15,5 +29,13 @@ header {
   height: 93%;
   right: 0;
   bottom: 0;
-  opacity: 0.25;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+// Login form labels/links sit on white now — flip them from text-white
+// (which would render invisible) to the brand secondary contrast colour.
+form .text-white,
+:host ::ng-deep .text-white {
+  color: #3e2b30 !important;
 }

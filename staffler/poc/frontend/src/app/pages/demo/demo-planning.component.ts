@@ -80,7 +80,7 @@ export class DemoPlanningComponent {
   protected readonly view = signal<View>('names');
   protected readonly zoom = signal<ZoomLevel>('week');
   protected readonly viewOptions = [
-    { label: 'Namen', value: 'names' },
+    { label: 'Medewerkers', value: 'names' },
     { label: 'Locaties', value: 'locations' },
   ];
   protected readonly zoomOptions = [

@@ -62,6 +62,7 @@ export class DialogShiftDetailComponent {
   protected readonly candidates = signal<CandidateRow[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly cancelling = signal(false);
 
   constructor() {
     this.loadCandidates();
@@ -69,6 +70,40 @@ export class DialogShiftDetailComponent {
 
   protected close(): void {
     this.ref.close();
+  }
+
+  /** Cancel is offered only while the shift is still actionable. Once a
+   *  contract has landed (closed/fulfilled) the operator should use the
+   *  Contract dialog's cancel instead, which also unwinds Dimona. */
+  protected canCancelShift(): boolean {
+    return this.shift.status === 'draft' || this.shift.status === 'open';
+  }
+
+  /** Soft-confirm + cancel. The server returns 409 if the shift moved out
+   *  of draft/open between page load and the click (e.g. someone selected
+   *  a candidate in another tab) — we surface that as an error banner. */
+  protected cancelShift(): void {
+    const ok = window.confirm(
+      'Deze shift annuleren? Reeds gekoppelde contracten blijven bestaan; ' +
+        'enkel de open seats verdwijnen uit de planning.',
+    );
+    if (!ok) return;
+    this.cancelling.set(true);
+    this.shiftsApi.cancel(this.shift.id).subscribe({
+      next: updated => {
+        this.cancelling.set(false);
+        this.ref.close({ cancelled: true, shift: updated });
+      },
+      error: err => {
+        this.cancelling.set(false);
+        this.error.set(
+          err?.status === 409
+            ? 'Deze shift is niet meer annuleerbaar — refresh de planning.'
+            : 'Annuleren mislukt. Probeer opnieuw.',
+        );
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   private loadCandidates(): void {

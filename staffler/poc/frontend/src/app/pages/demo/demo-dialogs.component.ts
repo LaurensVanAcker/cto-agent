@@ -16,10 +16,13 @@ import { DialogAddServiceLocationComponent } from '@dps/shared/components/dialog
 import { DialogEditVestigingComponent } from '@dps/shared/components/dialog-edit-vestiging/dialog-edit-vestiging.component';
 import { DialogVastBlockComponent } from '@dps/shared/components/dialog-vast-block/dialog-vast-block.component';
 import { DialogAttachVestigingComponent } from '@dps/shared/components/dialog-attach-vestiging/dialog-attach-vestiging.component';
-import { DialogConfirmActualComponent } from '@dps/shared/components/dialog-confirm-actual/dialog-confirm-actual.component';
+import { ContractDialogComponent } from '@dps/shared/components/contract-dialog/contract-dialog.component';
+import type { ContractDialogDataModel } from '@dps/shared/components/contract-dialog/contract-dialog-data.model';
+import { ContractConfirmationDialogComponent } from '../company/modules/actuals/components/contract-confirmation-dialog/contract-confirmation-dialog.component';
 import {
   ContractConfirmation,
   ContractConfirmationStatus,
+  EmployeeModel,
 } from '@dps/shared/models';
 
 /**
@@ -52,10 +55,13 @@ import {
 
       <div class="demo-grid">
         <article class="demo-card">
-          <h3>m09 — Nieuwe shift</h3>
-          <p>Slot-based dialog voor het aanmaken van een shift (Locaties-flow).</p>
+          <h3>m09 — Nieuwe shift (Locaties)</h3>
+          <p>Slot-based dialog voor het aanmaken van shifts in de Locaties-flow (multi-slot).</p>
           <button type="button" class="demo-btn" (click)="openShiftBatch()">
-            Open m09
+            Open m09 multi
+          </button>
+          <button type="button" class="demo-btn demo-btn-secondary" (click)="openShiftBatchSingle()">
+            Open m09 single (Namen)
           </button>
         </article>
 
@@ -107,6 +113,21 @@ import {
           <p>Per-dag bevestiging van gewerkte uren (vervangt de iframe).</p>
           <button type="button" class="demo-btn" (click)="openConfirmActual()">
             Open prestatie-dialog
+          </button>
+        </article>
+
+        <article class="demo-card">
+          <h3>Contract-dialog (Namen)</h3>
+          <p>
+            Klik-op-cel / klik-op-bestaand contract in de Namen-view. Service
+            location + Datum naast elkaar, werkuren + pauzes pre-filled in
+            edit mode, Save-knop altijd zichtbaar.
+          </p>
+          <button type="button" class="demo-btn" (click)="openContractCreate()">
+            Open create (klik op cel)
+          </button>
+          <button type="button" class="demo-btn demo-btn-secondary" (click)="openContractEdit()">
+            Open edit (klik op contract)
           </button>
         </article>
       </div>
@@ -194,6 +215,26 @@ export class DemoDialogsComponent {
   /** Track refs so we can react to onClose if needed. */
   private currentRef: DynamicDialogRef | null = null;
 
+  /**
+   * Mockup-09 column 2 demo pool — the gallery route runs without a DPS
+   * session so the real /api/employees call 401s. We seed a deterministic
+   * cross-section of names (full-availability, partial, permanent) so the
+   * Persoon-kiezen dropdown shows all three group headers + the avatar +
+   * availability range rendering exactly like the mockup.
+   */
+  private readonly demoPool = [
+    { id: 'demo-emp-bart',     firstName: 'Bart',    lastName: 'Verhaegen' },
+    { id: 'demo-emp-joke',     firstName: 'Joke',    lastName: 'Carton' },
+    { id: 'demo-emp-muriel',   firstName: 'Muriel',  lastName: 'De Boel' },
+    { id: 'demo-emp-jeff',     firstName: 'Jeff',    lastName: 'Callebaut' },
+    { id: 'demo-emp-laurens',  firstName: 'Laurens', lastName: 'Van Acker' },
+    { id: 'demo-emp-leslie',   firstName: 'Leslie',  lastName: 'Nikolov' },
+    { id: 'demo-emp-lieven',   firstName: 'Lieven',  lastName: 'Bonamie' },
+    { id: 'demo-emp-philippe', firstName: 'Philippe', lastName: 'Norman' },
+    { id: 'demo-emp-sarah',    firstName: 'Sarah',   lastName: 'Dubois' },
+    { id: 'demo-emp-thomas',   firstName: 'Thomas',  lastName: 'Janssens' },
+  ];
+
   protected openShiftBatch(): void {
     this.currentRef = this.dialogService.open(DialogShiftBatchComponent, {
       showHeader: false,
@@ -204,6 +245,33 @@ export class DemoDialogsComponent {
       data: {
         companyId: 'demo-company',
         date: new Date().toISOString().slice(0, 10),
+        mode: 'multi',
+        mockEmployees: this.demoPool,
+      },
+    });
+  }
+
+  /** Namen-view variant — single-slot mode hides the count badge, the
+   *  per-slot X, and the "+ Shift toevoegen" button. The dialog still
+   *  carries the same werkuren / pauze / loonpakket surface so the
+   *  shape stays consistent. */
+  protected openShiftBatchSingle(): void {
+    this.currentRef = this.dialogService.open(DialogShiftBatchComponent, {
+      showHeader: false,
+      width: '38rem',
+      styleClass: 'm09-host',
+      modal: true,
+      focusOnShow: false,
+      data: {
+        companyId: 'demo-company',
+        date: new Date().toISOString().slice(0, 10),
+        mode: 'single',
+        mockEmployees: this.demoPool,
+        // Pre-assign the first pool member so the dialog opens with an
+        // assigned slot — that surface includes the loonpakket select +
+        // the inline mismatch banner (mockup 09 column 3), so the
+        // gallery variant doubles as a demo of screen 3.
+        targetEmployeeIds: [this.demoPool[0].id],
       },
     });
   }
@@ -344,12 +412,134 @@ export class DemoDialogsComponent {
         prefilledFromTimeRegistration: false,
       })),
     };
-    this.currentRef = this.dialogService.open(DialogConfirmActualComponent, {
-      showHeader: false,
+    const employee = {
+      id: 'demo-emp',
+      firstName: 'Demo',
+      lastName: 'Werknemer',
+    } as unknown as EmployeeModel;
+    this.currentRef = this.dialogService.open(ContractConfirmationDialogComponent, {
+      header: 'Prestatie bevestigen',
       modal: true,
-      width: '42rem',
-      styleClass: 'm09-host',
-      data: { confirmation: mock, companyId: 'demo-company' },
+      width: '52rem',
+      data: { contractConfirmation: mock, employee },
     });
+  }
+
+  /**
+   * Contract-dialog (create flow) — simulates a cell-click in the Namen
+   * view. The dialog expects a Bryntum EventModel-like object with
+   * `getData` for the keys it reads (id/startDate/endDate/timetable).
+   * We hand-roll a tiny stub so we don't have to bootstrap a full
+   * scheduler instance just to render the dialog.
+   *
+   * Bryntum events are considered "placeholder" (= create mode) when
+   * `hasGeneratedId` is truthy, so we set that to true.
+   */
+  protected openContractCreate(): void {
+    const today = new Date();
+    today.setHours(9, 0, 0, 0);
+    const evt = this.makeStubEventRecord({
+      id: 'demo-new',
+      startDate: today,
+      endDate: today,
+      hasGeneratedId: true,
+      timetable: null,
+    });
+    const employee = {
+      id: 'demo-emp',
+      firstName: 'Anouk',
+      lastName: 'Staelens',
+      name: 'Anouk Staelens',
+    } as unknown as EmployeeModel;
+    this.currentRef = this.dialogService.open(ContractDialogComponent, {
+      modal: true,
+      showHeader: false,
+      focusOnShow: false,
+      width: '38rem',
+      data: {
+        contractEventRecord: evt as never,
+        employee,
+        initialDate: today.toISOString().slice(0, 10),
+      } satisfies ContractDialogDataModel,
+    });
+  }
+
+  /**
+   * Contract-dialog (edit flow) — simulates clicking an existing
+   * contract block. The placeholder timetable is pre-populated with
+   * werkuren + pauzes so the form pre-fills correctly even if the
+   * /api/contracts/:id GET takes a moment (or 401s in this auth-less
+   * demo route).
+   */
+  protected openContractEdit(): void {
+    const today = new Date();
+    const iso = (offset: number): string => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + offset);
+      return d.toISOString().slice(0, 10);
+    };
+    const dateFrom = new Date(today);
+    dateFrom.setHours(9, 0, 0, 0);
+    const dateTo = new Date(today);
+    dateTo.setHours(17, 0, 0, 0);
+    const evt = this.makeStubEventRecord({
+      id: 'demo-existing',
+      startDate: dateFrom,
+      endDate: dateTo,
+      hasGeneratedId: false,
+      timetable: {
+        schedule: [
+          {
+            date: iso(0),
+            fromTime: '09:00',
+            toTime: '17:00',
+            pauseFromTime: '12:00',
+            pauseToTime: '12:30',
+            shiftTemplateName: null,
+            createShiftTemplate: false,
+          },
+        ],
+      },
+    });
+    const employee = {
+      id: 'demo-emp',
+      firstName: 'Anouk',
+      lastName: 'Staelens',
+      name: 'Anouk Staelens',
+    } as unknown as EmployeeModel;
+    this.currentRef = this.dialogService.open(ContractDialogComponent, {
+      modal: true,
+      showHeader: false,
+      focusOnShow: false,
+      width: '38rem',
+      data: {
+        contractEventRecord: evt as never,
+        employee,
+      } satisfies ContractDialogDataModel,
+    });
+  }
+
+  /**
+   * Tiny stub of Bryntum's EventModel — just enough surface for the
+   * contract-dialog (getData / set / remove / hasGeneratedId). Keeps the
+   * gallery decoupled from Bryntum's scheduler bootstrap; the dialog
+   * never touches the scheduler instance, only the record's data.
+   */
+  private makeStubEventRecord(
+    seed: Record<string, unknown> & { hasGeneratedId: boolean },
+  ): { getData: (key: string) => unknown; set: (val: unknown) => void; remove: () => void; hasGeneratedId: boolean } {
+    const data: Record<string, unknown> = { ...seed };
+    return {
+      hasGeneratedId: !!seed.hasGeneratedId,
+      getData: (key: string) => data[key],
+      set: (val: unknown) => {
+        if (val && typeof val === 'object') {
+          Object.assign(data, val as Record<string, unknown>);
+        }
+      },
+      remove: () => {
+        /* no-op in gallery */
+      },
+    };
   }
 }

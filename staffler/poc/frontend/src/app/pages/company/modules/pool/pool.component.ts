@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -10,9 +11,22 @@ import {
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Store } from '@ngxs/store';
-import { debounceTime, distinctUntilChanged, filter, startWith, switchMap, take, tap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  of,
+  startWith,
+  switchMap,
+  take,
+  tap,
+  throwError,
+} from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DateTime } from 'luxon';
+
+import { environment } from '@dps/env';
 
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -125,6 +139,7 @@ export class PoolComponent {
   private readonly store = inject(Store);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
 
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
   protected readonly statusFilter = signal<StatusFilter>('all');
@@ -347,25 +362,89 @@ export class PoolComponent {
     });
     ref.onClose.subscribe((selectedGroups: Group[] | undefined) => {
       if (!selectedGroups) return;
-      this.groupsApi
-        .updateEmployeeGroups(company.id, row.engagement.id, selectedGroups)
-        .subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Vestigingen bijgewerkt',
-              detail: this.employeeName(row.engagement),
-            });
-            this.refresh();
-          },
-          error: err =>
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Toewijzen mislukt',
-              detail: this.parseError(err),
-            }),
-        });
+      this.persistEmployeeGroups(company.id, row.engagement.id, selectedGroups).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Vestigingen bijgewerkt',
+            detail: this.employeeName(row.engagement),
+          });
+          this.refresh();
+        },
+        error: err =>
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Toewijzen mislukt',
+            detail: this.parseError(err),
+          }),
+      });
     });
+  }
+
+  /**
+   * Remove a single vestiging chip from a user's row.
+   *
+   * Mirrors the original DPS `removeEmployeeFromGroup` (commit 0ceb738,
+   * `company-groups.component.ts`): drop the group at `groupIndex` then
+   * persist the remaining list. We splice off `row.assignedGroups` because
+   * that's the array bound in the template, and keep `row.engagement.engagementGroups`
+   * in sync so the AssignGroupsDialog picks up the new state.
+   */
+  protected removeGroupFromEmployee(row: PoolRow, groupIndex: number): void {
+    const company = this.company();
+    if (!company) return;
+    const group = row.assignedGroups[groupIndex];
+    if (!group) return;
+    const remaining = row.assignedGroups.filter((_, i) => i !== groupIndex);
+    this.persistEmployeeGroups(company.id, row.engagement.id, remaining).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Vestiging verwijderd',
+          detail: `${group.name} • ${this.employeeName(row.engagement)}`,
+        });
+        this.refresh();
+      },
+      error: err =>
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Verwijderen mislukt',
+          detail: this.parseError(err),
+        }),
+    });
+  }
+
+  /**
+   * POST the full vestigingen-list for an employee.
+   *
+   * Wraps `CompanyGroupApiService.updateEmployeeGroups` with a
+   * `responseType: 'text'` flavour: DPS replies 200 OK with an empty
+   * body for this endpoint, which makes Angular's default JSON parser
+   * fail and the call rejects even though the write succeeded
+   * (the proxy reports `500 Unexpected end of JSON input`). Treating
+   * the response as text avoids the parse step entirely; we still
+   * surface real failures (network/4xx/5xx with content) to the caller.
+   */
+  private persistEmployeeGroups(companyId: string, employeeId: string, groups: Group[]) {
+    return this.http
+      .post(
+        `${environment.apiBaseUrl}/companies/${encodeURIComponent(
+          companyId,
+        )}/employees/${encodeURIComponent(employeeId)}/groups`,
+        groups,
+        { responseType: 'text' },
+      )
+      .pipe(
+        catchError((err: HttpErrorResponse) => {
+          // The upstream wrote successfully but the proxy choked on the
+          // empty 200 body — recognise that specific shape and pass it as
+          // a success. Anything else is a real failure.
+          const msg = (err?.error as string | undefined) ?? '';
+          const isEmptyBodyParseError =
+            err.status === 500 && /Unexpected end of JSON input/i.test(msg);
+          return isEmptyBodyParseError ? of('') : throwError(() => err);
+        }),
+      );
   }
 
   /**

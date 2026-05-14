@@ -82,6 +82,16 @@ export class ShiftApiService {
     return this.http.post<ShiftModel>(`${this.url}/${id}/publish`, {});
   }
 
+  /**
+   * Cancel an open / draft shift. Sets status='cancelled' server-side and
+   * keeps the row for audit. Closed / fulfilled shifts can't be cancelled
+   * (the contract has already landed in DPS) — the server returns 409 in
+   * that case so callers can show a tailored error.
+   */
+  cancel(id: string, reason?: string): Observable<ShiftModel> {
+    return this.http.post<ShiftModel>(`${this.url}/${id}/cancel`, { reason: reason ?? null });
+  }
+
   apply(id: string, employeeId: string, note?: string): Observable<unknown> {
     return this.http.post<unknown>(`${this.url}/${id}/apply`, { employeeId, note });
   }

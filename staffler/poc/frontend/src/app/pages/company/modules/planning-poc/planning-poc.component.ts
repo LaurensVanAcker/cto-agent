@@ -24,7 +24,8 @@ import { DialogService, DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
+import { Menu, MenuModule } from 'primeng/menu';
+import { MenuItem, MessageService } from 'primeng/api';
 
 import { RootState } from '@dps/core/store';
 import { EmployeeApiService, ContractApiService } from '@dps/core/api';
@@ -60,12 +61,16 @@ import {
   PermanentBlockApiService,
   PermanentBlockModel,
 } from '@dps/core/api/permanent-block/permanent-block.api.service';
+import {
+  AvailabilityApiService,
+  AvailabilityModel,
+} from '@dps/core/api/availability/availability.api.service';
 
 type PocPlanningView = 'names' | 'locations';
 type PocPlanningZoom = 'day' | 'week' | '2weeks';
 
 const VIEW_OPTIONS: { label: string; value: PocPlanningView }[] = [
-  { label: 'Namen', value: 'names' },
+  { label: 'Medewerkers', value: 'names' },
   { label: 'Locaties', value: 'locations' },
 ];
 
@@ -103,7 +108,7 @@ interface PocEvent {
   name: string;
   cls: string;
   eventColor?: string;
-  kind: 'contract' | 'shift' | 'permanent';
+  kind: 'contract' | 'shift' | 'permanent' | 'availability';
   raw: unknown;
 }
 
@@ -134,6 +139,7 @@ interface PocEvent {
     SelectButtonModule,
     TooltipModule,
     ToastModule,
+    MenuModule,
   ],
   providers: [DialogService, MessageService],
   templateUrl: './planning-poc.component.html',
@@ -146,12 +152,17 @@ interface PocEvent {
 })
 export class PlanningPocComponent implements AfterViewInit {
   @ViewChild('scheduler') readonly schedulerComponent?: BryntumSchedulerComponent;
+  /** Anchored to the clicked branch-row 3-dot trigger at hostClickHandler
+   *  time. Model is rebuilt per-click with the branchId baked in. */
+  @ViewChild('branchMenu') readonly branchMenu?: Menu;
+  protected readonly branchMenuItems = signal<MenuItem[]>([]);
 
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly contractsApi = inject(ContractApiService);
   private readonly shiftsApi = inject(ShiftApiService);
   private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
   private readonly permanentBlocksApi = inject(PermanentBlockApiService);
+  private readonly availabilityApi = inject(AvailabilityApiService);
   private readonly serviceGroupsApi = inject(ServiceGroupApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly dialogService = inject(DialogService);
@@ -175,8 +186,14 @@ export class PlanningPocComponent implements AfterViewInit {
   protected readonly zoomOptions = ZOOM_OPTIONS;
   /** Free-text employee filter, debounced + sent as nameLike to /api/employees. */
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
+  // Anchor: Monday of this week for Week / 2-week zooms, today for Day-zoom
+  // (so the user lands on something with content instead of staring at an
+  // empty Monday). Zoom transitions re-anchor this via setZoom.
   protected readonly weekStart = signal<string>(
-    DateTime.now().startOf('week').toISODate() ?? '',
+    (((localStorage.getItem(PlanningPocComponent.LS_ZOOM_KEY) as PocPlanningZoom | null) ?? 'week') ===
+    'day'
+      ? DateTime.now().startOf('day').toISODate()
+      : DateTime.now().startOf('week').toISODate()) ?? '',
   );
   protected readonly resources = signal<PocResource[]>([]);
   protected readonly events = signal<PocEvent[]>([]);
@@ -262,28 +279,21 @@ export class PlanningPocComponent implements AfterViewInit {
     const isBranch = !!record.getData('isBranch');
     const branchId = String(record.getData('id') ?? '').replace(/^branch:/, '');
     if (this.view() === 'locations' && isBranch) {
-      // Branch (vestiging) row owns BOTH the "+" (new service-location)
-      // and the gear (edit vestiging address). Service-location rows are
-      // edited inline via the name-rename popover; their address lives on
-      // the parent vestiging.
+      // Branch (vestiging) row: a single 3-dot menu trigger keeps the
+      // chrome subtle and gives both actions (add service-location,
+      // edit branch address) consistent visual weight. The actual menu
+      // is rendered by a single Angular <p-menu> anchored to the
+      // clicked trigger at hostClick time.
       const isReal = branchId && !branchId.startsWith('_');
-      const gear = isReal
+      const trigger = isReal
         ? `<button
             type="button"
-            class="poc-branch-gear"
-            data-poc-action="edit-branch"
+            class="poc-branch-menu"
+            data-poc-action="branch-menu"
             data-branch-id="${branchId}"
-            title="Vestiging-adres bewerken"
-          ><span class="dps-icon dps-icon-settings"></span></button>`
-        : '';
-      const add = isReal
-        ? `<button
-            type="button"
-            class="poc-add-sl"
-            data-poc-action="add-sl"
-            data-branch-id="${branchId}"
-            title="Service location toevoegen"
-          >+</button>`
+            title="Acties"
+            aria-label="Acties voor vestiging"
+          ><span class="dps-icon dps-icon-more_vert"></span></button>`
         : '';
       return `
         <div class="poc-branch-row">
@@ -291,7 +301,7 @@ export class PlanningPocComponent implements AfterViewInit {
             <span class="dps-icon dps-icon-apartment poc-branch-icon"></span>
             <span>${name}</span>
           </span>
-          <span class="poc-branch-actions">${gear}${add}</span>
+          <span class="poc-branch-actions">${trigger}</span>
         </div>`;
     }
     if (this.view() === 'locations') {
@@ -410,6 +420,19 @@ export class PlanningPocComponent implements AfterViewInit {
     return {
       ...GENERAL_SCHEDULER_CONFIG,
       columns: commonColumns,
+      // Drop the redundant week-level header row from the shared
+      // GENERAL_SCHEDULER_CONFIG: the toolbar above already shows
+      // "<from> → <to> (week N)" so a second copy inside Bryntum is just
+      // visual noise that takes vertical room from the grid.
+      viewPreset: {
+        base: 'dayAndWeek',
+        headers: [
+          {
+            unit: 'day',
+            dateFormat: 'ddd D',
+          },
+        ],
+      },
       // 'plain' = no default Bryntum chrome on the event bar; the renderer
       // owns the full HTML. Combined with the per-kind classes in cls (set
       // by buildEvents) the SCSS paints the v5 mockup look exactly.
@@ -425,12 +448,8 @@ export class PlanningPocComponent implements AfterViewInit {
     const week = DateTime.fromISO(this.weekStart()).setLocale('nl-BE');
     const z = this.zoom();
     if (z === 'day') {
-      // Show the displayed day (today if it's in this week, otherwise the
-      // anchor Monday). Avoids the previous "label says Monday, grid shows
-      // Tuesday" mismatch.
-      const today = DateTime.now().setLocale('nl-BE').startOf('day');
-      const day = today >= week && today < week.plus({ days: 7 }) ? today : week;
-      return day.toFormat('cccc d LLL yyyy');
+      // weekStart IS the displayed day in Day-zoom — label matches grid.
+      return week.toFormat('cccc d LLL yyyy');
     }
     const end = z === '2weeks' ? week.plus({ days: 13 }) : week.plus({ days: 6 });
     return `${week.toFormat('d LLL')} → ${end.toFormat('d LLL yyyy')} (week ${week.weekNumber})`;
@@ -446,24 +465,24 @@ export class PlanningPocComponent implements AfterViewInit {
    * Week / 2 weken: full day boundary (00:00–24:00) for 7 / 14 days from
    * the anchor Monday.
    */
+  /**
+   * Day zoom: weekStart IS the displayed day (set by setZoom / previousDay /
+   * nextDay). Bryntum shows [day, day+1]. Without this, the previous "snap
+   * to today" logic ate every prev/next-day click whenever today happened
+   * to sit in the visible 7-day window — Day view felt frozen.
+   *
+   * Week / 2 weken: weekStart is the anchor Monday. Bryntum shows 7 or 14
+   * full days from there.
+   */
   protected readonly startDate = computed(() => {
-    const week = DateTime.fromISO(this.weekStart());
-    if (this.zoom() === 'day') {
-      const today = DateTime.now().startOf('day');
-      const anchor = today >= week && today < week.plus({ days: 7 }) ? today : week;
-      return anchor.toJSDate();
-    }
-    return week.toJSDate();
+    return DateTime.fromISO(this.weekStart()).startOf('day').toJSDate();
   });
   protected readonly endDate = computed(() => {
-    const week = DateTime.fromISO(this.weekStart());
+    const anchor = DateTime.fromISO(this.weekStart()).startOf('day');
     const z = this.zoom();
-    if (z === 'day') {
-      const anchor = DateTime.fromJSDate(this.startDate()).startOf('day');
-      return anchor.plus({ days: 1 }).toJSDate();
-    }
-    if (z === '2weeks') return week.plus({ days: 14 }).toJSDate();
-    return week.plus({ days: 7 }).toJSDate();
+    if (z === 'day') return anchor.plus({ days: 1 }).toJSDate();
+    if (z === '2weeks') return anchor.plus({ days: 14 }).toJSDate();
+    return anchor.plus({ days: 7 }).toJSDate();
   });
 
   ngAfterViewInit(): void {
@@ -537,6 +556,13 @@ export class PlanningPocComponent implements AfterViewInit {
         this.openVastBlockDialog(resourceId, event);
         return false;
       }
+      if (kind === 'availability') {
+        // Availability hour-blocks are read-only context. Swallow the
+        // click so Bryntum doesn't try to open an editor — but don't
+        // open any dialog either, since there's nothing for the company
+        // operator to edit on someone else's availability.
+        return false;
+      }
     }
 
     // Fresh placeholder (cell-click / drag-create). Pick the right dialog
@@ -571,7 +597,9 @@ export class PlanningPocComponent implements AfterViewInit {
       styleClass: 'm09-host',
       modal: true,
       focusOnShow: false,
-      data: { companyId: company.id, existingShift: shift },
+      // Editing an existing shift: the underlying record may have
+      // capacity > 1, so we open in multi-slot mode regardless of view.
+      data: { companyId: company.id, existingShift: shift, mode: 'multi' as const },
     });
     ref.onClose.subscribe(result => {
       if (result?.kind === 'shift.batch.published') {
@@ -624,6 +652,11 @@ export class PlanningPocComponent implements AfterViewInit {
     const startD = start ? DateTime.fromJSDate(start as Date) : DateTime.now();
     const endD = end ? DateTime.fromJSDate(end as Date) : startD;
     const isDragged = endD > startD.plus({ minutes: 1 });
+    // Extract the existing block id from the event id (`vast:<uuid>` per
+    // buildEvents). Fresh placeholders have a generated id ≠ vast:<x>, so
+    // blockId stays undefined and the dialog stays in create-only mode.
+    const rawId = String((eventRecord as unknown as { id?: unknown }).id ?? '');
+    const blockId = rawId.startsWith('vast:') ? rawId.slice('vast:'.length) : undefined;
     const ref = this.dialogService.open(DialogVastBlockComponent, {
       showHeader: false,
       width: '32rem',
@@ -637,6 +670,7 @@ export class PlanningPocComponent implements AfterViewInit {
         dateTo: endD.toISODate() ?? startD.toISODate() ?? '',
         fromTime: isDragged && this.zoom() === 'day' ? startD.toFormat('HH:mm') : '09:00',
         toTime: isDragged && this.zoom() === 'day' ? endD.toFormat('HH:mm') : '17:00',
+        blockId,
       },
     });
     ref.onClose.subscribe(result => {
@@ -676,6 +710,24 @@ export class PlanningPocComponent implements AfterViewInit {
               });
             },
           });
+      } else if (result?.kind === 'vast.block.deleted' && result.blockId) {
+        this.permanentBlocksApi.remove(result.blockId).subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Vast blok verwijderd',
+            });
+            this.maybeRefresh();
+          },
+          error: err => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Verwijderen vast blok mislukt',
+              detail:
+                (err?.error?.message as string | undefined) ?? 'Probeer het opnieuw.',
+            });
+          },
+        });
       }
     });
   }
@@ -726,6 +778,9 @@ export class PlanningPocComponent implements AfterViewInit {
         serviceGroupId,
         prefillFromTime,
         prefillToTime,
+        // Cell-click on a service-location row is the Locaties flow: the
+        // operator can declare multiple slots in one go (capacity > 1).
+        mode: 'multi' as const,
       },
     });
     ref.onClose.subscribe(result => {
@@ -767,6 +822,26 @@ export class PlanningPocComponent implements AfterViewInit {
   }
 
   protected setZoom(z: PocPlanningZoom): void {
+    const prev = this.zoom();
+    if (z !== prev) {
+      // Re-anchor weekStart at zoom transitions so the displayed date stays
+      // intuitive (and the refresh below pulls the right range):
+      //   - leaving Day → snap weekStart back to the Monday of that day
+      //   - entering Day → snap weekStart to today if today is in the
+      //     visible week, otherwise leave it on the Monday (so the user
+      //     lands on something with context). Without this, the day-zoom
+      //     would show Monday after switching out and back, and prev/next
+      //     navigation was fighting an implicit "today" override.
+      if (prev === 'day' && z !== 'day') {
+        const monday = DateTime.fromISO(this.weekStart()).startOf('week');
+        this.weekStart.set(monday.toISODate() ?? this.weekStart());
+      } else if (z === 'day' && prev !== 'day') {
+        const monday = DateTime.fromISO(this.weekStart());
+        const today = DateTime.now().startOf('day');
+        const inWeek = today >= monday && today < monday.plus({ days: 7 });
+        if (inWeek) this.weekStart.set(today.toISODate() ?? this.weekStart());
+      }
+    }
     this.zoom.set(z);
     localStorage.setItem(PlanningPocComponent.LS_ZOOM_KEY, z);
     // Two-pass: paint the cache immediately so the toolbar feels
@@ -800,19 +875,29 @@ export class PlanningPocComponent implements AfterViewInit {
   }
 
   protected previousWeek(): void {
-    const d = DateTime.fromISO(this.weekStart()).minus({ weeks: 1 });
+    // 2-week zoom navigates by the visible span (14 days), not by 1 week
+    // — otherwise prev/next visibly overlaps the previous page by 7 days.
+    const step = this.zoom() === '2weeks' ? { days: 14 } : { weeks: 1 };
+    const d = DateTime.fromISO(this.weekStart()).minus(step);
     this.weekStart.set(d.toISODate() ?? this.weekStart());
     this.maybeRefresh();
   }
 
   protected nextWeek(): void {
-    const d = DateTime.fromISO(this.weekStart()).plus({ weeks: 1 });
+    const step = this.zoom() === '2weeks' ? { days: 14 } : { weeks: 1 };
+    const d = DateTime.fromISO(this.weekStart()).plus(step);
     this.weekStart.set(d.toISODate() ?? this.weekStart());
     this.maybeRefresh();
   }
 
   protected today(): void {
-    this.weekStart.set(DateTime.now().startOf('week').toISODate() ?? '');
+    // In Day-zoom "Today" goes to actual today (the displayed day = weekStart);
+    // in Week/2-week-zoom we anchor on the Monday of this week.
+    const anchor =
+      this.zoom() === 'day'
+        ? DateTime.now().startOf('day')
+        : DateTime.now().startOf('week');
+    this.weekStart.set(anchor.toISODate() ?? '');
     this.maybeRefresh();
   }
 
@@ -894,7 +979,12 @@ export class PlanningPocComponent implements AfterViewInit {
     const btn = target.closest('[data-poc-action]') as HTMLElement | null;
     if (!btn) return;
     const action = btn.dataset['pocAction'];
-    if (action === 'add-sl') {
+    if (action === 'branch-menu') {
+      const branchId = btn.dataset['branchId'] ?? '';
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.openBranchMenu(branchId, ev);
+    } else if (action === 'add-sl') {
       const branchId = btn.dataset['branchId'] ?? '';
       ev.preventDefault();
       ev.stopPropagation();
@@ -943,9 +1033,33 @@ export class PlanningPocComponent implements AfterViewInit {
     });
   }
 
-  /** Vestiging-address editing — gear icon on the vestiging-header row.
-   *  Reuses the same Google-Maps autocomplete field as the service-location
-   *  dialog (where it used to live). */
+  /** 3-dot overflow menu on a vestiging-header row. Anchors the shared
+   *  Angular <p-menu> to the click target and rebuilds its model with
+   *  the right branchId. Replaces the previous gear+plus pair so the
+   *  chrome stays subtle and consistent. */
+  private openBranchMenu(branchId: string, ev: MouseEvent): void {
+    if (!branchId) return;
+    this.branchMenuItems.set([
+      {
+        label: 'Service location toevoegen',
+        icon: 'dps-icon dps-icon-add',
+        command: () => this.openAddServiceLocationDialog(branchId),
+      },
+      {
+        label: 'Vestiging-adres bewerken',
+        icon: 'dps-icon dps-icon-edit',
+        command: () => this.openEditBranchDialog(branchId),
+      },
+    ]);
+    // Show after a microtask so the model update has flushed and the menu
+    // anchors at the right size. queueMicrotask keeps us in the same task
+    // → no visible delay.
+    queueMicrotask(() => this.branchMenu?.show(ev));
+  }
+
+  /** Vestiging-address editing — invoked from the 3-dot overflow menu on
+   *  the vestiging-header row. Reuses the same Google-Maps autocomplete
+   *  field as the service-location dialog. */
   private openEditBranchDialog(branchId: string): void {
     if (!branchId || !this.lastData) return;
     const branch = this.lastData.branches.find(b => b.id === branchId);
@@ -1103,6 +1217,7 @@ export class PlanningPocComponent implements AfterViewInit {
     permanentBlocks: PermanentBlockModel[];
     serviceGroups: ServiceGroupModel[];
     branches: EngagementGroupModel[];
+    availabilities: AvailabilityModel[];
   } | null = null;
 
   private maybeRefresh(): void {
@@ -1130,8 +1245,14 @@ export class PlanningPocComponent implements AfterViewInit {
    * for the visible week, transforms them into Bryntum resources + events per
    * the active view, and pushes to the scheduler. */
   private refresh(companyId: string): void {
+    // Fetch the actual visible range: 1 day for Day-zoom, 7 for Week, 14
+    // for 2-week. Previously this was hard-coded to 7 days, which left the
+    // second week of 2-week zoom permanently empty ("data gone when
+    // switching to 2 weken") and over-fetched a whole week for Day-zoom.
     const startIso = this.weekStart();
-    const endIso = DateTime.fromISO(startIso).plus({ days: 6 }).toISODate() ?? startIso;
+    const z = this.zoom();
+    const span = z === 'day' ? 0 : z === '2weeks' ? 13 : 6;
+    const endIso = DateTime.fromISO(startIso).plus({ days: span }).toISODate() ?? startIso;
     this.loading.set(true);
 
     // Each source falls back to empty so one flaky upstream (DPS 5xx,
@@ -1177,6 +1298,15 @@ export class PlanningPocComponent implements AfterViewInit {
       ),
       serviceGroups: safe(this.serviceGroupsApi.list(companyId), []),
       branches: safe(this.engagementGroupsApi.listForCompany(companyId), []),
+      // Pilot feedback (2026-05-14): seed availabilities paint as green
+      // hour-blocks behind each employee row in the Medewerkers grid so
+      // the operator sees "wie kan wanneer" without diving into MyStaffler.
+      // The endpoint resolves the company's employee ids server-side
+      // so this stays a single round-trip even with 50+ medewerkers.
+      availabilities: safe(
+        this.availabilityApi.listForCompany(companyId, startIso, endIso),
+        [] as AvailabilityModel[],
+      ),
     }).subscribe({
       next: data => {
         this.lastData = data;
@@ -1337,9 +1467,34 @@ export class PlanningPocComponent implements AfterViewInit {
       serviceGroups: ServiceGroupModel[];
       permanentEmployees: PermanentEmployeeModel[];
       permanentBlocks?: PermanentBlockModel[];
+      availabilities?: AvailabilityModel[];
     },
   ): PocEvent[] {
     const events: PocEvent[] = [];
+
+    // Availabilities — green hour-blocks behind each employee row in the
+    // Medewerkers view. Rendered first so contract / shift blocks land on
+    // top in the Bryntum lane stack. Only `open` status is rendered:
+    // locked rows would just duplicate the contract that is already
+    // painting that hour.
+    if (view === 'names') {
+      for (const a of data.availabilities ?? []) {
+        if (a.status !== 'open') continue;
+        const start = DateTime.fromISO(`${a.date}T${a.from_time}`).toJSDate();
+        const end = DateTime.fromISO(`${a.date}T${a.to_time}`).toJSDate();
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+        events.push({
+          id: `avail:${a.id}`,
+          resourceId: a.employee_id,
+          startDate: start,
+          endDate: end,
+          name: `${a.from_time} – ${a.to_time}`,
+          cls: 'poc-event poc-event-availability',
+          kind: 'availability',
+          raw: a,
+        } as unknown as PocEvent);
+      }
+    }
 
     // Contracts (DPS) appear in the Names view; in V+SL / Day they're hidden
     // because we don't yet know which service-location a contract is at.
@@ -1382,14 +1537,16 @@ export class PlanningPocComponent implements AfterViewInit {
     //     stacks on the SL row in Locaties view, lands on the employee
     //     row in Names view). Title = the employee's name.
     //   • One block for the remaining seats (kind=shift; title =
-    //     "N open shift{s}"). The badge value comes from
-    //     applications_count (positive reactions from the pool), NOT
-    //     capacity — capacity already lives in the title.
+    //     "N open shift{s}") — Locaties view ONLY. Open shifts are a
+    //     service-location concept; in Namen view every row already
+    //     represents an assigned employee so there is no "open" block.
     //
     // V+SL / Day: shown on the service_group resource.
     // Names: assigned blocks fan out to each target_employee_id;
-    //        open block fans out as a ghost to ALL_POOL pool members
-    //        when target_type === 'ALL_POOL'.
+    //        open seats are NEVER rendered in Names view (pilot
+    //        feedback 2026-05-13: ghost open-shift fan-out on Alexander
+    //        was confusing — an empty row should mean "available", not
+    //        "we put a pending open shift here").
     for (const s of data.shifts ?? []) {
       const start = DateTime.fromISO(`${s.date_from}T${s.from_time}`).toJSDate();
       const end = DateTime.fromISO(`${s.date_to}T${s.to_time}`).toJSDate();
@@ -1425,54 +1582,24 @@ export class PlanningPocComponent implements AfterViewInit {
         });
       }
 
-      // 2) Open block — only when there are seats left. The badge will
-      // render `+applications_count` (handled by eventBarRenderer), not
-      // capacity.
-      if (openSeats > 0) {
+      // 2) Open block — Locaties view ONLY. The badge renders
+      // `+applications_count` (handled by eventBarRenderer); capacity
+      // already lives in the title ("N open shifts"). Namen view skips
+      // open blocks entirely: an empty employee row means "available",
+      // not "pending open shift".
+      if (openSeats > 0 && view !== 'names') {
         const label = `${openSeats} open shift${openSeats === 1 ? '' : 's'}`;
         const baseCls = `poc-event poc-event-shift poc-event-shift-${s.status}`;
-        if (view === 'names') {
-          // Names view: fan out the OPEN portion to the broadcast targets.
-          //  - SELECTION + leftover seats → broadcast targets are still
-          //    the named selection (so we render the ghost on every
-          //    listed candidate).
-          //  - ALL_POOL → every pool member sees a ghost block.
-          //  - NONE / GROUP → no fan-out (the open block only shows in
-          //    Locaties view).
-          const fanIds =
-            s.target_type === 'ALL_POOL'
-              ? Array.from(this.employeesById.keys())
-              : s.target_type === 'SELECTION'
-                ? assignedIds // selection broadcasts to the listed candidates
-                : [];
-          for (const empId of fanIds) {
-            // Skip duplicating on an already-assigned employee row — the
-            // contract block is enough; no point showing them an "open"
-            // ghost for the same shift on top of it.
-            if (assignedIds.includes(empId)) continue;
-            events.push({
-              id: `shift:${s.id}:open:${empId}`,
-              resourceId: empId,
-              startDate: start,
-              endDate: end,
-              name: label,
-              cls: baseCls + ' poc-event-shift-ghost',
-              kind: 'shift',
-              raw: { ...s, applications_count: applications, capacity: openSeats },
-            });
-          }
-        } else {
-          events.push({
-            id: `shift:${s.id}:open`,
-            resourceId: s.service_group_id,
-            startDate: start,
-            endDate: end,
-            name: label,
-            cls: baseCls,
-            kind: 'shift',
-            raw: { ...s, applications_count: applications, capacity: openSeats },
-          });
-        }
+        events.push({
+          id: `shift:${s.id}:open`,
+          resourceId: s.service_group_id,
+          startDate: start,
+          endDate: end,
+          name: label,
+          cls: baseCls,
+          kind: 'shift',
+          raw: { ...s, applications_count: applications, capacity: openSeats },
+        });
       }
     }
 

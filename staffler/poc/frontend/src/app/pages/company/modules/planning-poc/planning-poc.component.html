@@ -21,6 +21,22 @@
     [allowEmpty]="false"
   />
 
+  <!--
+    Mockup 10 / 11 header: share-button is placed to the LEFT of the week
+    navigation so the prev/next/Vandaag block never jumps when the count
+    changes (0 → N open shifts) between weeks. Only visible in Locaties
+    view: "Open shifts" are a service-location concept; Namen view has
+    no open shifts. New shifts are created by clicking an empty cell on
+    the grid, NOT by a header button.
+  -->
+  @if (view() === 'locations' && openShiftCount() > 0) {
+    <p-button
+      icon="dps-icon dps-icon-double_arrow_right"
+      [label]="'Open shifts delen (' + openShiftCount() + ')'"
+      (onClick)="openShareDialog()"
+    />
+  }
+
   <span class="flex-1"></span>
 
   <!--
@@ -52,23 +68,17 @@
   <button type="button" class="planning-today" (click)="today()">
     Vandaag
   </button>
-
-  <!--
-    Mockup 10 / 11 header: the share-button only appears when there is at
-    least one open shift in the visible week. It opens the batch-share
-    dialog (mockup 12). New shifts are created by clicking an empty cell
-    on the grid, NOT by a header button — so "+ Nieuwe shift" is gone.
-  -->
-  @if (openShiftCount() > 0) {
-    <p-button
-      icon="dps-icon dps-icon-double_arrow_right"
-      [label]="'Open shifts delen (' + openShiftCount() + ')'"
-      (onClick)="openShareDialog()"
-    />
-  }
 </header>
 
 <p-toast position="bottom-right" />
+
+<!--
+  Shared overflow menu anchored at click-time to the 3-dot trigger on a
+  vestiging-header row. The model is rebuilt per-click in openBranchMenu
+  so each invocation carries the right branchId.
+-->
+<p-menu #branchMenu [popup]="true" [model]="branchMenuItems()" appendTo="body" />
+
 
 <!--
   Mockup 10/11 banner card: indigo icon-square + tagline. Keeps the

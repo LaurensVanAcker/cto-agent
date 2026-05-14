@@ -31,6 +31,35 @@ export class AvailabilityApiService {
     return this.http.get<AvailabilityModel[]>(`${this.url}?${search.toString()}`);
   }
 
+  /** Bulk variant — used by the planning grid to paint green hour-blocks
+   *  for every visible employee in a single round-trip. Returns [] when
+   *  the id list is empty (mirrors the server, which avoids 400ing on
+   *  an empty bulk request). */
+  listForEmployees(
+    employeeIds: string[],
+    from?: string,
+    to?: string,
+  ): Observable<AvailabilityModel[]> {
+    const search = new URLSearchParams({ employeeIds: employeeIds.join(',') });
+    if (from) search.set('from', from);
+    if (to) search.set('to', to);
+    return this.http.get<AvailabilityModel[]>(`${this.url}?${search.toString()}`);
+  }
+
+  /** Company-scoped bulk fetch — the server resolves the company's
+   *  employee list via Staffler so the caller doesn't have to. Used by
+   *  the planning-poc refresh forkJoin. */
+  listForCompany(
+    companyId: string,
+    from?: string,
+    to?: string,
+  ): Observable<AvailabilityModel[]> {
+    const search = new URLSearchParams({ companyId });
+    if (from) search.set('from', from);
+    if (to) search.set('to', to);
+    return this.http.get<AvailabilityModel[]>(`${this.url}?${search.toString()}`);
+  }
+
   create(payload: {
     employeeId: string;
     date: string;
