@@ -404,19 +404,26 @@ $muted: #64748b;
   color: #{$teal};
 }
 
-// Availability (green) — soft "beschikbaar" hour-block painted behind
-// each employee row in the Medewerkers grid. Lower z so contracts /
-// shifts land on top in the lane stack; non-interactive cursor and
-// muted color so it reads as context, not as a primary block.
-::ng-deep .b-sch-event-wrap.poc-event-availability .b-sch-event {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: rgba(22, 163, 74, 0.40);
-  color: #166534;
-  font-weight: 500;
-  cursor: default;
+// Availability (green) — soft "beschikbaar" hour-blocks painted as
+// Bryntum ResourceTimeRanges so they sit BEHIND events instead of
+// stacking in their own lane. Bryntum draws each range as a
+// `.b-sch-resourcetimerange` div; we paint the area soft-green and
+// disable pointer events so the operator can still click empty
+// cells (cell-click → new contract / shift) on top of them.
+::ng-deep .b-sch-resourcetimerange.poc-rtr-availability {
+  background: rgba(34, 197, 94, 0.18) !important;
+  border-top: 1px solid rgba(22, 163, 74, 0.40) !important;
+  border-bottom: 1px solid rgba(22, 163, 74, 0.40) !important;
+  pointer-events: none;
+  z-index: 0;
 }
-::ng-deep .b-sch-event-wrap.poc-event-availability {
-  z-index: 0 !important;
+// Bryntum renders the range label inside; keep it subtle.
+::ng-deep .b-sch-resourcetimerange.poc-rtr-availability .b-sch-label {
+  color: #166534;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  letter-spacing: 0.2px;
 }
 
 // Ghosted broadcast-to-all-pool open shift (Names view fan-out)

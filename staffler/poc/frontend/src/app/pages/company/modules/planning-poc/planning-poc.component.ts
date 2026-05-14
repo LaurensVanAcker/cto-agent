@@ -108,7 +108,7 @@ interface PocEvent {
   name: string;
   cls: string;
   eventColor?: string;
-  kind: 'contract' | 'shift' | 'permanent' | 'availability';
+  kind: 'contract' | 'shift' | 'permanent';
   raw: unknown;
 }
 
@@ -197,6 +197,24 @@ export class PlanningPocComponent implements AfterViewInit {
   );
   protected readonly resources = signal<PocResource[]>([]);
   protected readonly events = signal<PocEvent[]>([]);
+  /**
+   * Per-resource background time ranges — used to paint availability
+   * hour-blocks BEHIND contracts/shifts in the Medewerkers view. Bryntum
+   * draws ResourceTimeRanges below events so they read as context, not as
+   * a clickable block, and they don't stack in their own lane (which the
+   * previous event-based approach did when `allowOverlap=true`).
+   */
+  protected readonly resourceTimeRanges = signal<
+    Array<{
+      id: string;
+      resourceId: string;
+      startDate: Date;
+      endDate: Date;
+      name?: string;
+      timeRangeColor?: string;
+      cls?: string;
+    }>
+  >([]);
   protected readonly loading = signal(false);
   /** Cache of the visible week's employees, keyed by DPS id. Used to look up
    * an EmployeeModel when the user clicks a contract event. */
@@ -554,13 +572,6 @@ export class PlanningPocComponent implements AfterViewInit {
       }
       if (kind === 'permanent') {
         this.openVastBlockDialog(resourceId, event);
-        return false;
-      }
-      if (kind === 'availability') {
-        // Availability hour-blocks are read-only context. Swallow the
-        // click so Bryntum doesn't try to open an editor — but don't
-        // open any dialog either, since there's nothing for the company
-        // operator to edit on someone else's availability.
         return false;
       }
     }
@@ -1246,8 +1257,10 @@ export class PlanningPocComponent implements AfterViewInit {
     const view = this.view();
     const resources = this.buildResources(view, this.lastData);
     const events = this.buildEvents(view, this.lastData);
+    const rtrs = this.buildResourceTimeRanges(view, this.lastData);
     this.resources.set(resources);
     this.events.set(events);
+    this.resourceTimeRanges.set(rtrs);
     this.cdr.markForCheck();
     queueMicrotask(() => this.syncSchedulerStores(resources, events));
   }
@@ -1330,14 +1343,17 @@ export class PlanningPocComponent implements AfterViewInit {
         }
         const resources = this.buildResources(view, data);
         const events = this.buildEvents(view, data);
+        const rtrs = this.buildResourceTimeRanges(view, data);
         // eslint-disable-next-line no-console
         console.info(
           `[planning-poc] view=${view} resources=${resources.length} events=${events.length} ` +
+            `availabilities=${rtrs.length} ` +
             `(employees=${data.employees?.content?.length ?? 0}, perm=${data.permanentEmployees?.length ?? 0}, ` +
             `serviceGroups=${data.serviceGroups?.length ?? 0}, branches=${data.branches?.length ?? 0})`,
         );
         this.resources.set(resources);
         this.events.set(events);
+        this.resourceTimeRanges.set(rtrs);
         this.loading.set(false);
         this.cdr.markForCheck();
         // Belt-and-suspenders: poke Bryntum directly. The [resources] input
@@ -1470,6 +1486,57 @@ export class PlanningPocComponent implements AfterViewInit {
     return rows;
   }
 
+  /**
+   * Build the green availability hour-blocks painted BEHIND events in the
+   * Medewerkers view. Returns Bryntum `ResourceTimeRange` config objects:
+   * each one fills a single employee row, on a single day, between two
+   * times. Bryntum draws them at a lower z than events, with the colour
+   * we pass through `timeRangeColor` + `.poc-rtr-availability` class.
+   *
+   * Locked / withdrawn / expired availabilities are skipped: locked
+   * already has a contract painted over it, withdrawn/expired are
+   * historical noise.
+   */
+  private buildResourceTimeRanges(
+    view: PocPlanningView,
+    data: { availabilities?: AvailabilityModel[] },
+  ): Array<{
+    id: string;
+    resourceId: string;
+    startDate: Date;
+    endDate: Date;
+    name?: string;
+    timeRangeColor?: string;
+    cls?: string;
+  }> {
+    if (view !== 'names') return [];
+    const out: Array<{
+      id: string;
+      resourceId: string;
+      startDate: Date;
+      endDate: Date;
+      name?: string;
+      timeRangeColor?: string;
+      cls?: string;
+    }> = [];
+    for (const a of data.availabilities ?? []) {
+      if (a.status !== 'open') continue;
+      const start = DateTime.fromISO(`${a.date}T${a.from_time}`).toJSDate();
+      const end = DateTime.fromISO(`${a.date}T${a.to_time}`).toJSDate();
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+      out.push({
+        id: `avail:${a.id}`,
+        resourceId: a.employee_id,
+        startDate: start,
+        endDate: end,
+        name: `${a.from_time} – ${a.to_time}`,
+        timeRangeColor: 'green',
+        cls: 'poc-rtr-availability',
+      });
+    }
+    return out;
+  }
+
   private buildEvents(
     view: PocPlanningView,
     data: {
@@ -1483,29 +1550,10 @@ export class PlanningPocComponent implements AfterViewInit {
   ): PocEvent[] {
     const events: PocEvent[] = [];
 
-    // Availabilities — green hour-blocks behind each employee row in the
-    // Medewerkers view. Rendered first so contract / shift blocks land on
-    // top in the Bryntum lane stack. Only `open` status is rendered:
-    // locked rows would just duplicate the contract that is already
-    // painting that hour.
-    if (view === 'names') {
-      for (const a of data.availabilities ?? []) {
-        if (a.status !== 'open') continue;
-        const start = DateTime.fromISO(`${a.date}T${a.from_time}`).toJSDate();
-        const end = DateTime.fromISO(`${a.date}T${a.to_time}`).toJSDate();
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
-        events.push({
-          id: `avail:${a.id}`,
-          resourceId: a.employee_id,
-          startDate: start,
-          endDate: end,
-          name: `${a.from_time} – ${a.to_time}`,
-          cls: 'poc-event poc-event-availability',
-          kind: 'availability',
-          raw: a,
-        } as unknown as PocEvent);
-      }
-    }
+    // Availabilities are no longer events — they're painted as
+    // ResourceTimeRanges (background) by `buildResourceTimeRanges` below,
+    // which means they sit behind contracts/shifts instead of stacking
+    // in their own lane. Keep buildEvents focused on clickable blocks.
 
     // Contracts (DPS) appear in the Names view; in V+SL / Day they're hidden
     // because we don't yet know which service-location a contract is at.
