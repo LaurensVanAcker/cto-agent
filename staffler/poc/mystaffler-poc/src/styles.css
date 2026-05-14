@@ -444,6 +444,60 @@ a { color: var(--brand); }
 }
 .profile-action.danger { color: #ef4444; border-color: #ef4444; }
 
+/* ── Notifications tab ───────────────────────────────────────────────── */
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.notif-row {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+.notif-row:hover { background: var(--slate-50); }
+.notif-row .notif-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--slate-400);
+  flex: 0 0 auto;
+}
+.notif-row.notif-new_open_shift .notif-dot { background: var(--amber); }
+.notif-row.notif-candidate .notif-dot { background: var(--brand); }
+.notif-row.notif-selected .notif-dot { background: var(--green); }
+.notif-row.notif-rejected .notif-dot { background: var(--slate-500); }
+.notif-row .notif-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.notif-row .notif-title { font-weight: 600; font-size: 14px; }
+.notif-row .notif-detail { font-size: 12px; color: var(--slate-500); }
+.notif-row .notif-time {
+  font-size: 11px;
+  color: var(--slate-400);
+  flex: 0 0 auto;
+}
+.notif-empty {
+  color: var(--slate-400);
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+}
+
 /* ── Toast ───────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;

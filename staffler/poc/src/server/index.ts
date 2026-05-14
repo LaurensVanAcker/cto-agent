@@ -58,9 +58,70 @@ interface Session {
   skey: string;
   username: string;
   profileJson?: string; // gecached zodat /api/me snel is
+  /** "company" | "employee" — drives which DPS endpoints are reachable
+   *  via this skey. The MyStaffler-PoC creates "employee" sessions; the
+   *  planning PoC creates "company" sessions. Defaults to "company" for
+   *  back-compat with the existing /api/login route. */
+  kind?: "company" | "employee";
+  /** Set when the upstream auth returned FORCE_PASSWORD_RESET. The
+   *  employee can still call `/api/employee-set-password` because that
+   *  route reads this field, but every other authed call should 401
+   *  until the password is set. */
+  forceResetSession?: string;
 }
 
 const sessions = new Map<string, Session>();
+
+// -- login throttle: per-email failure counter for BCJ-19426 AC --
+//
+// "After 5 failed attempts, the account is temporarily locked for 15
+// minutes." We keep this in-memory; restart of the proxy clears it,
+// which is fine for a PoC. Production lockout is in Cognito itself.
+interface LoginAttempt {
+  failedCount: number;
+  lockedUntilMs: number; // 0 == not locked
+  windowStartedMs: number;
+}
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
+const loginAttempts = new Map<string, LoginAttempt>();
+
+function getLockState(email: string): { locked: boolean; retryInMs: number } {
+  const row = loginAttempts.get(email);
+  if (!row) return { locked: false, retryInMs: 0 };
+  const now = Date.now();
+  if (row.lockedUntilMs && row.lockedUntilMs > now) {
+    return { locked: true, retryInMs: row.lockedUntilMs - now };
+  }
+  // expired lock → reset
+  if (row.lockedUntilMs && row.lockedUntilMs <= now) {
+    loginAttempts.delete(email);
+    return { locked: false, retryInMs: 0 };
+  }
+  return { locked: false, retryInMs: 0 };
+}
+
+function recordLoginFailure(email: string): { locked: boolean; retryInMs: number } {
+  const now = Date.now();
+  const existing = loginAttempts.get(email);
+  const row: LoginAttempt =
+    existing && now - existing.windowStartedMs < LOCKOUT_WINDOW_MS
+      ? existing
+      : { failedCount: 0, lockedUntilMs: 0, windowStartedMs: now };
+  row.failedCount += 1;
+  if (row.failedCount >= LOCKOUT_THRESHOLD) {
+    row.lockedUntilMs = now + LOCKOUT_WINDOW_MS;
+  }
+  loginAttempts.set(email, row);
+  return {
+    locked: row.lockedUntilMs > now,
+    retryInMs: Math.max(0, row.lockedUntilMs - now),
+  };
+}
+
+function clearLoginFailures(email: string): void {
+  loginAttempts.delete(email);
+}
 
 function newSessionId(): string {
   return randomBytes(24).toString("base64url");
@@ -187,63 +248,201 @@ app.post<{ Body: { username: string; password: string } }>(
   },
 );
 
-// POST /api/mystaffler-stub-login
-// Stub auth for the standalone MyStaffler-PoC (frontend on :4201). Accepts
-// any email/password and creates a session that points at the PoC-DB
-// only — there is no upstream Staffler skey, so DPS-backed routes (e.g.
-// /api/me, /api/employees) will 401. Endpoints that read PoC-DB only
-// (/api/my-shifts, /api/availabilities, /api/shifts/:id/apply) work as
-// normal. The response carries the chosen "employee identity" — we
-// derive a deterministic id from the email so the same operator gets
-// the same pool-id every time (matches BCJ-19426 first-login flow).
-app.post<{ Body: { email?: string; password?: string; employeeId?: string } }>(
-  "/api/mystaffler-stub-login",
+// POST /api/employee-login
+// Real MyStaffler login — talks to /publicapi/employees/users/login on
+// the Staffler gateway and returns either:
+//   { authStatus: "SUCCESS", employee }  — session cookie is set; the
+//     skey lives in the server-side session map only, never on the wire
+//     to the browser
+//   { authStatus: "FORCE_PASSWORD_RESET", session, username }  — the
+//     employee logged in with the temp password from the invitation
+//     email; the client must collect a new password and call
+//     /api/employee-set-password with the `session` token. No cookie
+//     is set yet at this stage.
+//
+// Adds the BCJ-19426 lockout: 5 failed attempts in 15 min → 423 Locked.
+// Lock state is per-email and in-memory (resets on proxy restart).
+app.post<{ Body: { username?: string; password?: string } }>(
+  "/api/employee-login",
   async (req, reply) => {
-    const email = (req.body?.email ?? "").trim().toLowerCase();
-    if (!email) {
+    const username = (req.body?.username ?? "").trim().toLowerCase();
+    const password = req.body?.password ?? "";
+    if (!username || !password) {
       reply.status(400);
-      return { kind: "validation", message: "email required" };
+      return {
+        authStatus: "FAILURE",
+        message: "Email of wachtwoord ontbreekt.",
+      };
     }
-    // The deterministic id derived from the email keeps everything stable
-    // across reloads — and lets the company-side operator copy/paste it
-    // into the broadcast SELECTION list to round-trip a demo flow. An
-    // explicit employeeId in the body wins (operator can point at a
-    // real DPS employee they want to play).
-    const fallbackId = `demo:${email.replace(/[^a-z0-9]+/gi, "-")}`;
-    const employeeId = req.body?.employeeId?.trim() || fallbackId;
+    const lock = getLockState(username);
+    if (lock.locked) {
+      reply.status(423);
+      return {
+        authStatus: "LOCKED",
+        retryInSec: Math.ceil(lock.retryInMs / 1000),
+        message:
+          "Te veel mislukte pogingen. Probeer over 15 minuten opnieuw.",
+      };
+    }
+    const client = new StafflerClient({ gateway });
+    let result;
+    try {
+      result = await client.employeeLogin({ username, password });
+    } catch (err) {
+      // Network / 5xx / generic auth failure. We surface a non-specific
+      // error (per BCJ-19426 AC) and bump the lockout counter.
+      const lockAfter = recordLoginFailure(username);
+      reply.status(401);
+      return {
+        authStatus: "FAILURE",
+        retryInSec: lockAfter.retryInMs > 0 ? Math.ceil(lockAfter.retryInMs / 1000) : 0,
+        message: "E-mail of wachtwoord is verkeerd.",
+        upstream: asResponse(err).body,
+      };
+    }
 
+    if (result.authStatus === "FORCE_PASSWORD_RESET" && result.session) {
+      // Stash the session token so /api/employee-set-password can pick
+      // it up via the (about-to-be-set) cookie. The client will follow
+      // up with new password + we'll flip authStatus to SUCCESS.
+      const sid = newSessionId();
+      sessions.set(sid, {
+        skey: "",
+        username,
+        kind: "employee",
+        forceResetSession: result.session,
+      });
+      reply.header(
+        "Set-Cookie",
+        `poc_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60}`,
+      );
+      return {
+        authStatus: "FORCE_PASSWORD_RESET",
+        session: result.session,
+        username,
+      };
+    }
+
+    if (result.authStatus !== "SUCCESS" || !result.skey) {
+      recordLoginFailure(username);
+      reply.status(401);
+      return {
+        authStatus: result.authStatus ?? "FAILURE",
+        message: "E-mail of wachtwoord is verkeerd.",
+      };
+    }
+
+    // Happy path — clear any pending lock and open the session.
+    clearLoginFailures(username);
     const sid = newSessionId();
     const session: Session = {
-      // No real skey — PoC-DB only. Routes that try to call DPS will
-      // 401 via StafflerError, which the mobile client treats as "skip
-      // DPS section and render PoC-DB data".
-      skey: "STUB",
-      username: email,
-      profileJson: JSON.stringify({
-        user: { id: employeeId, email, name: email.split("@")[0] },
-        userId: employeeId,
-        userRoles: ["EMPLOYEE_STUB"],
-        companyMemberships: [],
-        managedEmployeeId: employeeId,
-        employeeId,
-      }),
+      skey: result.skey,
+      username,
+      kind: "employee",
     };
     sessions.set(sid, session);
     reply.header(
       "Set-Cookie",
       `poc_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
     );
-    return {
-      ok: true,
-      employee: {
+    // Best-effort: hydrate the employee's identity from /api/users/currentuser
+    // so subsequent calls have a name + DPS employeeId. Falls back to email-derived
+    // values if the upstream call fails so the client can still render the UI.
+    let employee: { id: string; email: string; firstName: string; lastName: string };
+    try {
+      const profile = await new StafflerClient({
+        gateway,
+        skey: result.skey,
+      }).getCurrentUser();
+      session.profileJson = JSON.stringify(profile);
+      const employeeId =
+        (profile as { managedEmployeeId?: string }).managedEmployeeId ??
+        (profile as { employeeId?: string }).employeeId ??
+        (profile as { userId?: string }).userId ??
+        username;
+      const fullName = (profile as { user?: { name?: string } }).user?.name ?? "";
+      const [firstName, ...rest] = fullName.split(" ");
+      employee = {
         id: employeeId,
-        email,
-        firstName: email.split("@")[0],
+        email: username,
+        firstName: firstName || username.split("@")[0],
+        lastName: rest.join(" "),
+      };
+    } catch {
+      employee = {
+        id: username,
+        email: username,
+        firstName: username.split("@")[0],
         lastName: "",
-      },
-    };
+      };
+    }
+    return { authStatus: "SUCCESS", employee };
   },
 );
+
+// POST /api/employee-set-password
+// Finalises the FORCE_PASSWORD_RESET flow. Requires the (cookie-)session
+// from the preceding /api/employee-login call so we don't have to ship
+// the raw Cognito session token through the browser.
+app.post<{ Body: { password?: string } }>(
+  "/api/employee-set-password",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session || !session.forceResetSession || session.kind !== "employee") {
+      reply.status(401);
+      return { kind: "unauthenticated" };
+    }
+    const password = req.body?.password ?? "";
+    const validity = validatePassword(password);
+    if (!validity.ok) {
+      reply.status(400);
+      return { kind: "validation", message: validity.reason };
+    }
+    const client = new StafflerClient({ gateway });
+    try {
+      const result = await client.employeeSetPassword({
+        session: session.forceResetSession,
+        username: session.username,
+        password,
+      });
+      if (result.authStatus !== "SUCCESS" || !result.skey) {
+        reply.status(400);
+        return {
+          authStatus: result.authStatus ?? "FAILURE",
+          message: "Wachtwoord kon niet ingesteld worden. Probeer opnieuw.",
+        };
+      }
+      // Promote the session: it now has a real skey and no longer needs
+      // the reset-session token.
+      session.skey = result.skey;
+      session.forceResetSession = undefined;
+      clearLoginFailures(session.username);
+      return { authStatus: "SUCCESS" };
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
+/**
+ * BCJ-19426 password rule: ≥ 8 chars, at least one digit, at least one
+ * uppercase letter. Mirrors the Cognito policy upstream so a client
+ * that satisfies us also satisfies the gateway.
+ */
+function validatePassword(p: string): { ok: true } | { ok: false; reason: string } {
+  if (typeof p !== "string" || p.length < 8) {
+    return { ok: false, reason: "Wachtwoord moet minstens 8 tekens hebben." };
+  }
+  if (!/[0-9]/.test(p)) {
+    return { ok: false, reason: "Wachtwoord moet minstens één cijfer bevatten." };
+  }
+  if (!/[A-Z]/.test(p)) {
+    return { ok: false, reason: "Wachtwoord moet minstens één hoofdletter bevatten." };
+  }
+  return { ok: true };
+}
 
 // POST /api/logout
 app.post("/api/logout", async (req, reply) => {
@@ -1130,6 +1329,95 @@ app.get<{ Querystring: { employeeId?: string } }>(
     // present in their MyStaffler view.
     pocDb.touchMyStafflerLogin(employeeId);
     return targeted.map((s) => ({ shift: s, application: appByShift.get(s.id) ?? null }));
+  },
+);
+
+// GET /api/notifications?employeeId=
+// Derives a notification feed from PoC-DB state — no separate
+// notifications table (would be premature for v0). Surfaces:
+//   - "Nieuwe open shift": every open shift the employee is targeted at
+//     and has NOT yet reacted to.
+//   - "Je bent kandidaat": shifts where the employee has a candidate
+//     application.
+//   - "Geselecteerd": shifts where the application status flipped to
+//     selected (= a contract was created).
+// Most-recent first. Capped at 30 entries — pilot pool stays small.
+app.get<{ Querystring: { employeeId?: string } }>(
+  "/api/notifications",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    if (!req.query.employeeId) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId required" };
+    }
+    const employeeId = req.query.employeeId;
+    const apps = pocDb.listApplicationsForEmployee(employeeId);
+    const reactedShiftIds = new Set(apps.map((a) => a.shift_id));
+
+    type Notification = {
+      id: string;
+      kind: "new_open_shift" | "candidate" | "selected" | "rejected";
+      title: string;
+      detail: string;
+      at: string; // ISO
+      shiftId: string;
+    };
+    const notifs: Notification[] = [];
+
+    // Open shifts not yet reacted to.
+    for (const s of pocDb.raw().shifts) {
+      if (s.status !== "open") continue;
+      const targeted =
+        s.target_type === "ALL_POOL" ||
+        (s.target_type === "SELECTION" && s.target_employee_ids?.includes(employeeId));
+      if (!targeted) continue;
+      if (reactedShiftIds.has(s.id)) continue;
+      notifs.push({
+        id: `open:${s.id}`,
+        kind: "new_open_shift",
+        title: "Nieuwe open shift",
+        detail: `${s.date_from} ${s.from_time} → ${s.to_time}`,
+        at: s.published_at ?? s.updated_at,
+        shiftId: s.id,
+      });
+    }
+    // Applications — candidate / selected / rejected.
+    for (const a of apps) {
+      const shift = pocDb.raw().shifts.find((s) => s.id === a.shift_id);
+      if (!shift) continue;
+      const detail = `${shift.date_from} ${shift.from_time} → ${shift.to_time}`;
+      if (a.status === "candidate") {
+        notifs.push({
+          id: `cand:${a.id}`,
+          kind: "candidate",
+          title: "Je bent kandidaat",
+          detail,
+          at: a.applied_at,
+          shiftId: shift.id,
+        });
+      } else if (a.status === "selected") {
+        notifs.push({
+          id: `sel:${a.id}`,
+          kind: "selected",
+          title: "Je bent geselecteerd",
+          detail,
+          at: a.decided_at ?? a.applied_at,
+          shiftId: shift.id,
+        });
+      } else if (a.status === "rejected") {
+        notifs.push({
+          id: `rej:${a.id}`,
+          kind: "rejected",
+          title: "Niet gekozen",
+          detail,
+          at: a.decided_at ?? a.applied_at,
+          shiftId: shift.id,
+        });
+      }
+    }
+    notifs.sort((a, b) => (a.at < b.at ? 1 : -1));
+    return notifs.slice(0, 30);
   },
 );
 

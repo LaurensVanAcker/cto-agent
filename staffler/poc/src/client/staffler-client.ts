@@ -100,6 +100,42 @@ export class StafflerClient {
     return result;
   }
 
+  /**
+   * Employee-side login (MyStaffler). Mirrors the company-user `login`
+   * but hits the employees endpoint — same AuthResultWebDto shape
+   * (authStatus + skey + session). FORCE_PASSWORD_RESET means the
+   * employee logged in with a temporary password from the invitation
+   * email; the caller must follow up with `employeeSetPassword` using
+   * the returned `session` token to pick a real password.
+   */
+  async employeeLogin(req: CompanyUserLoginRequest): Promise<AuthResultWebDto> {
+    const result = await this.publicCall<AuthResultWebDto>(
+      "POST",
+      "/publicapi/employees/users/login",
+      req
+    );
+    if (result.authStatus === "SUCCESS" && result.skey) {
+      this.skey = result.skey;
+    }
+    return result;
+  }
+
+  async employeeSetPassword(payload: {
+    session: string;
+    username: string;
+    password: string;
+  }): Promise<AuthResultWebDto> {
+    const result = await this.publicCall<AuthResultWebDto>(
+      "POST",
+      "/publicapi/employees/users/setPassword",
+      payload
+    );
+    if (result.authStatus === "SUCCESS" && result.skey) {
+      this.skey = result.skey;
+    }
+    return result;
+  }
+
   async logout(): Promise<void> {
     await this.authedCall<void>("GET", "/api/users/logout");
     this.skey = undefined;

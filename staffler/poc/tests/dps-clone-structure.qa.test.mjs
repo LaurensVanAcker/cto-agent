@@ -261,3 +261,72 @@ test('dialog-shift-batch dialog still surfaces the m09 chrome (sub-title, slot-l
   assert.match(html, /Nieuwe uren ingeven/);
   assert.match(html, /shouldShowLoonpakketBanner/);
 });
+
+// -- MyStaffler-PoC (employee app on :4201) structural locks --
+
+test('mystaffler-poc: API client targets the real employee endpoints (no stub)', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/api.js'),
+    'utf8',
+  );
+  assert.match(code, /\/employee-login/, 'real login route');
+  assert.match(code, /\/employee-set-password/, 'force-reset finalisation');
+  assert.match(code, /notifications\(employeeId\)/, 'notification feed');
+  assert.doesNotMatch(code, /mystaffler-stub-login/, 'stub login removed');
+});
+
+test('mystaffler-poc: client-side password validator matches the server', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /validatePasswordClient/);
+  assert.match(code, /minstens 8 tekens/);
+  assert.match(code, /één cijfer/);
+  assert.match(code, /één hoofdletter/);
+});
+
+test('mystaffler-poc: force-reset screen renders when authStatus === FORCE_PASSWORD_RESET', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderForceReset\(\)/);
+  assert.match(code, /forceResetUsername/);
+});
+
+test('mystaffler-poc: 4-tab bar (planning, beschikbaarheid, meldingen, profiel) + badge', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /'planning'/);
+  assert.match(code, /'availability'/);
+  assert.match(code, /'notifications'/);
+  assert.match(code, /'profile'/);
+  assert.match(code, /notifCount > 9 \? '9\+' : notifCount/);
+});
+
+test('backend employee-login route: lockout uses the 5-attempt 15-min policy', () => {
+  const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
+  assert.match(code, /LOCKOUT_THRESHOLD = 5/);
+  assert.match(code, /LOCKOUT_WINDOW_MS = 15 \* 60 \* 1000/);
+  assert.match(code, /authStatus:\s*['"]LOCKED['"]/);
+});
+
+test('backend employee-login route exists with FORCE_PASSWORD_RESET branch', () => {
+  const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
+  assert.match(code, /"\/api\/employee-login"/);
+  assert.match(code, /"\/api\/employee-set-password"/);
+  assert.match(code, /FORCE_PASSWORD_RESET/);
+  assert.match(code, /validatePassword\(/);
+});
+
+test('backend notifications route surfaces the 4 known kinds', () => {
+  const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
+  assert.match(code, /"\/api\/notifications"/);
+  assert.match(code, /"new_open_shift"/);
+  assert.match(code, /"candidate"/);
+  assert.match(code, /"selected"/);
+  assert.match(code, /"rejected"/);
+});

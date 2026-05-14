@@ -25,10 +25,14 @@ const app = document.getElementById('app');
 // ── Renderer entry point ────────────────────────────────────────────────
 function render() {
   const s = store.get();
-  if (!s.employee) {
+  if (s.forceResetUsername) {
+    renderForceReset();
+  } else if (!s.employee) {
     renderLogin();
   } else if (s.tab === 'availability') {
     renderAvailability();
+  } else if (s.tab === 'notifications') {
+    renderNotifications();
   } else if (s.tab === 'profile') {
     renderProfile();
   } else {
@@ -58,7 +62,7 @@ function renderLogin() {
           ${s.loggingIn ? 'Inloggen…' : 'Inloggen'}
         </button>
       </form>
-      <div class="hint">PoC: elke combinatie werkt. Gebruik bv. test@example.com / test123.</div>
+      <div class="hint">Gebruik je MyStaffler-credentials. Eerste keer? Je krijgt een tijdelijk wachtwoord en wordt gevraagd er een nieuw te kiezen.</div>
     </section>
   `;
   const form = document.getElementById('login-form');
@@ -70,20 +74,118 @@ function renderLogin() {
     if (!email || !password) return;
     store.set({ loggingIn: true, loginError: null });
     try {
-      const res = await api.stubLogin(email, password);
-      if (!res?.ok || !res?.employee?.id) {
+      const res = await api.login(email, password);
+      if (res?.authStatus === 'FORCE_PASSWORD_RESET') {
+        // The temp password from the invitation email is still in use.
+        // Redirect to the force-reset screen so the employee picks a
+        // real one before we land on Planning.
+        store.set({
+          loggingIn: false,
+          loginError: null,
+          forceResetUsername: res.username ?? email,
+        });
+        return;
+      }
+      if (res?.authStatus !== 'SUCCESS' || !res?.employee?.id) {
         throw new Error('Login mislukt');
       }
       store.setEmployee(res.employee);
       store.set({ loggingIn: false, loginError: null });
       reloadAll();
     } catch (err) {
+      const status = err?.status;
+      const body = err?.body ?? {};
+      const fallback = 'E-mail of wachtwoord is verkeerd.';
+      const message =
+        status === 423
+          ? body.message ?? 'Te veel mislukte pogingen. Probeer over 15 min opnieuw.'
+          : body.message ?? fallback;
+      store.set({ loggingIn: false, loginError: message });
+    }
+  });
+}
+
+// ── Force-reset screen (first login with temp password) ─────────────────
+function renderForceReset() {
+  const s = store.get();
+  app.innerHTML = `
+    <section class="login">
+      <div class="brand">staffler</div>
+      <div class="tagline">Kies een nieuw wachtwoord voor ${escapeHtml(s.forceResetUsername)}</div>
+      <form id="reset-form">
+        <label>Nieuw wachtwoord
+          <input type="password" name="password" autocomplete="new-password" required placeholder="Minstens 8 tekens, 1 cijfer, 1 hoofdletter" />
+        </label>
+        <label>Bevestig wachtwoord
+          <input type="password" name="confirm" autocomplete="new-password" required />
+        </label>
+        ${s.resetError ? `<div class="err">${escapeHtml(s.resetError)}</div>` : ''}
+        <button type="submit" class="submit" ${s.resetting ? 'disabled' : ''}>
+          ${s.resetting ? 'Opslaan…' : 'Wachtwoord instellen'}
+        </button>
+      </form>
+      <div class="hint">Vereisten: minstens 8 tekens, 1 cijfer en 1 hoofdletter.</div>
+    </section>
+  `;
+  const form = document.getElementById('reset-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const password = String(fd.get('password') ?? '');
+    const confirm = String(fd.get('confirm') ?? '');
+    const localErr = validatePasswordClient(password);
+    if (localErr) {
+      store.set({ resetError: localErr });
+      return;
+    }
+    if (password !== confirm) {
+      store.set({ resetError: 'De twee wachtwoorden zijn niet identiek.' });
+      return;
+    }
+    store.set({ resetting: true, resetError: null });
+    try {
+      await api.setPassword(password);
+      // Server promoted our session to a real skey. Fetch /me to bind
+      // the employee identity, then drop the reset state.
+      let employee;
+      try {
+        const me = await api.me();
+        const userId = me?.managedEmployeeId ?? me?.employeeId ?? me?.userId ?? store.get().forceResetUsername;
+        const fullName = me?.user?.name ?? '';
+        const [firstName, ...rest] = fullName.split(' ');
+        employee = {
+          id: userId,
+          email: store.get().forceResetUsername,
+          firstName: firstName || store.get().forceResetUsername,
+          lastName: rest.join(' '),
+        };
+      } catch {
+        employee = {
+          id: store.get().forceResetUsername,
+          email: store.get().forceResetUsername,
+          firstName: store.get().forceResetUsername.split('@')[0],
+          lastName: '',
+        };
+      }
+      store.setEmployee(employee);
+      store.set({ resetting: false, resetError: null, forceResetUsername: null });
+      reloadAll();
+    } catch (err) {
       store.set({
-        loggingIn: false,
-        loginError: err?.body?.message ?? 'Inloggen mislukt. Probeer opnieuw.',
+        resetting: false,
+        resetError: err?.body?.message ?? 'Wachtwoord kon niet ingesteld worden.',
       });
     }
   });
+}
+
+/** Mirror of the server's `validatePassword` so we can show a hint
+ *  before the round-trip. Returns null when valid. */
+function validatePasswordClient(p) {
+  if (typeof p !== 'string' || p.length < 8) return 'Wachtwoord moet minstens 8 tekens hebben.';
+  if (!/[0-9]/.test(p)) return 'Wachtwoord moet minstens één cijfer bevatten.';
+  if (!/[A-Z]/.test(p)) return 'Wachtwoord moet minstens één hoofdletter bevatten.';
+  return null;
 }
 
 // ── Planning week-view ──────────────────────────────────────────────────
@@ -335,6 +437,61 @@ async function removeAvailability(id) {
   }
 }
 
+// ── Notifications tab ───────────────────────────────────────────────────
+function renderNotifications() {
+  const s = store.get();
+  const rows = s.notifications ?? [];
+  app.innerHTML = `
+    <section class="screen">
+      <header class="hero">
+        <h1>Meldingen</h1>
+        <div class="sub">Wat er deze week voor jou is veranderd.</div>
+      </header>
+      <div class="notif-list">
+        ${
+          rows.length === 0
+            ? `<div class="notif-empty">${s.loadingNotifications ? 'Laden…' : 'Geen meldingen.'}</div>`
+            : rows.map(renderNotificationRow).join('')
+        }
+      </div>
+      ${renderTabbar('notifications')}
+    </section>
+  `;
+  bindTabbar();
+  app.querySelectorAll('[data-notif-shift]').forEach((row) => {
+    row.addEventListener('click', () => {
+      // Tapping a notification jumps back to Planning so the operator
+      // can act on the shift in context.
+      store.set({ tab: 'planning' });
+    });
+  });
+}
+
+function renderNotificationRow(n) {
+  const klass = `notif-${n.kind}`;
+  return `
+    <button type="button" class="notif-row ${klass}" data-notif-shift="${escapeHtml(n.shiftId)}">
+      <span class="notif-dot"></span>
+      <div class="notif-body">
+        <div class="notif-title">${escapeHtml(n.title)}</div>
+        <div class="notif-detail">${escapeHtml(n.detail)}</div>
+      </div>
+      <span class="notif-time">${escapeHtml(formatRelative(n.at))}</span>
+    </button>
+  `;
+}
+
+function formatRelative(iso) {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return '';
+  const diffMs = Date.now() - then.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return 'nu';
+  if (sec < 3600) return `${Math.round(sec / 60)} min`;
+  if (sec < 86_400) return `${Math.round(sec / 3600)} u`;
+  return `${Math.round(sec / 86_400)} d`;
+}
+
 // ── Profile tab ─────────────────────────────────────────────────────────
 function renderProfile() {
   const emp = store.get().employee;
@@ -368,9 +525,17 @@ function renderProfile() {
 
 // ── Tab bar ─────────────────────────────────────────────────────────────
 function renderTabbar(active) {
+  const s = store.get();
+  // Count un-acknowledged notifications — for the PoC every notification
+  // entry counts (no per-row read state yet). Cap at 9+ so the dot stays
+  // small visually.
+  const notifCount = (s.notifications ?? []).length;
+  const badge =
+    notifCount > 0 ? `<span class="badge">${notifCount > 9 ? '9+' : notifCount}</span>` : '';
   const tabs = [
     { id: 'planning', label: 'Planning', icon: 'icon-calendar' },
     { id: 'availability', label: 'Beschikbaar', icon: 'icon-clock' },
+    { id: 'notifications', label: 'Meldingen', icon: 'icon-bell', badge },
     { id: 'profile', label: 'Profiel', icon: 'icon-user' },
   ];
   return `
@@ -387,6 +552,7 @@ function renderTabbar(active) {
             >
               <span class="icon ${t.icon}"></span>
               <span class="lbl">${t.label}</span>
+              ${t.badge ?? ''}
             </button>
           `,
         )
@@ -415,7 +581,20 @@ function renderToast(toast) {
 
 // ── Data loaders ────────────────────────────────────────────────────────
 async function reloadAll() {
-  await Promise.all([reloadShifts(), reloadAvailabilities()]);
+  await Promise.all([reloadShifts(), reloadAvailabilities(), reloadNotifications()]);
+}
+
+async function reloadNotifications() {
+  const s = store.get();
+  if (!s.employee) return;
+  store.set({ loadingNotifications: true });
+  try {
+    const rows = await api.notifications(s.employee.id);
+    store.set({ notifications: rows ?? [], loadingNotifications: false });
+  } catch (err) {
+    store.set({ loadingNotifications: false });
+    if (err?.status === 401) store.setEmployee(null);
+  }
 }
 
 async function reloadShifts() {

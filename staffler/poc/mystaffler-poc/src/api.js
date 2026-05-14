@@ -28,17 +28,39 @@ async function call(path, init = {}) {
 }
 
 export const api = {
-  /** Stub login — accepts any creds. Returns the employee identity that
-   *  is stored in localStorage and used for every subsequent call. */
-  stubLogin(email, password) {
-    return call('/mystaffler-stub-login', {
+  /**
+   * Real employee login — calls `/publicapi/employees/users/login` via
+   * the Fastify proxy. Returns:
+   *   { authStatus: 'SUCCESS', employee }            — logged in, cookie set
+   *   { authStatus: 'FORCE_PASSWORD_RESET', session, username }
+   *                                                  — must call setPassword
+   * On 401 / 423 / 5xx we throw a typed error the caller can branch on.
+   */
+  login(username, password) {
+    return call('/employee-login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
+    });
+  },
+
+  /** Finalises the force-reset flow. The Cognito session is held in the
+   *  HTTP-only cookie set by the prior /employee-login response — the
+   *  client only ships the new password. */
+  setPassword(password) {
+    return call('/employee-set-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
     });
   },
 
   logout() {
     return call('/logout', { method: 'POST' });
+  },
+
+  /** Identity of the currently-logged-in employee. Falls back to whatever
+   *  is in localStorage when the upstream call 401s. */
+  me() {
+    return call('/me');
   },
 
   /** Open shifts targeted at this employee (broadcast SELECTION or
@@ -82,5 +104,11 @@ export const api = {
     return call(`/availabilities/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
+  },
+
+  /** Derived notification feed (new open shifts + application state
+   *  transitions). Server returns max 30 entries, newest first. */
+  notifications(employeeId) {
+    return call(`/notifications?employeeId=${encodeURIComponent(employeeId)}`);
   },
 };
