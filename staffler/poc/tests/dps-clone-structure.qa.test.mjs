@@ -186,3 +186,78 @@ test('shift API service exposes cancel + merged-aware create', () => {
   assert.match(code, /merged:\s*boolean/);
   assert.match(code, /x-poc-shift-merged/);
 });
+
+// -- gap-closure UI structural locks --
+
+test('share dialog renders "Beschikbaar deze week" filter (mockup 06 partial)', () => {
+  const html = readFileSync(
+    resolve(
+      frontendApp,
+      'shared/components/dialog-shift-share/dialog-shift-share.component.html',
+    ),
+    'utf8',
+  );
+  assert.match(html, /Beschikbaar deze week \(/, 'filter chip label present');
+  assert.match(html, /addAllAvailable\(\)/, 'bulk-add handler wired');
+  assert.match(html, /visiblePool\(\)/, 'list iterates the filtered signal');
+});
+
+test('availability API exposes remove (gap 4)', () => {
+  const code = readFileSync(
+    resolve(frontendApp, 'core/api/availability/availability.api.service.ts'),
+    'utf8',
+  );
+  assert.match(code, /remove\(id: string\)/);
+  assert.match(code, /this\.http\.delete<\{ ok: true \}>/);
+});
+
+test('mystaffler-preview availability block is click-to-remove', () => {
+  const html = readFileSync(
+    resolve(
+      frontendApp,
+      'pages/company/modules/mystaffler-preview/mystaffler-preview.component.html',
+    ),
+    'utf8',
+  );
+  assert.match(html, /removeAvailability\(day\.availability\)/);
+  assert.match(html, /is-locked/, 'locked state surfaced as a class');
+});
+
+test('locations admin shows 7-pill opening-hours strip + per-weekday editor', () => {
+  const html = readFileSync(
+    resolve(
+      frontendApp,
+      'pages/company/modules/locations/company-locations.component.html',
+    ),
+    'utf8',
+  );
+  assert.match(html, /class="oh-strip"/, 'compact strip present');
+  assert.match(html, /class="oh-pill"/, 'per-day pill present');
+  assert.match(html, /toggleClosed\(d\.id/, 'editor toggles closed per weekday');
+  assert.match(html, /setDayFrom\(d\.id/, 'from-time setter wired');
+  assert.match(html, /setDayTo\(d\.id/, 'to-time setter wired');
+});
+
+test('service-group API model exposes OpeningHours types', () => {
+  const code = readFileSync(
+    resolve(frontendApp, 'core/api/service-group/service-group.api.service.ts'),
+    'utf8',
+  );
+  assert.match(code, /export type OpeningHours/);
+  assert.match(code, /opening_hours\?:\s*OpeningHours/);
+  assert.match(code, /openingHours\?:\s*OpeningHours/, 'create payload accepts openingHours');
+});
+
+test('dialog-shift-batch dialog still surfaces the m09 chrome (sub-title, slot-list, vast tag)', () => {
+  const html = readFileSync(
+    resolve(
+      frontendApp,
+      'shared/components/dialog-shift-batch/dialog-shift-batch.component.html',
+    ),
+    'utf8',
+  );
+  assert.match(html, /m09-vast-tag/, 'mockup 09: vast tag on the slot head');
+  assert.match(html, /Bestaande shift gebruiken/);
+  assert.match(html, /Nieuwe uren ingeven/);
+  assert.match(html, /shouldShowLoonpakketBanner/);
+});

@@ -219,6 +219,133 @@ test('seedDemo skips when the company is already seeded', () => {
   assert.equal(second.skipped, true);
 });
 
+// -- gap 4: deleteAvailability state machine --
+
+test('deleteAvailability removes an open row', () => {
+  const db = freshDb();
+  const av = db.createAvailability({
+    employee_id: 'E1',
+    date: '2026-05-18',
+    from_time: '09:00',
+    to_time: '17:00',
+    status: 'open',
+    locked_by_contract_id: null,
+  });
+  assert.equal(db.deleteAvailability(av.id), true);
+  assert.equal(db.listAvailabilities('E1').length, 0);
+});
+
+test('deleteAvailability returns false on unknown id', () => {
+  const db = freshDb();
+  assert.equal(db.deleteAvailability('not-a-real-id'), false);
+});
+
+test('deleteAvailability refuses locked rows (already promoted to a contract)', () => {
+  const db = freshDb();
+  const av = db.createAvailability({
+    employee_id: 'E1',
+    date: '2026-05-18',
+    from_time: '09:00',
+    to_time: '17:00',
+    status: 'locked',
+    locked_by_contract_id: 'C-1',
+  });
+  assert.equal(db.deleteAvailability(av.id), false);
+  assert.equal(db.listAvailabilities('E1').length, 1, 'locked row must stay');
+});
+
+// -- gap 3: touchMyStafflerLogin --
+
+test('touchMyStafflerLogin bumps every active invite for the employee', () => {
+  const db = freshDb();
+  // Two companies, both with an active invite for E1 — last_login_at
+  // starts null because we don't pass it to upsert.
+  db.upsertMyStafflerInvite('E1', 'C1', { status: 'active', accepted_at: '2026-05-01T08:00:00Z' });
+  db.upsertMyStafflerInvite('E1', 'C2', { status: 'active', accepted_at: '2026-05-01T08:00:00Z' });
+  // And one INVITED row that should NOT be bumped (employee hasn't logged in there yet).
+  db.upsertMyStafflerInvite('E1', 'C3', { status: 'invited' });
+  assert.equal(db.getMyStafflerInvite('E1', 'C1').last_login_at, null, 'baseline: active row is null before touch');
+
+  db.touchMyStafflerLogin('E1');
+
+  const a = db.getMyStafflerInvite('E1', 'C1');
+  const b = db.getMyStafflerInvite('E1', 'C2');
+  const c = db.getMyStafflerInvite('E1', 'C3');
+  assert.ok(
+    typeof a.last_login_at === 'string' && a.last_login_at.endsWith('Z'),
+    'active invite C1 was stamped with an ISO',
+  );
+  assert.ok(
+    typeof b.last_login_at === 'string' && b.last_login_at.endsWith('Z'),
+    'active invite C2 was stamped with an ISO',
+  );
+  assert.equal(c.last_login_at, null, 'invited row stays null');
+});
+
+test('touchMyStafflerLogin is a no-op for unknown employees', () => {
+  const db = freshDb();
+  // No mystaffler rows for E1 — call must not throw, must not touch anything.
+  db.touchMyStafflerLogin('E1');
+  assert.equal(db.listMyStafflerInvites('C1').length, 0);
+});
+
+// -- gap 2: opening hours --
+
+test('createServiceGroup defaults opening_hours to {} when omitted', () => {
+  const db = freshDb();
+  const sg = db.createServiceGroup({
+    company_id: 'C1',
+    branch_group_id: 'BR1',
+    name: 'Toog',
+    address_line1: null,
+    address_line2: null,
+    postal_code: null,
+    city: null,
+  });
+  assert.deepEqual(sg.opening_hours, {});
+});
+
+test('createServiceGroup persists opening_hours payload as-is', () => {
+  const db = freshDb();
+  const oh = {
+    1: { from: '09:00', to: '17:00' },
+    2: { from: '09:00', to: '17:00' },
+    3: null,
+    7: { from: '10:00', to: '14:00' },
+  };
+  const sg = db.createServiceGroup({
+    company_id: 'C1',
+    branch_group_id: 'BR1',
+    name: 'Bar',
+    address_line1: null,
+    address_line2: null,
+    postal_code: null,
+    city: null,
+    opening_hours: oh,
+  });
+  assert.deepEqual(sg.opening_hours[1], { from: '09:00', to: '17:00' });
+  assert.equal(sg.opening_hours[3], null);
+  assert.deepEqual(sg.opening_hours[7], { from: '10:00', to: '14:00' });
+});
+
+test('updateServiceGroup can replace opening_hours partially', () => {
+  const db = freshDb();
+  const sg = db.createServiceGroup({
+    company_id: 'C1',
+    branch_group_id: 'BR1',
+    name: 'Toog',
+    address_line1: null,
+    address_line2: null,
+    postal_code: null,
+    city: null,
+    opening_hours: { 1: { from: '09:00', to: '17:00' } },
+  });
+  const next = { 1: { from: '08:00', to: '20:00' }, 5: { from: '12:00', to: '23:00' } };
+  const updated = db.updateServiceGroup(sg.id, { opening_hours: next });
+  assert.deepEqual(updated.opening_hours[1], { from: '08:00', to: '20:00' });
+  assert.deepEqual(updated.opening_hours[5], { from: '12:00', to: '23:00' });
+});
+
 process.on('exit', () => {
   try {
     rmSync(buildDir, { recursive: true, force: true });
