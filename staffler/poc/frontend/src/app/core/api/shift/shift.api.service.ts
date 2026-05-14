@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { environment } from '@dps/env';
 
@@ -74,8 +75,25 @@ export class ShiftApiService {
     return this.http.get<ShiftModel[]>(`${this.url}?${qs}`);
   }
 
-  create(payload: CreateShiftPayload): Observable<ShiftModel> {
-    return this.http.post<ShiftModel>(this.url, payload);
+  /**
+   * Create a shift. The server may merge this payload into an existing
+   * draft/open shift (same service location + dates + hours + pause) — it
+   * signals that via the `x-poc-shift-merged` response header. We return
+   * `{ shift, merged, mergedInto? }` so callers can show a toast like
+   * "Samengevoegd met bestaande shift" without re-fetching the list.
+   */
+  create(
+    payload: CreateShiftPayload,
+  ): Observable<{ shift: ShiftModel; merged: boolean; mergedInto?: string }> {
+    return this.http
+      .post<ShiftModel>(this.url, payload, { observe: 'response' })
+      .pipe(
+        map(res => ({
+          shift: res.body as ShiftModel,
+          merged: res.headers.get('x-poc-shift-merged') === 'true',
+          mergedInto: res.headers.get('x-poc-shift-merged-into') ?? undefined,
+        })),
+      );
   }
 
   publish(id: string): Observable<ShiftModel> {

@@ -684,7 +684,7 @@ app.post<{
       reply.status(400);
       return { kind: "validation", message: "companyId, serviceGroupId, dateFrom, fromTime, toTime required" };
     }
-    return pocDb.createShift({
+    const result = pocDb.createShift({
       company_id: b.companyId,
       service_group_id: b.serviceGroupId,
       date_from: b.dateFrom,
@@ -702,6 +702,16 @@ app.post<{
       published_at: null,
       created_by_user_id: b.createdByUserId ?? null,
     });
+    // Surface the dedup signal as a custom header so the legacy frontend
+    // typing (`Observable<ShiftModel>`) keeps working. Operators that
+    // want to react to a merge can opt-in by reading the header; the
+    // shift body is unchanged so all existing callers still parse the
+    // payload as a single ShiftModel.
+    if (result.merged) {
+      reply.header("x-poc-shift-merged", "true");
+      if (result.mergedInto) reply.header("x-poc-shift-merged-into", result.mergedInto);
+    }
+    return result.shift;
   },
 );
 

@@ -808,7 +808,19 @@ export class DialogShiftBatchComponent {
         status: 'draft',
       })
       .subscribe({
-        next: shift => {
+        next: ({ shift, merged }) => {
+          // The server may have folded this payload into an existing
+          // draft/open shift on the same SL + dates + hours. We forward
+          // that signal up so the caller can show a toast instead of
+          // pretending a fresh shift was created. Merged shifts also
+          // skip publish — the original shift was already published
+          // (or is still a draft, in which case the operator publishes
+          // explicitly via the next save).
+          if (merged) {
+            this.saving.set(false);
+            this.ref.close({ kind: 'shift.batch.merged', shift });
+            return;
+          }
           // Fully-assigned shifts skip publish — they don't need to be
           // broadcast. The PoC-DB still flips status to "fulfilled" via
           // /share so the planning grid renders them as solid (not open).

@@ -351,7 +351,9 @@ class PocDb {
       .map((s) => ({ ...s, applications_count: counts.get(s.id) ?? 0 }));
   }
 
-  createShift(input: Omit<Shift, "id" | "created_at" | "updated_at">): Shift {
+  createShift(
+    input: Omit<Shift, "id" | "created_at" | "updated_at">,
+  ): { shift: Shift; merged: boolean; mergedInto?: string } {
     const now = new Date().toISOString();
 
     // Pilot feedback (2026-05-14): if a new shift matches an existing
@@ -394,7 +396,7 @@ class PocDb {
       }
       dup.updated_at = now;
       this.save();
-      return dup;
+      return { shift: dup, merged: true, mergedInto: dup.id };
     }
 
     const row: Shift = {
@@ -405,7 +407,7 @@ class PocDb {
     };
     this.data.shifts.push(row);
     this.save();
-    return row;
+    return { shift: row, merged: false };
   }
 
   /** Lookup a single shift by id without filtering by company. Used by

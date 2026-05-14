@@ -796,6 +796,17 @@ export class PlanningPocComponent implements AfterViewInit {
           detail: `${result.shift?.from_time} → ${result.shift?.to_time} op ${result.shift?.date_from}`,
         });
         this.maybeRefresh();
+      } else if (result?.kind === 'shift.batch.merged') {
+        // Server-side dedup: the new payload was folded into an existing
+        // draft/open shift on the same service location + dates + hours.
+        // Tell the operator so they don't go hunting for a "new" row.
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Samengevoegd met bestaande shift',
+          detail: `Capaciteit is nu ${result.shift?.capacity}. ${result.shift?.from_time} → ${result.shift?.to_time}`,
+          life: 5000,
+        });
+        this.maybeRefresh();
       } else if (result?.kind === 'shift.batch.error') {
         this.messageService.add({
           severity: 'error',
