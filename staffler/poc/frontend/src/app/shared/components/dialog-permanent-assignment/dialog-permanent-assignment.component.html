@@ -1,0 +1,88 @@
+<div class="flex flex-column gap-3">
+  <p class="text-color-secondary m-0">
+    Pin een vaste medewerker aan een service location met een wekelijks
+    patroon. Vaste medewerkers leven in PoC-DB — geen Dimona.
+  </p>
+
+  <div class="grid">
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Vaste medewerker</span>
+      <p-select
+        [options]="employeeOptions()"
+        [(ngModel)]="form.permanentEmployeeId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies"
+      />
+    </label>
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Service location</span>
+      <p-select
+        [options]="serviceGroupOptions()"
+        [(ngModel)]="form.serviceGroupId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies"
+      />
+    </label>
+  </div>
+
+  <div class="grid">
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Geldig vanaf</span>
+      <input pInputText type="date" [(ngModel)]="form.validFrom" />
+    </label>
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Geldig tot (optioneel)</span>
+      <input pInputText type="date" [(ngModel)]="form.validTo" />
+    </label>
+  </div>
+
+  <div class="flex flex-column gap-2">
+    <span class="text-sm font-medium">Wekelijks patroon</span>
+    @for (day of days; track day.weekday) {
+      <div class="flex align-items-center gap-3">
+        <label class="flex align-items-center gap-2" style="width: 7rem">
+          <input type="checkbox" [(ngModel)]="day.enabled" />
+          <span>{{ day.label }}</span>
+        </label>
+        <input
+          pInputText
+          type="time"
+          [(ngModel)]="day.from"
+          [disabled]="!day.enabled"
+          style="width: 7rem"
+        />
+        <span class="text-color-secondary">→</span>
+        <input
+          pInputText
+          type="time"
+          [(ngModel)]="day.to"
+          [disabled]="!day.enabled"
+          style="width: 7rem"
+        />
+      </div>
+    }
+  </div>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Notitie (optioneel)</span>
+    <input pInputText [(ngModel)]="form.note" placeholder="bv. zaterdag avondploeg" />
+  </label>
+
+  @if (error()) {
+    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
+      {{ error() }}
+    </div>
+  }
+</div>
+
+<div class="flex justify-content-end gap-2 mt-3">
+  <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
+  <p-button
+    label="Pinnen"
+    [loading]="saving()"
+    [disabled]="!canSave()"
+    (onClick)="save()"
+  />
+</div>

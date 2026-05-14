@@ -1,0 +1,86 @@
+<header class="flex justify-content-between align-items-center gap-2">
+  <h3 class="font-medium m-0" [innerHTML]="dialogData.headerTitle"></h3>
+
+  <p-button
+    icon="dps-icon dps-icon-close"
+    [text]="true"
+    [rounded]="true"
+    severity="secondary"
+    (onClick)="dialogRef.close()"
+  ></p-button>
+</header>
+
+<p-table
+  scrollable
+  [value]="(companyGroups$ | async) || []"
+  selectionMode="multiple"
+  [(selection)]="selectedGroups"
+  scrollHeight="450px"
+  dataKey="id"
+  styleClass="md:w-30rem"
+  [loading]="isLoadingGroups()"
+  [rowTrackBy]="groupsTrackByFn"
+>
+  <ng-template pTemplate="header">
+    <tr>
+      <th colspan="2">
+        <p-iconField class="w-full">
+          <p-inputIcon styleClass="dps-icon dps-icon-search" />
+          <input
+            class="w-full"
+            pInputText
+            [placeholder]="'COMPANY_GROUPS.SEARCH_A_GROUP' | translate"
+            [formControl]="groupSearchControl"
+          />
+          @if (groupSearchControl.value.length) {
+            <p-inputIcon
+              styleClass="dps-icon dps-icon-close left-auto right-0 mr-1 cursor-pointer bg-white"
+              (click)="groupSearchControl.reset()"
+            />
+          }
+        </p-iconField>
+      </th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-group>
+    <tr [ngClass]="{ 'p-disabled': existingGroupsIdsSet.has(group.id) }">
+      <td class="w-3rem">
+        <p-tableCheckbox [value]="group" />
+      </td>
+      <td [pSelectableRow]="group">{{ group.name }}</td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    @if (!isLoadingGroups()) {
+      <tr>
+        <td colspan="2" class="text-center">
+          {{ 'COMPANY_USER_ACCOUNTS.NO_GROUPS_CREATED_YET' | translate }}
+        </td>
+      </tr>
+    }
+  </ng-template>
+
+  <ng-template pTemplate="footer">
+    @if (
+      !!existingGroupsIdsSet.size && existingGroupsIdsSet.size === (companyGroups$ | async)?.length
+    ) {
+      <tr>
+        <td colspan="2" class="text-center">
+          <span class="font-normal">
+            {{ 'COMPANY_GROUPS.NO_GROUPS_TO_ASSIGN' | translate }}
+          </span>
+        </td>
+      </tr>
+    }
+  </ng-template>
+</p-table>
+
+<p-button
+  label="Save"
+  class="align-self-center"
+  styleClass="w-10rem"
+  [disabled]="isLoadingGroups()"
+  (onClick)="dialogRef.close(selectedGroups)"
+></p-button>

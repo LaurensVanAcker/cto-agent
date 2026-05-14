@@ -1,0 +1,94 @@
+<header class="flex align-items-center gap-3 flex-wrap">
+  <h1 class="text-2xl font-semibold m-0">Planning (demo)</h1>
+  <span class="demo-pill">Mock data — geen API-calls</span>
+  <a class="demo-pill demo-pill-link" href="/demo/dialogs">→ Dialog gallery</a>
+
+  <p-selectButton
+    class="planning-segment"
+    [options]="viewOptions"
+    [ngModel]="view()"
+    (ngModelChange)="view.set($event)"
+    optionLabel="label"
+    optionValue="value"
+    [allowEmpty]="false"
+  />
+
+  <p-selectButton
+    class="planning-segment"
+    [options]="zoomOptions"
+    [ngModel]="zoom()"
+    (ngModelChange)="zoom.set($event)"
+    optionLabel="label"
+    optionValue="value"
+    [allowEmpty]="false"
+  />
+
+  <span class="flex-1"></span>
+
+  <button type="button" class="p-link" (click)="previousWeek()" pTooltip="Vorige">
+    <span class="dps-icon dps-icon-chevron rotate-180"></span>
+  </button>
+  <span class="font-medium">{{ weekLabel() }}</span>
+  <button type="button" class="p-link" (click)="nextWeek()" pTooltip="Volgende">
+    <span class="dps-icon dps-icon-chevron"></span>
+  </button>
+  <p-button label="Vandaag" severity="secondary" [text]="true" (onClick)="today()" />
+</header>
+
+<!--
+  Banner card (mockup 10/11). Visible on the demo route too so reviewers
+  can confirm the chrome without logging in.
+-->
+<aside class="poc-banner" role="note">
+  <span class="poc-banner-icon">
+    <span class="dps-icon dps-icon-event-note"></span>
+  </span>
+  <div class="poc-banner-body">
+    <strong>Planning — plan jouw medewerkers in</strong>
+    @if (view() === 'names') {
+      <span>
+        Klik op een cel om een contract te maken. Sleep blokjes verticaal naar een
+        andere medewerker.
+      </span>
+    } @else {
+      <span>
+        Klik op een cel om een shift te maken. Sleep blokken verticaal naar een
+        andere service location.
+      </span>
+    }
+  </div>
+</aside>
+
+<div class="poc-scheduler-host flex-auto">
+  <bryntum-scheduler
+    cls="border-round-bottom-md"
+    [resources]="resources()"
+    [events]="events()"
+    [startDate]="startDate()"
+    [endDate]="endDate()"
+    [viewPreset]="schedulerConfig().viewPreset!"
+    [columns]="schedulerConfig().columns!"
+    [eventStyle]="schedulerConfig().eventStyle!"
+    [eventRenderer]="schedulerConfig().eventRenderer!"
+    [rowHeight]="schedulerConfig().rowHeight!"
+    [mode]="schedulerConfig().mode ?? 'horizontal'"
+    [weekStartDay]="schedulerConfig().weekStartDay!"
+    [allowOverlap]="schedulerConfig().allowOverlap!"
+    [fillTicks]="schedulerConfig().fillTicks!"
+    [timeRanges]="schedulerConfig().timeRanges!"
+    [createEventOnDblClick]="false"
+    [hideRowHover]="false"
+    [nonWorkingTimeFeature]="true"
+    [cellEditFeature]="false"
+    [eventResizeFeature]="false"
+    [scheduleMenuFeature]="false"
+    [eventMenuFeature]="false"
+    [eventTooltipFeature]="false"
+    [scheduleTooltipFeature]="false"
+    [timeAxisHeaderMenuFeature]="false"
+    [eventDragFeature]="false"
+    [eventDragCreateFeature]="false"
+    [cellTooltipFeature]="false"
+    [timeRangesFeature]="true"
+  ></bryntum-scheduler>
+</div>

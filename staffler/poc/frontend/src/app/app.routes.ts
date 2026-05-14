@@ -1,42 +1,44 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+
+import { authenticatedGuard } from '@dps/core/api/auth';
+import { AUTH_ROUTES } from './pages/auth';
+import { AppRouteEnum } from './app.routes.model';
 
 export const routes: Routes = [
+  ...AUTH_ROUTES,
   {
-    path: 'login',
-    loadComponent: () =>
-      import('./pages/login/login.component').then((m) => m.LoginComponent),
+    path: AppRouteEnum.EMPLOYEE,
+    loadChildren: () => import('./pages/employee/employee.routes').then(m => m.EMPLOYEE_ROUTES),
+    canMatch: [authenticatedGuard],
   },
   {
-    path: '',
-    loadComponent: () =>
-      import('./layout/shell.component').then((m) => m.ShellComponent),
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'dashboard',
-      },
-      {
-        path: 'dashboard',
-        loadComponent: () =>
-          import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-      },
-      {
-        path: 'employees',
-        loadComponent: () =>
-          import('./pages/employees/employees.component').then((m) => m.EmployeesComponent),
-      },
-      {
-        path: 'contracts',
-        loadComponent: () =>
-          import('./pages/contracts/contracts.component').then((m) => m.ContractsComponent),
-      },
-    ],
+    path: AppRouteEnum.COMPANY,
+    loadChildren: () => import('./pages/company/company.routes').then(m => m.COMPANY_ROUTES),
+    canMatch: [authenticatedGuard],
   },
   {
-    path: '**',
-    redirectTo: '',
+    path: AppRouteEnum.INVITATION,
+    loadChildren: () =>
+      import('./pages/invitation/invitation.routes').then(m => m.INVITATION_ROUTES),
   },
+  // No-auth visual demo of the Bryntum planning surface. Open
+  // /demo/planning to see the grid with mock data, useful while the QA
+  // test account isn't valid yet.
+  {
+    path: 'demo/planning',
+    loadChildren: () =>
+      import('./pages/demo/demo-planning.routes').then(m => m.DEMO_PLANNING_ROUTES),
+  },
+  // Auth-free dialog gallery — one button per popup so reviewers can
+  // compare each m09/m12/m14 dialog against the mockups without a DPS
+  // session. Backend calls inside the dialogs 401 silently (auth
+  // interceptor skips its /login redirect on /demo/* routes).
+  {
+    path: 'demo/dialogs',
+    loadChildren: () =>
+      import('./pages/demo/demo-dialogs.routes').then(m => m.DEMO_DIALOGS_ROUTES),
+  },
+  // PoC: search page, signin (Cognito-callback helper) and admin (BoemmAD)
+  // routes are stripped — see step 1 in the PoC plan.
+  { path: '**', redirectTo: AppRouteEnum.COMPANY },
 ];

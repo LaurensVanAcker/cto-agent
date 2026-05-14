@@ -117,6 +117,29 @@ export class StafflerClient {
     return this.authedCall<CompanyWebDto>("GET", `/api/companies/${companyId}`);
   }
 
+  // -- engagement groups (= vestigingen in PoC terminology) --
+
+  async listCompanyGroups(companyId: string): Promise<unknown[]> {
+    return this.authedCall<unknown[]>("GET", `/api/companies/${companyId}/groups`);
+  }
+
+  // -- MyStaffler (employee-side cross-company queries) --
+
+  async listEmployeeContractsCrossCompany(params: {
+    employeeId: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<unknown[]> {
+    const qs = this.buildQS({
+      startDate: params.startDate,
+      endDate: params.endDate,
+    });
+    return this.authedCall<unknown[]>(
+      "GET",
+      `/api/my-staffler/employees/${params.employeeId}/contracts${qs}`,
+    );
+  }
+
   // -- employees --
 
   async listEmployees(params: {

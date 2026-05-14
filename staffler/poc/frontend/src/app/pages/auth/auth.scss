@@ -1,0 +1,16 @@
+// Common auth pages styles
+
+dps-set-password,
+dps-reset-password {
+  .p-password-panel {
+    padding: 0;
+  }
+
+  .password-requirements-list li {
+    &.has-error {
+      .dps-icon-check {
+        display: none;
+      }
+    }
+  }
+}

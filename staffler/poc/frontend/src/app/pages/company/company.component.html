@@ -1,0 +1,17 @@
+<p-drawer
+  [visible]="isSidenavVisible()"
+  [modal]="isMobileScreen()"
+  position="left"
+  [appendTo]="isMobileScreen() ? 'body' : 'dps-company'"
+  styleClass="w-auto border-none shadow-none bg-transparent {{
+    isMobileScreen() ? '' : 'relative'
+  }}"
+  blockScroll
+  (onHide)="hideSidenav()"
+>
+  <ng-template #headless>
+    <dps-main-menu class="h-full"></dps-main-menu>
+  </ng-template>
+</p-drawer>
+
+<router-outlet></router-outlet>

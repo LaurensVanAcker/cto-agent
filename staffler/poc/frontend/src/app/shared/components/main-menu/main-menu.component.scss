@@ -1,0 +1,80 @@
+dps-main-menu {
+  a {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+
+    &.planning-link.active {
+      background-color: var(--dps-planning-primary-color) !important;
+    }
+
+    &.active .p-badge {
+      color: var(--p-primary-color);
+      border: 1px solid currentColor;
+      background-color: var(--p-surface-50);
+    }
+
+    .link-text {
+      width: 0;
+      opacity: 0;
+      transition-property: width, opacity;
+      transition-duration: 0.25s;
+      transition-timing-function: ease;
+    }
+  }
+
+  &.expanded a .link-text {
+    width: 165px;
+    opacity: 1;
+    margin-left: 0.5rem;
+  }
+
+  .toggle-button {
+    $button-size: 20px;
+    $border-size: 1px;
+
+    font-size: $button-size;
+    top: calc(50% - $button-size / 2);
+    right: calc(($border-size * 2 + $button-size) / 2) * -1;
+  }
+
+  // Pending-prestatie badge on the sidebar ACTUALS link. Sits in the
+  // gutter when the sidebar is collapsed (top-right of the icon) and
+  // inline next to the label when expanded.
+  .sidebar-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #fc074f;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:not(.expanded) .sidebar-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+  }
+
+  &:not(.expanded) a {
+    position: relative;
+  }
+
+  a.active .sidebar-badge {
+    background: white;
+    color: #fc074f;
+  }
+}

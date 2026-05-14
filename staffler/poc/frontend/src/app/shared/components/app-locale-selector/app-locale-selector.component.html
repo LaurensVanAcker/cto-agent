@@ -1,0 +1,16 @@
+<p-button (click)="menu.toggle($event)" icon="dps-icon dps-icon-language" [rounded]="true" [text]="true" severity="secondary" />
+
+<p-menu #menu [model]="menuLocales" [popup]="true" appendTo="body">
+  <ng-template #item let-item>
+    @let isSelectedLang = currLang() === item.label;
+
+    <div class="p-menu-item-link" [class.text-primary]="isSelectedLang">
+      <span class="flex-1">
+        {{ item.label }}
+      </span>
+      @if (isSelectedLang) {
+        <span class="dps-icon dps-icon-check"></span>
+      }
+    </div>
+  </ng-template>
+</p-menu>

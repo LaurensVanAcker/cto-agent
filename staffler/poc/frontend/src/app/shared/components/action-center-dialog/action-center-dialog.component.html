@@ -1,0 +1,205 @@
+@if (totalNotificationBadge() > 0) {
+  <p-button
+    severity="warn"
+    styleClass="w-full"
+    icon="dps-icon dps-icon-notifications"
+    [label]="
+      totalNotificationBadge() === 1
+        ? ('COMPANY.SINGLE_PENDING_ACTION' | translate)
+        : ('COMPANY.MULTIPLE_PENDING_ACTIONS'
+          | translate: { pendingActions: totalNotificationBadge() })
+    "
+    (onClick)="showActionCenter($event)"
+  />
+} @else {
+  <p-button
+    severity="success"
+    icon="dps-icon dps-icon-check"
+    [label]="'COMPANY.ALL_SET' | translate"
+    (onClick)="showActionCenter($event)"
+  />
+}
+
+<p-popover #actionCenterPopover (onHide)="hideActionCenter()">
+  <ng-container [ngTemplateOutlet]="actionCenterTemplate"></ng-container>
+</p-popover>
+
+<p-dialog
+  modal
+  [(visible)]="isMobileDialogVisible"
+  appendTo="body"
+  position="bottom"
+  [showHeader]="false"
+  contentStyleClass="pt-2"
+  styleClass="m-0 border-noround-bottom max-h-full"
+>
+  <ng-container [ngTemplateOutlet]="actionCenterTemplate"></ng-container>
+</p-dialog>
+
+<ng-template #actionCenterTemplate>
+  @if (isSettingViewActive()) {
+    <div class="flex align-items-center justify-content-between w-23rem">
+      <div class="flex align-items-center">
+        <p-button
+          icon="dps-icon dps-icon-arrow_back"
+          [rounded]="true"
+          [text]="true"
+          (click)="isSettingViewActive.set(false)"
+        />
+        <h2 class="text-primary text-lg mb-3">
+          {{ 'GENERAL.SETTINGS' | translate }}
+        </h2>
+      </div>
+    </div>
+    <div class="flex flex-column gap-2 pl-3">
+      <label class="mb-1">
+        {{ 'COMPANY.EMAIL_AND_WHATSAPP_NUMBER' | translate }}
+      </label>
+      <p-inputGroup>
+        <input pInputText class="w-full" [formControl]="contactControl" />
+        <p-inputgroup-addon>
+          <p-button
+            icon="dps-icon dps-icon-delete"
+            [text]="true"
+            severity="danger"
+            (click)="contactControl.setValue('')"
+          ></p-button>
+        </p-inputgroup-addon>
+      </p-inputGroup>
+      @if (contactControl.touched && contactControl.hasError('required')) {
+        <small class="text-red-500">
+          {{ 'VALIDATION_ERRORS.EMAIL_OR_NUMBER_REQUIRED' | translate }}
+        </small>
+      } @else if (contactControl.touched && contactControl.invalid) {
+        <small class="text-red-500">
+          {{ 'VALIDATION_ERRORS.EMAIL_OR_NUMBER_INVALID' | translate }}
+        </small>
+      }
+      <p-button
+        icon="dps-icon dps-icon-add"
+        [outlined]="true"
+        [style]="{ width: '100%', border: 'none' }"
+        [label]="'COMPANY.ADD_WHATSAPP_NUMBER' | translate"
+        (click)="openWhatsappConsentDialog()"
+        [disabled]="notificationPreferenceData()?.phoneNumber"
+      />
+      <div class="flex justify-content-between">
+        <div class="flex align-items-center gap-1">
+          <p-checkbox
+            [formControl]="remindersForm.controls.receiveRemindersControl"
+            [binary]="true"
+            inputId="receiveReminders"
+          ></p-checkbox>
+          <label for="receiveReminders">
+            {{ 'COMPANY.RECEIVE_REMINDERS' | translate }}
+          </label>
+        </div>
+        <span class="text-primary">{{ 'COMPANY.HOUR' | translate }}</span>
+      </div>
+      @if (this.remindersForm.controls.receiveRemindersControl.value) {
+        <div class="flex gap-3 align-self-end text-primary">
+          <span>{{ 'COMPANY.REMINDER_ACTUALS_LABEL' | translate }}</span>
+          <span>{{ 'COMPANY.REMINDER_CONTRACT_LABEL' | translate }}</span>
+        </div>
+        <div class="flex flex-column gap-2">
+          @for (dayControl of remindersForm.controls.days.controls; track $index) {
+            <div class="flex justify-content-between pl-2">
+              <div class="flex align-items-center gap-2">
+                <p-checkbox
+                  [formControl]="dayControl.controls.selected"
+                  [binary]="true"
+                ></p-checkbox>
+                <label>
+                  {{ dayControl.controls.labelTranslationKey.value | translate }}
+                </label>
+              </div>
+              <div class="flex gap-2 align-items-end">
+                <div class="flex flex-column gap-2 align-items-end">
+                  <p-inputMask
+                    [formControl]="dayControl.controls.notificationTimeActuals"
+                    mask="99:99"
+                    slotChar="mm:ss"
+                    [size]="'small'"
+                    [style]="{ width: '70px' }"
+                  >
+                  </p-inputMask>
+                </div>
+                <div class="flex flex-column gap-2 align-items-end">
+                  <p-inputMask
+                    [formControl]="dayControl.controls.notificationTimeContract"
+                    mask="99:99"
+                    slotChar="mm:ss"
+                    [size]="'small'"
+                    [style]="{ width: '70px' }"
+                  >
+                  </p-inputMask>
+                </div>
+              </div>
+            </div>
+            @if (
+              dayControl.controls.selected.value &&
+              dayControl.controls.notificationTimeActuals.value === '' &&
+              dayControl.controls.notificationTimeContract.value === ''
+            ) {
+              <small class="text-red-500 align-self-end">
+                {{ 'VALIDATION_ERRORS.FIELD_CANNOT_BE_EMPTY' | translate }}
+              </small>
+            }
+          }
+        </div>
+      }
+      <p-button
+        [label]="'COMPANY.SAVE_UPDATES' | translate"
+        class="align-self-end"
+        [disabled]="updateNotificationPreferencesDisabled"
+        (click)="updateNotificationPreferences()"
+      />
+    </div>
+  } @else {
+    <div class="flex align-items-center justify-content-between">
+      <h2 class="text-primary text-lg mb-3">
+        {{ 'COMPANY.ACTION_CENTER' | translate }}
+      </h2>
+
+      <div class="flex align-items-center">
+        <p-button
+          rounded
+          text
+          icon="dps-icon dps-icon-settings"
+          severity="secondary"
+          (onClick)="isSettingViewActive.set(true); refreshTrigger$.next()"
+        />
+        <p-divider layout="vertical" styleClass="mx-2 py-2"></p-divider>
+        <p-button
+          rounded
+          text
+          icon="dps-icon dps-icon-close"
+          severity="secondary"
+          (onClick)="hideActionCenter()"
+        />
+      </div>
+    </div>
+
+    <div class="flex flex-column gap-2">
+      <p-button
+        severity="secondary"
+        [label]="
+          companyContractConfirmationsCount() === 1
+            ? ('COMPANY.SINGLE_PENDING_ACTIONS_MESSAGE' | translate)
+            : ('COMPANY.MULTIPLE_PENDING_ACTIONS_MESSAGE'
+              | translate: { pendingActions: companyContractConfirmationsCount() })
+        "
+        class="align-self-start"
+        (click)="navigateToActualsPage()"
+        [disabled]="!companyContractConfirmationsCount()"
+      />
+      <p-button
+        severity="secondary"
+        [label]="'COMPANY.WARNING_MESSAGE_PENDING_ACTIONS' | translate"
+        class="align-self-start"
+        (click)="navigateToPlanningPage()"
+        [disabled]="!!contractNotificationCount()"
+      />
+    </div>
+  }
+</ng-template>

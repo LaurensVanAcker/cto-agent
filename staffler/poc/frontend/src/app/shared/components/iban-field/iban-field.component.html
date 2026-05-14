@@ -1,0 +1,16 @@
+<label class="mb-1" for="iban">{{ labelTranslationKey | translate }}</label>
+<p-inputMask
+  [mask]="ibanMask"
+  inputId="iban"
+  [formControl]="control"
+  styleClass="w-full uppercase"
+  [slotChar]="''"
+  [unmask]="true"
+  (onBlur)="makeControlLettersUppercase()"
+></p-inputMask>
+
+<dps-field-validation-errors [control]="control">
+  @if (control.hasError(ibanInvalidError)) {
+    <small class="text-red-500"> {{ 'VALIDATION_ERRORS.IBAN_INVALID' | translate }} </small>
+  }
+</dps-field-validation-errors>

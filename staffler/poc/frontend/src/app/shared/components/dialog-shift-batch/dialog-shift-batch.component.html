@@ -1,0 +1,351 @@
+<!--
+  Nieuwe shift dialog — 1:1 with `mockups/09-dialog-volledig.html`.
+  PrimeNG's DynamicDialog wraps this in its own chrome; we render the
+  mockup's header/body/footer inside.
+
+  Klant subheader is intentionally omitted (operator already sees the
+  company in the sidebar). Position chip = vestiging — service-location
+  derived from the chosen service-group.
+-->
+<div class="m09-dialog">
+  <header class="m09-header">
+    <div>
+      <h2>
+        @if (mode === 'single') {
+          Nieuwe shift voor <span class="pos">{{ positionLabel() }}</span>
+        } @else {
+          Nieuwe shifts voor <span class="pos">{{ positionLabel() }}</span>
+        }
+      </h2>
+    </div>
+    <button class="m09-x" type="button" (click)="cancel()" aria-label="Sluiten">
+      <span class="dps-icon dps-icon-close"></span>
+    </button>
+  </header>
+
+  <section class="m09-body">
+    <!-- Service location (only when none pre-selected) -->
+    @if (!config.data?.serviceGroupId && serviceGroupOptions().length > 1) {
+      <div class="m09-field">
+        <label class="m09-field-label">Service location</label>
+        <p-select
+          [options]="serviceGroupOptions()"
+          [(ngModel)]="form.serviceGroupId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Kies service location"
+          appendTo="body"
+        />
+      </div>
+    }
+
+    <!-- Datum range -->
+    <div class="m09-field">
+      <label class="m09-field-label">Datum</label>
+      <div class="m09-daterange">
+        <span class="dps-icon dps-icon-event-note"></span>
+        <input
+          type="date"
+          [(ngModel)]="form.dateFrom"
+          (ngModelChange)="onDateFromChange($event)"
+        />
+        <span class="m09-arrow">›</span>
+        <input type="date" [(ngModel)]="form.dateTo" />
+      </div>
+    </div>
+
+    <!-- Werkuren card -->
+    <div class="m09-shift-card">
+      <div class="m09-day-title">{{ dayTitle() }}</div>
+
+      <div class="m09-toggle-2">
+        <button
+          type="button"
+          [class.active]="hoursMode() === 'template'"
+          (click)="hoursMode.set('template')"
+        >
+          Bestaande shift gebruiken
+        </button>
+        <button
+          type="button"
+          [class.active]="hoursMode() === 'custom'"
+          (click)="hoursMode.set('custom')"
+        >
+          Nieuwe uren ingeven
+        </button>
+      </div>
+
+      @if (hoursMode() === 'template') {
+        <!--
+          Existing-shift template selector. Picking a preset rewires
+          fromTime / toTime / pauseFrom / pauseTo to the template's values,
+          matching the production "Bestaande shift gebruiken" pattern.
+        -->
+        <div class="m09-template-row">
+          <p-select
+            class="flex-1"
+            [options]="shiftTemplateOptions"
+            [ngModel]="shiftTemplateId()"
+            (ngModelChange)="applyShiftTemplate($event)"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Kies een bestaande shift"
+            appendTo="body"
+          />
+          <button type="button" class="m09-square-btn" (click)="hoursMode.set('custom')">
+            <span class="dps-icon dps-icon-edit"></span>
+          </button>
+        </div>
+      }
+
+      <div class="m09-time-row">
+        <div></div>
+        <div class="m09-col-heads">
+          <span>Van</span><span></span><span>Tot</span>
+        </div>
+
+        <div class="m09-row-label">Werkuren</div>
+        <div class="m09-time-pair">
+          <input type="time" [(ngModel)]="form.fromTime" />
+          <span class="m09-arr">›</span>
+          <input type="time" [(ngModel)]="form.toTime" />
+        </div>
+
+        <div class="m09-row-label">Pauze</div>
+        <div class="m09-time-pair">
+          <input type="time" [(ngModel)]="form.pauseFrom" />
+          <span class="m09-arr">›</span>
+          <input type="time" [(ngModel)]="form.pauseTo" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Slots -->
+    @if (mode !== 'single') {
+      <label class="m09-field-label">Shifts</label>
+    }
+    <div class="m09-slot-list" [class.m09-slot-list-single]="mode === 'single'">
+      @for (slot of slots(); track $index) {
+        <div
+          class="m09-slot"
+          [class.assigned]="slot.kind === 'assigned' || slot.kind === 'vast'"
+          [class.fixed]="slot.kind === 'vast'"
+          [class.open-shift]="slot.kind === 'open'"
+          [class.hoverable]="slot.kind === 'open'"
+        >
+          <div class="m09-slot-head">
+            @if (mode !== 'single') {
+              <div class="m09-num">{{ $index + 1 }}</div>
+            }
+
+            @switch (slot.kind) {
+              @case ('assigned') {
+                <div class="m09-name">
+                  @if (slot.employeeName) {
+                    {{ slot.employeeName }}
+                  } @else {
+                    <!--
+                      Persoon-kiezen p-select — mockup 09 column 2 layout.
+                      Grouped into three sections (Beschikbaar / Andere
+                      medewerkers / Vaste werknemers) via PrimeNG's native
+                      group support. Group header colour is driven by the
+                      `variant` field via .persoon-kiezen-panel SCSS rules.
+                    -->
+                    <p-select
+                      class="flex-1 persoon-kiezen"
+                      panelStyleClass="persoon-kiezen-panel"
+                      [options]="employeeGroups()"
+                      [group]="true"
+                      optionGroupLabel="label"
+                      optionGroupChildren="items"
+                      [filter]="true"
+                      filterBy="label,statute,phone"
+                      [ngModel]="slot.employeeId"
+                      (ngModelChange)="onSlotEmployeeSelected($index, $event)"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Kies medewerker"
+                      appendTo="body"
+                    >
+                      <ng-template let-grp pTemplate="group">
+                        <div
+                          class="persoon-group-header"
+                          [class.is-available]="grp.variant === 'available'"
+                          [class.is-other]="grp.variant === 'other'"
+                          [class.is-fixed]="grp.variant === 'fixed'"
+                        >
+                          <span class="persoon-group-label">{{ grp.label }}</span>
+                          <span class="persoon-group-count">{{ grp.count }}</span>
+                        </div>
+                      </ng-template>
+                      <ng-template let-opt pTemplate="item">
+                        <div
+                          class="persoon-row"
+                          [class.is-fixed]="opt.isPermanent"
+                        >
+                          <span class="persoon-avatar">{{ opt.initials }}</span>
+                          <div class="persoon-main">
+                            <div class="persoon-name">
+                              {{ opt.firstName }} {{ opt.lastName }}
+                            </div>
+                            @if (opt.statute) {
+                              <div class="persoon-meta">
+                                <span>{{ opt.statute }}</span>
+                              </div>
+                            }
+                          </div>
+                          @if (opt.availabilityRange) {
+                            <span
+                              class="availability-badge"
+                              [class.match]="opt.availability === 'match'"
+                              [class.partial]="opt.availability === 'partial'"
+                            >
+                              {{ opt.availabilityRange }}
+                            </span>
+                          }
+                        </div>
+                      </ng-template>
+                    </p-select>
+                  }
+                </div>
+              }
+              @case ('vast') {
+                <div class="m09-name">
+                  <span class="m09-vast-tag">Vast</span>{{ slot.employeeName }}
+                </div>
+              }
+              @default {
+                <div class="m09-slot-content">
+                  <div class="default-content">
+                    <div class="m09-name">Open shift</div>
+                  </div>
+                  <div class="hover-content">
+                    <button
+                      type="button"
+                      class="m09-choice-btn persoon"
+                      (click)="makeAssigned($index)"
+                    >
+                      <span class="dps-icon dps-icon-person"></span>
+                      Persoon kiezen
+                    </button>
+                    <button type="button" class="m09-choice-btn open" (click)="makeOpen($index)">
+                      <span class="dps-icon dps-icon-info"></span>
+                      Open laten
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+
+            @if (mode !== 'single') {
+              <button
+                type="button"
+                class="m09-undo"
+                (click)="removeSlot($index)"
+                aria-label="Verwijder slot"
+              >
+                <span class="dps-icon dps-icon-close"></span>
+              </button>
+            }
+          </div>
+
+          @if (slot.kind === 'assigned' && slot.employeeName) {
+            <div class="m09-slot-detail">
+              <div class="m09-pakket-label">
+                Loonpakket voor {{ firstName(slot.employeeName) }}
+              </div>
+              <p-select
+                class="m09-pakket-select-pn"
+                [options]="loonpakketOptions"
+                [ngModel]="slot.loonpakketId"
+                (ngModelChange)="onSlotLoonpakketChanged($index, $event)"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Kies een loonpakket"
+                appendTo="body"
+              />
+              <!--
+                Inline loonpakket-mismatch banner per mockup 09 column 3.
+                Renders right under the loonpakket select when either no
+                package is picked yet, or the picked one belongs to a
+                different vestiging. Aanmaken stub closes the banner; the
+                real "create wage-template" call lands in v1.
+              -->
+              @if (shouldShowLoonpakketBanner(slot, $index)) {
+                <div class="m09-banner-warn m09-banner-inline" role="status">
+                  <span class="dps-icon dps-icon-warning"></span>
+                  <div class="m09-banner-body">
+                    <strong>Dit loonpakket hoort niet bij {{ positionLabel() }}.</strong>
+                    <span>
+                      Voor {{ firstName(slot.employeeName) }} bestaat er nog geen
+                      {{ bannerPakketLabel(slot) }} op deze vestiging. Wil je
+                      dit loonpakket nu aanmaken?
+                    </span>
+                    <button
+                      type="button"
+                      class="m09-banner-action"
+                      (click)="onCreateLoonpakket($index)"
+                    >
+                      Loonpakket aanmaken
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (mode !== 'single') {
+        <button type="button" class="m09-add-slot" (click)="addSlot()">
+          <span class="dps-icon dps-icon-add"></span> Shift toevoegen
+        </button>
+      }
+    </div>
+
+    <!--
+      The "Loonpakket ontbreekt" banner used to live here, summarising all
+      assigned slots that still lacked a loonpakket. Per mockup 09 v2 we
+      moved this affordance INSIDE each slot — the operator sees the
+      mismatch in context with an "Aanmaken" stub right under the
+      loonpakket select, which scales better when multiple slots have
+      different issues.
+    -->
+
+    <!-- Deadline reactie (only when an open slot exists) -->
+    @if (hasOpenSlot()) {
+      <div class="m09-field mt-3">
+        <label class="m09-field-label">Deadline reactie</label>
+        <input
+          type="datetime-local"
+          class="m09-input"
+          [(ngModel)]="form.deadline"
+        />
+      </div>
+    }
+
+    @if (error()) {
+      <div class="m09-error">{{ error() }}</div>
+    }
+  </section>
+
+  <footer class="m09-footer">
+    <button type="button" class="m09-btn-cancel" (click)="cancel()">
+      Annuleren
+    </button>
+    <!--
+      Disabled-state tooltip: the operator sees the exact validation
+      reason on hover, so they can fix without playing "guess the field".
+    -->
+    <button
+      type="button"
+      class="m09-btn-confirm"
+      [class.disabled]="!canSave()"
+      [disabled]="!canSave()"
+      [title]="validationError() ?? ''"
+      (click)="confirmAndPublish()"
+    >
+      Bevestig shift
+    </button>
+  </footer>
+</div>

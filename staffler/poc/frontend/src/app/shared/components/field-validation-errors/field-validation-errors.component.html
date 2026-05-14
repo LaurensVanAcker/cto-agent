@@ -1,0 +1,5 @@
+@if (control.hasError('required')) {
+  <small class="text-red-500">{{ 'VALIDATION_ERRORS.REQUIRED_FIELD' | translate }}</small>
+} @else {
+  <ng-content></ng-content>
+}

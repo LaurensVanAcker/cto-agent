@@ -1,124 +1,130 @@
-# Staffler PoC skeleton
+# Staffler PoC
 
-Klaar-om-te-draaien skelet voor een externe PoC die op de Staffler / dps-service backend werkt. Server-side proxy in TypeScript (Node + Fastify), met een minimale HTML UI voor lokaal testen.
+PoC bovenop de Staffler / dps-service backend. Server-side proxy in Fastify,
+Angular 19 frontend gekloond van `wlnob/dps` en bijgewerkt voor de PoC-scope.
 
-Doel maandag: `npm install && npm run dev`, daarna in de browser inloggen tegen QA en de eerste calls zien werken.
+Voor de pilot draaien drie klanten echte planning hierop. Lees `PLAN.md` voor
+het volledige product-plan en `CONCLUSIONS.md` voor de architecturele
+keuzes.
 
-## Why a server-side proxy
+## Wat is werkend
 
-Staffler's API gateway laat geen onbekende origins toe in CORS. Lokale dev (`http://localhost:5173`) en Vercel-deploys staan default niet in de allow-list. Een server-side proxy omzeilt dat: de browser praat met onze proxy, de proxy praat met de gateway. Skey blijft server-side, niet in localStorage.
+Sidebar items in het bedrijfsportaal (`/company/:id/...`):
 
-Zodra je PoC origin formeel toegevoegd is aan `boemm.allowedOrigins` (vraag dev-ops, zie `../api/known-gaps.md`) kan je de browser ook direct met de gateway laten praten en deze proxy-laag schrappen.
+| Item | Pad | Wat |
+|---|---|---|
+| Pool | `/pool` | BCJ-19425 — medewerkerslijst met MyStaffler-invite-flow, filter chips, last login, actions menu, "Toewijzen aan vestigingen" via assign-groups-dialog (DPS-write). |
+| Beheer locaties | `/locations` | Vestigingen (RO uit DPS engagement-groups) · service-locations CRUD (PoC-DB) · vaste medewerkers CRUD (PoC-DB) · vaste toewijzingen pinnen (weekday-pattern dialog). |
+| Nieuwe medewerkers | `/invitations` | Niet door PoC aangeraakt — bestaande dps invitations module. |
+| Planning | `/planning` | Productie-zicht — bestaande Bryntum scheduler uit dps. |
+| Planning (PoC) | `/planning-poc` | Nieuwe Bryntum-scheduler met view-toggle (Namen / V+SL / Dag): laadt contracten (DPS) + open shifts (PoC-DB) + Vast-blokken (permanent_assignments) in één keer. Klik op een lege cel = nieuw contract dialog. Klik op een contract-blok = production ContractDialog (edit/cancel). Klik op een shift = candidate-select dialog (Kies = POST `/api/shifts/:id/select` → DPS createContract met Dimona). |
+| MyStaffler preview | `/mystaffler-preview` | Smalle mobile-strip die het MyStaffler-zicht van een uitzendkracht simuleert: planning, open shifts (kandidaat stellen / terugtrekken), beschikbaarheid (one-click toevoegen). |
 
-## Folder structuur
+## Architectuur in één lijn
 
 ```
-poc/
-├── package.json
-├── tsconfig.json
-├── .env.example       cp naar .env, vul aan
-├── public/
-│   └── index.html     simpele test UI
-├── src/
-│   ├── client/
-│   │   └── staffler-client.ts   typed wrapper rond de Staffler API
-│   ├── types/
-│   │   └── staffler.ts          handgeschreven types (subset)
-│   └── server/
-│       └── index.ts             Fastify proxy + statische UI
-└── README.md (je leest dit)
+Browser
+  └─ Angular 19 (frontend/)
+       └─ /api/* (relative URLs)
+            └─ proxy.conf.json (dev) of Fastify static-serve (prod)
+                 └─ Fastify (src/server) op :5174
+                      ├─ DPS-pass-through  → gw.qa.dps.boemm.eu
+                      └─ PoC-DB shim       → data/poc-db.json
 ```
 
-## Getting started
+Skey blijft in de Fastify session-Map (cookie `poc_sid`). De browser kent
+geen skey en stuurt geen `x-boemm-skey` header. De PoC-DB tabellen (zes
+stuks per `PLAN.md`) worden persistent gemaakt naar één JSON-file in
+`data/poc-db.json` — survival across `tsx watch` reloads zonder migrations.
+Voor v1 wisselen we dit voor Heroku Postgres in.
+
+## Quick start
 
 ```bash
+# Bryntum scheduler vereist een gateway-login (één keer per machine):
+npm config set "@bryntum:registry=https://npm.bryntum.com"
+npm login --registry=https://npm.bryntum.com
+# Credentials: zie staffler/frontend/dev-setup.md (development..boemm.eu)
+
+# Backend
 cd staffler/poc
-
-# 1. Install
 npm install
+PORT=5174 npm run dev
 
-# 2. Setup env
-cp .env.example .env
-# Edit .env met je QA test-account credentials
-
-# 3. Run
-npm run dev
+# Frontend (apart terminal-venster)
+cd staffler/poc/frontend
+npm install
+npm start                            # → http://localhost:1445
 ```
 
-Open `http://localhost:5173`. Vul username + password in, klik Login. Na succesvolle login zie je je `companyMemberships`. Daarna kan je dictionaries, employees en contracten ophalen.
+Het backend draait op `:5174` (i.p.v. de oude default `:5173` — zo
+botst hij niet met een tweede worktree die ook draait). De frontend
+proxy verstuurt alle `/api/*` calls naar `:5174`.
 
-## Roadmap voor de PoC
+## QA credentials
 
-Fase 1 (maandag-dinsdag): bevestig dat de bestaande happy paths werken op QA met je test-account. Login werkt, /api/me werkt, /api/employees en /api/contracts geven data terug.
+Zet in `cto/.env` of in `staffler/poc/.env`:
 
-Fase 2 (woensdag-donderdag): bouw de "beschikbaarheden" UI bovenop. Eigen storage voor availability records (start met JSON file, later Vercel KV of Supabase). Bind beschikbaarheid aan employeeId + dateRange.
-
-Fase 3 (vrijdag): bouw `POST /api/contracts` flow zodat je vanuit beschikbaarheid + 1 klik een contract kan creëeren in Staffler.
-
-Fase 4 (week 2): refine UX, deploy naar Vercel, vraag origin toe te voegen aan QA allowedOrigins zodat de proxy facultatief wordt.
-
-## Calling endpoints not wrapped yet
-
-`StafflerClient` heeft `rawAuthed` en `rawPublic` als escape hatches:
-
-```ts
-import { StafflerClient } from "./client/staffler-client.js";
-
-const client = new StafflerClient({ gateway, skey });
-const wages = await client.rawAuthed<PageWebDto<EmployeeWageWebDto>>(
-  "GET",
-  `/api/employeewages?companyId=${id}&page=0&size=20`
-);
+```
+STAFFLER_USERNAME=...
+STAFFLER_PASSWORD=...
 ```
 
-Voor de volledige endpoint-lijst zie `../api/endpoints-index.md`. Voor wire-shapes zie `../api/sources/dps-service-dtos.md`.
+Die zijn voor login via de browser. De backend zelf gebruikt ze niet — hij
+forwardt wat de browser POST'st naar `/api/login`.
 
-## Generating types from OpenAPI
+## Backend endpoints
 
-`../api/openapi/openapi.json` heeft alle 85 operations. Voor stronger typing:
+| Route | Forwardt naar | Wat |
+|---|---|---|
+| `POST /api/login` | `POST /publicapi/companies/users/login` | Login + cookie zetten. |
+| `POST /api/logout` | `GET /api/users/logout` | Logout + cookie wissen. |
+| `GET  /api/me` | `GET /api/users/currentuser` | Profiel + memberships. |
+| `GET  /api/companies/:id` | proxy | |
+| `GET  /api/companies/:id/groups` | proxy | Vestigingen. |
+| `GET  /api/employees?companyId=&nameLike=` | proxy | Pool. |
+| `GET  /api/contracts?companyId=&startDate=&endDate=` | proxy | Contracten week. |
+| `POST /api/contracts` | proxy | **Dimona-aanvraag** via DPS. |
+| `GET  /api/my-staffler/employees/:id/contracts` | proxy | Cross-bedrijf voor MyStaffler. |
+| `GET  /api/dictionaries?types=` | proxy | Statutes, PC, etc. |
+| `GET/POST /api/service-groups` | PoC-DB | Service-locations. |
+| `PUT/DELETE /api/service-groups/:id` | PoC-DB | |
+| `GET/POST /api/permanent-employees` | PoC-DB | Vaste medewerkers. |
+| `GET/POST /api/permanent-assignments` | PoC-DB | Vast op service-group. |
+| `GET/POST /api/shifts` | PoC-DB | Open shifts. |
+| `POST /api/shifts/:id/publish` | PoC-DB | Status → open. |
+| `GET  /api/shifts/:id/applications` | PoC-DB | Kandidaten lijst. |
+| `POST /api/shifts/:id/apply` | PoC-DB | Kandidaat stellen. |
+| `DELETE /api/shifts/:id/apply` | PoC-DB | Terugtrekken. |
+| `POST /api/shifts/:id/select` | DPS create + PoC-DB | **Dimona** + applicatie → selected. |
+| `GET  /api/my-shifts?employeeId=` | PoC-DB | Open shifts voor MyStaffler-zicht. |
+| `GET/POST /api/availabilities` | PoC-DB | Beschikbaarheid Niveau 3. |
+| `GET  /api/mystaffler-invites?companyId=` | PoC-DB | Pool-overview status. |
+| `POST /api/employees/:id/mystaffler-invite` | DPS + PoC-DB | Uitnodigen. |
+| `POST /api/employees/:id/mystaffler-resend-invite` | DPS + PoC-DB | Opnieuw versturen. |
+| `POST /api/employees/:id/mystaffler-mark-active` | PoC-DB (demo) | Demo-helper voor de groen-badge. |
 
-```bash
-npm run gen:types
+## Volgende iteratie
+
+- DPS `/api/contracts` POST stuurt onze `companyHoursPerWeek=40` default; tune
+  per-contract via productie `/planning` edit-dialog of via een PoC-extensie.
+- Permanent assignment edit / delete (alleen create is wired).
+- Reset password actie op de Pool — wired in de UI, backend-route nog niet.
+- "Resend invite" link expiry per 7 dagen (nu altijd `invited`).
+- Heroku Postgres migratie voor `data/poc-db.json`.
+
+## Mockups als bron van waarheid
+
+```
+staffler/mockups/
+├── 09-dialog-volledig.html       Niveau 1 directe toewijzing
+├── 10-planning-names.html        Names-view (Bryntum)
+├── 11-planning-vsl.html          V+SL view (Bryntum tree)
+├── 12-batch-dialog.html          Niveau 2 shift create + publish
+├── 13-planning-dag.html          Dag view (Bryntum verticaal)
+├── 14-locatie-eigenschappen.html Beheer locaties
+├── 15-pool-mystaffler.html       Pool (BCJ-19425)
+└── mobile-mystaffler-v2.html     Uitzendkracht-strook
 ```
 
-Genereert `src/types/staffler.generated.ts` met types per request/response. Replace de hand-geschreven `staffler.ts` ermee zodra de OpenAPI volledig genoeg is.
-
-## Deploy naar Vercel later
-
-Dit project is een gewone Node Fastify app. Voor Vercel:
-
-1. Voeg een `vercel.json` toe die de Fastify server als serverless function deployt
-2. Of converteer naar Vercel functions formaat (`api/login.ts`, `api/me.ts`, etc.) waar elke route een eigen file is
-3. Skey state moet dan in een externe store (Upstash Redis, Vercel KV, Supabase)
-
-Voor lokaal werken is dit niet nodig.
-
-## Security notes
-
-- Skey wordt nooit in browser localStorage opgeslagen, alleen in een server-side `Map` per session-cookie
-- HttpOnly cookie zodat JS niet bij de session ID kan
-- Voor productie: wissel deze in-memory Map voor een echte session store, anders crash je sessions weg bij restart
-- Stuur HTTPS in productie. Cookies `Secure` flag toevoegen op deploy
-
-## Skey lifecycle
-
-- Login → server kreeg skey, bewaart in sessions Map
-- Elke API call: server haalt skey uit Map op basis van cookie
-- Gateway authorizer refresht het Cognito access token automatisch zolang refresh_token geldig is (30 dagen default)
-- Logout → server roept `/api/users/logout` (Cognito GlobalSignOut), cleart Map entry, cookie expiry
-- Server restart → in-memory Map gewist, gebruikers moeten opnieuw inloggen
-- Voor langlopende sessions: zet skey-store in een externe DB zoals KV
-
-## Wat ontbreekt nog
-
-Bewust minimaal gehouden. Te bouwen wanneer relevant:
-
-- Forgot password flow (POST /publicapi/companies/users/resetPassword + confirm)
-- Force password reset flow (catch FORCE_PASSWORD_RESET in login response)
-- Contract create form
-- Beschikbaarheden flow (PoC-eigen storage)
-- Vercel deploy
-- Errors UI (parse `apiErrors[].code` + `traceId` properly)
-- Multi-company switcher (companyMemberships[] dropdown)
-
-Zie ook `../api/poc-recipe.md` voor de stap-voor-stap recipe en `../api/monday-checklist.md` voor wat je dev-ops moet vragen voor je begint.
+Bij twijfel: de mockup wint.

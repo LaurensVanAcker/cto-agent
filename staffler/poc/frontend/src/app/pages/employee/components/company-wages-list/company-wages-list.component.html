@@ -1,0 +1,51 @@
+<p-panel [header]="company.companyName + ' - ' + company.vat" [toggleable]="true">
+  <div class="flex flex-column mb-3">
+    @if (isLoadingWages$ | async) {
+      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+      <p-skeleton height="2rem" styleClass="mb-3"></p-skeleton>
+    }
+
+    @if (wages$ | async; as wages) {
+      @if ((isLoadingWages$ | async) === false) {
+        @for (wage of wages; track wage.id) {
+          <div class="flex align-items-center border-bottom-1 border-300 py-2 gap-1">
+            <div class="flex-1">
+              <span>{{ wage.position }}</span>
+              <span>&nbsp;-&nbsp;</span>
+              <span>{{ wage.statute.name }}</span>
+              <span>&nbsp;-&nbsp;</span>
+              <span>{{ wage.employmentAddress?.street }} ({{ wage.employmentAddress?.city }})</span>
+            </div>
+
+            <p-button
+              icon="dps-icon dps-icon-edit"
+              [label]="'EMPLOYEE_PROFILE.EDIT_WAGE_BUTTON' | translate"
+              [text]="true"
+              [plain]="true"
+              (onClick)="openWageDialog(wage)"
+            ></p-button>
+
+            @if (allowRemoveWage) {
+              <p-button
+                icon="dps-icon dps-icon-delete"
+                severity="danger"
+                [text]="true"
+                (onClick)="removeWage(wage)"
+              ></p-button>
+            }
+          </div>
+        } @empty {
+          <small>{{ 'EMPLOYEE_PROFILE.NO_WAGES_IN_THIS_COMPANY' | translate }}</small>
+        }
+      }
+    }
+  </div>
+
+  <p-button
+    icon="dps-icon dps-icon-add"
+    [label]="'EMPLOYEE_PROFILE.ADD_EMPLOYEE_WAGE_BUTTON' | translate"
+    (onClick)="openWageDialog()"
+  >
+  </p-button>
+</p-panel>

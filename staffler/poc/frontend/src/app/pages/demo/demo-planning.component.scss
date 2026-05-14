@@ -1,0 +1,96 @@
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.demo-pill {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.demo-pill-link {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+  text-decoration: none;
+}
+.demo-pill-link:hover {
+  background: #e0e7ff;
+}
+
+// Banner card (mockup 10/11) — kept in sync with the auth-gated
+// planning-poc.scss so the demo route previews the same chrome.
+.poc-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  border-radius: 8px;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.poc-banner-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poc-banner-icon .dps-icon {
+  font-size: 18px;
+}
+
+.poc-banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.poc-banner-body strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.poc-banner-body span {
+  font-size: 12px;
+  color: #475569;
+}
+
+.poc-scheduler-host {
+  position: relative;
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 8px;
+  // Was overflow:hidden — clipped the open-shift "+N" badge that pokes
+  // out of the top-right corner of an event. The border-radius is still
+  // honoured because Bryntum renders the schedule inside an inner canvas.
+  overflow: visible;
+  background: white;
+  min-height: 600px;
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.poc-scheduler-host > bryntum-scheduler {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+/* Bryntum event colors live in styles.scss (global) so they apply both
+ * here in the demo and in the production planning-poc page. */

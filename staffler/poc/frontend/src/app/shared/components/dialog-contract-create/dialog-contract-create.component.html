@@ -1,0 +1,67 @@
+<div class="flex flex-column gap-3">
+  <p class="text-color-secondary m-0">
+    Niveau 1 — directe toewijzing aan een temporary medewerker. Roept
+    <code>POST /api/contracts</code> aan (Dimona aanvraag bij Staffler).
+  </p>
+
+  <label class="flex flex-column gap-1">
+    <span class="text-sm">Loonpakket</span>
+    @if (loadingWages()) {
+      <span class="text-color-secondary">Laden…</span>
+    } @else if (wages().length === 0) {
+      <span class="text-color-secondary font-italic">
+        Geen loonpakketten gevonden voor deze medewerker bij dit bedrijf.
+      </span>
+    } @else {
+      <p-select
+        [options]="wageOptions()"
+        [(ngModel)]="form.wageId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Kies een loonpakket"
+      />
+    }
+  </label>
+
+  <div class="grid">
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Datum</span>
+      <input pInputText type="date" [(ngModel)]="form.date" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Van</span>
+      <input pInputText type="time" [(ngModel)]="form.fromTime" />
+    </label>
+    <label class="col-4 flex flex-column gap-1">
+      <span class="text-sm">Tot</span>
+      <input pInputText type="time" [(ngModel)]="form.toTime" />
+    </label>
+  </div>
+
+  <div class="grid">
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Pauze van</span>
+      <input pInputText type="time" [(ngModel)]="form.pauseFromTime" />
+    </label>
+    <label class="col-6 flex flex-column gap-1">
+      <span class="text-sm">Pauze tot</span>
+      <input pInputText type="time" [(ngModel)]="form.pauseToTime" />
+    </label>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="p-3 border-round" style="background:#fef2f2;color:#991b1b">
+      {{ errorMessage() }}
+    </div>
+  }
+</div>
+
+<div class="flex justify-content-end gap-2 mt-3">
+  <p-button label="Annuleren" severity="secondary" [text]="true" (onClick)="cancel()" />
+  <p-button
+    label="Contract aanmaken"
+    [loading]="saving()"
+    [disabled]="!canConfirm()"
+    (onClick)="confirm()"
+  />
+</div>

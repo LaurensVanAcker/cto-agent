@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "staffler-poc-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--prefix", "staffler/poc/frontend"],
+      "port": 1445
+    },
+    {
+      "name": "staffler-poc-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "staffler/poc"],
+      "port": 5174
+    }
+  ]
+}
