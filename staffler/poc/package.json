@@ -12,6 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server/index.js",
     "typecheck": "tsc --noEmit",
+    "test": "node --test 'tests/**/*.test.mjs'",
+    "check": "npm run typecheck && npm test && cd frontend && npm run build",
     "gen:types": "openapi-typescript ../api/openapi/openapi.json -o src/types/staffler.generated.ts"
   },
   "dependencies": {
