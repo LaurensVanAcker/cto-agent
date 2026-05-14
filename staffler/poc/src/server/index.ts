@@ -991,6 +991,8 @@ app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
 
 // GET /api/my-staffler/employees/:id/contracts?startDate=&endDate=
 // Cross-company contracts for one employee — mirrors mockup MyStaffler week.
+// Bumps the PoC-DB `last_login_at` so the company-side Pool "Last login"
+// column shows when this employee last opened their MyStaffler view.
 app.get<{ Params: { id: string }; Querystring: { startDate?: string; endDate?: string } }>(
   "/api/my-staffler/employees/:id/contracts",
   async (req, reply) => {
@@ -1001,11 +1003,13 @@ app.get<{ Params: { id: string }; Querystring: { startDate?: string; endDate?: s
       return { kind: "validation", message: "startDate and endDate required" };
     }
     try {
-      return await clientFor(session).listEmployeeContractsCrossCompany({
+      const out = await clientFor(session).listEmployeeContractsCrossCompany({
         employeeId: req.params.id,
         startDate: req.query.startDate,
         endDate: req.query.endDate,
       });
+      pocDb.touchMyStafflerLogin(req.params.id);
+      return out;
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);
@@ -1036,6 +1040,10 @@ app.get<{ Querystring: { employeeId?: string } }>(
     );
     const apps = pocDb.listApplicationsForEmployee(employeeId);
     const appByShift = new Map(apps.map((a) => [a.shift_id, a] as const));
+    // Same login-touch as /api/my-staffler/employees/:id/contracts —
+    // viewing my-shifts in the preview counts as the employee being
+    // present in their MyStaffler view.
+    pocDb.touchMyStafflerLogin(employeeId);
     return targeted.map((s) => ({ shift: s, application: appByShift.get(s.id) ?? null }));
   },
 );

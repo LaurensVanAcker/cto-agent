@@ -596,6 +596,24 @@ class PocDb {
     return row;
   }
 
+  /** Bump `last_login_at` on every active invite for this employee.
+   *  Called from the MyStaffler-side read endpoints so the company-side
+   *  Pool "Last login" column reflects when the uitzendkracht actually
+   *  used their view, instead of being frozen at invite-accepted time.
+   *  Only flips invites that are already `active` — `invited` rows
+   *  stay at null (they shouldn't have logged in yet). */
+  touchMyStafflerLogin(employeeId: string): void {
+    const now = new Date().toISOString();
+    let dirty = false;
+    for (const inv of this.data.mystaffler_invites) {
+      if (inv.employee_id !== employeeId) continue;
+      if (inv.status !== "active") continue;
+      inv.last_login_at = now;
+      dirty = true;
+    }
+    if (dirty) this.save();
+  }
+
   // -- raw access for stats/debug --
 
   raw(): DbShape {

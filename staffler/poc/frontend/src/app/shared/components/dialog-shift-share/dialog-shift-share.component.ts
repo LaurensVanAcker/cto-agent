@@ -25,6 +25,7 @@ import {
   ShiftModel,
   ShiftTargetType,
 } from '@dps/core/api/shift/shift.api.service';
+import { AvailabilityApiService } from '@dps/core/api/availability/availability.api.service';
 
 type ShareTarget = 'ALL_POOL' | 'SELECTION' | 'PARTNERS';
 
@@ -74,6 +75,7 @@ export class DialogShiftShareComponent {
   private readonly config: DynamicDialogConfig<DialogData> = inject(DynamicDialogConfig);
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly shiftsApi = inject(ShiftApiService);
+  private readonly availabilityApi = inject(AvailabilityApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly companyId = this.config.data?.companyId ?? '';
@@ -124,6 +126,60 @@ export class DialogShiftShareComponent {
   protected readonly selectionCount = computed(() => this.selectedIds().size);
 
   /**
+   * Mockup 06 "+ Beschikbaar deze week" filter — set of employee ids
+   * who have at least one open availability row in the visible week.
+   * Filled lazily on dialog open. Empty until the availability call
+   * lands so the toggle is a no-op rather than hiding everyone.
+   */
+  protected readonly availableEmployeeIds = signal<Set<string>>(new Set());
+  protected readonly onlyAvailable = signal<boolean>(false);
+
+  /** Filtered list rendered in the name picker. When the
+   *  "Beschikbaar deze week" toggle is on we narrow `poolContent` to
+   *  employees in `availableEmployeeIds`. */
+  protected readonly visiblePool = computed<EmployeeModel[]>(() => {
+    const all = this.poolContent();
+    if (!this.onlyAvailable()) return all;
+    const set = this.availableEmployeeIds();
+    return all.filter(e => set.has(e.id));
+  });
+
+  protected readonly availableCount = computed<number>(() => {
+    const set = this.availableEmployeeIds();
+    return this.poolContent().filter(e => set.has(e.id)).length;
+  });
+
+  constructor() {
+    // Preload availability ids for the visible week so the "+ Beschikbaar
+    // deze week" chip in the SELECTION mode can filter immediately. Falls
+    // back to an empty set if the call fails — the toggle just becomes
+    // a no-op then. Single shot per dialog open: pool size in the PoC is
+    // small and the week doesn't change inside the dialog.
+    if (this.companyId && this.weekIso) {
+      const monday = DateTime.fromISO(this.weekIso);
+      const sunday = monday.plus({ days: 6 });
+      this.availabilityApi
+        .listForCompany(
+          this.companyId,
+          monday.toISODate() ?? undefined,
+          sunday.toISODate() ?? undefined,
+        )
+        .pipe(take(1))
+        .subscribe({
+          next: rows => {
+            const ids = new Set<string>();
+            for (const r of rows) if (r.status === 'open') ids.add(r.employee_id);
+            this.availableEmployeeIds.set(ids);
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            // Empty set is a safe default — the toggle stays a no-op.
+          },
+        });
+    }
+  }
+
+  /**
    * Header subtitle: "in week 19 (4 mei – 10 mei 2026)". Computed from
    * `weekIso` (Monday of the visible week) using Luxon's locale-aware
    * formatters so the month names match the rest of the planning chrome
@@ -167,11 +223,29 @@ export class DialogShiftShareComponent {
   }
 
   protected selectAll(): void {
-    this.selectedIds.set(new Set(this.poolContent().map(e => e.id)));
+    // Respect the current "Beschikbaar deze week" filter — selecting "all"
+    // while the filter is on should only add the visible (available) rows.
+    this.selectedIds.set(new Set(this.visiblePool().map(e => e.id)));
   }
 
   protected clearSelection(): void {
     this.selectedIds.set(new Set());
+  }
+
+  /**
+   * Mockup 06 chip: "+ Beschikbaar deze week (N)". One click bulk-adds
+   * every employee who has at least one open availability in the visible
+   * week to the selection (additive — does not deselect anyone). Hidden
+   * when the count is 0 to avoid surfacing an empty action.
+   */
+  protected addAllAvailable(): void {
+    const ids = this.availableEmployeeIds();
+    if (ids.size === 0) return;
+    this.selectedIds.update(set => {
+      const next = new Set(set);
+      for (const id of ids) next.add(id);
+      return next;
+    });
   }
 
   protected cancel(): void {

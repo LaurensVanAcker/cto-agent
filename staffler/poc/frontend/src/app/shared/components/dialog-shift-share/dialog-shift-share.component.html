@@ -99,8 +99,36 @@
           <p-button label="Alle selecteren" severity="secondary" [text]="true" (onClick)="selectAll()" />
           <p-button label="Selectie wissen" severity="secondary" [text]="true" (onClick)="clearSelection()" />
         </div>
+
+        <!--
+          Mockup 06 bulk-add row: chip toggles the "only available" filter,
+          chip-button bulk-adds every available employee in one click. Both
+          hide when there's no availability data so the row isn't visually
+          loud when the demo seed hasn't run.
+        -->
+        @if (availableCount() > 0) {
+          <div class="flex align-items-center gap-2 mb-2 picker-filters">
+            <p-button
+              size="small"
+              [severity]="onlyAvailable() ? 'primary' : 'secondary'"
+              [outlined]="!onlyAvailable()"
+              icon="dps-icon dps-icon-check"
+              [label]="'Beschikbaar deze week (' + availableCount() + ')'"
+              (onClick)="onlyAvailable.set(!onlyAvailable())"
+            />
+            <p-button
+              size="small"
+              severity="secondary"
+              [text]="true"
+              icon="dps-icon dps-icon-add"
+              [label]="'+ Alle beschikbaar (' + availableCount() + ')'"
+              (onClick)="addAllAvailable()"
+            />
+          </div>
+        }
+
         <div class="name-list">
-          @for (emp of poolContent(); track emp.id) {
+          @for (emp of visiblePool(); track emp.id) {
             <label class="name-row" [class.checked]="isChecked(emp)">
               <p-checkbox
                 [binary]="true"
@@ -111,7 +139,12 @@
             </label>
           } @empty {
             <span class="text-color-secondary text-sm font-italic p-3">
-              Geen medewerkers gevonden voor deze zoekterm.
+              @if (onlyAvailable()) {
+                Niemand beschikbaar deze week. Schakel "Beschikbaar deze week" uit
+                om de volledige pool te zien.
+              } @else {
+                Geen medewerkers gevonden voor deze zoekterm.
+              }
             </span>
           }
         </div>
