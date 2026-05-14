@@ -44,9 +44,10 @@ const gateway =
   process.env[`STAFFLER_GATEWAY_${env.toUpperCase()}`] ?? gatewayFor(env);
 
 // Tijdens dev draait Angular op :4200 met `ng serve` en proxy.conf.json,
-// dus we hoeven geen extra CORS toe te staan. Maar voor flexibiliteit wel
-// een lijstje als je een andere origin nodig hebt.
-const allowedDevOrigins = (process.env.DEV_ORIGINS ?? "http://localhost:4200")
+// dus we hoeven geen extra CORS toe te staan. De MyStaffler-PoC (mobile,
+// employee-side) draait standaard op :4201 met eigen serve.mjs en talkt
+// rechtstreeks naar :5173 — daarom staat die origin er standaard bij.
+const allowedDevOrigins = (process.env.DEV_ORIGINS ?? "http://localhost:4200,http://localhost:4201")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -183,6 +184,64 @@ app.post<{ Body: { username: string; password: string } }>(
       reply.status(e.status);
       return e.body;
     }
+  },
+);
+
+// POST /api/mystaffler-stub-login
+// Stub auth for the standalone MyStaffler-PoC (frontend on :4201). Accepts
+// any email/password and creates a session that points at the PoC-DB
+// only — there is no upstream Staffler skey, so DPS-backed routes (e.g.
+// /api/me, /api/employees) will 401. Endpoints that read PoC-DB only
+// (/api/my-shifts, /api/availabilities, /api/shifts/:id/apply) work as
+// normal. The response carries the chosen "employee identity" — we
+// derive a deterministic id from the email so the same operator gets
+// the same pool-id every time (matches BCJ-19426 first-login flow).
+app.post<{ Body: { email?: string; password?: string; employeeId?: string } }>(
+  "/api/mystaffler-stub-login",
+  async (req, reply) => {
+    const email = (req.body?.email ?? "").trim().toLowerCase();
+    if (!email) {
+      reply.status(400);
+      return { kind: "validation", message: "email required" };
+    }
+    // The deterministic id derived from the email keeps everything stable
+    // across reloads — and lets the company-side operator copy/paste it
+    // into the broadcast SELECTION list to round-trip a demo flow. An
+    // explicit employeeId in the body wins (operator can point at a
+    // real DPS employee they want to play).
+    const fallbackId = `demo:${email.replace(/[^a-z0-9]+/gi, "-")}`;
+    const employeeId = req.body?.employeeId?.trim() || fallbackId;
+
+    const sid = newSessionId();
+    const session: Session = {
+      // No real skey — PoC-DB only. Routes that try to call DPS will
+      // 401 via StafflerError, which the mobile client treats as "skip
+      // DPS section and render PoC-DB data".
+      skey: "STUB",
+      username: email,
+      profileJson: JSON.stringify({
+        user: { id: employeeId, email, name: email.split("@")[0] },
+        userId: employeeId,
+        userRoles: ["EMPLOYEE_STUB"],
+        companyMemberships: [],
+        managedEmployeeId: employeeId,
+        employeeId,
+      }),
+    };
+    sessions.set(sid, session);
+    reply.header(
+      "Set-Cookie",
+      `poc_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+    );
+    return {
+      ok: true,
+      employee: {
+        id: employeeId,
+        email,
+        firstName: email.split("@")[0],
+        lastName: "",
+      },
+    };
   },
 );
 
