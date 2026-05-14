@@ -18,7 +18,7 @@ Legend:
 | 03 | hybrid-timeline.html (concept C) | ⛔ | — | Concept C; superseded by 04 |
 | 04 | resource-lanes-v2.html (chosen direction) | ✅ | `planning-poc/` Locaties view | Bryntum grid, +/3-dot overflow on vestiging rows |
 | 05 | create-shift-modal.html | ✅ | `dialog-shift-batch/` | Both scenarios (all assigned / mixed) covered, broadcast section conditional on open slots |
-| 06 | selectie-picker.html | 🔵 | — | Fullscreen pool picker for SELECTION broadcast — currently we drop into a flat select; gap for v1 |
+| 06 | selectie-picker.html | 🟡 | `dialog-shift-share/` | Inline SELECTION picker now has "Beschikbaar deze week" filter + bulk-add chip (gap 1 closed); full-screen redesign with statuut/group filters still deferred |
 | 07 | simpele-dialog.html | ✅ | `dialog-shift-batch/` | Pill capacity, binary "iemand kiezen / open shift", autosuggest, broadcast radios all present |
 | 08 | planscherm-staffler-stijl.html | ✅ | `planning-poc/` chrome | Mockup 08 tokens live in `styles.scss` + `planning-poc.component.scss` |
 | 09 | dialog-volledig.html | ✅ | `contract-dialog/` (Medewerkers) + `dialog-shift-batch/` (Locaties) | Inline "Loonpakket aanmaken" banner now Locaties-only (pilot item 4) |
@@ -26,17 +26,31 @@ Legend:
 | 11 | planning-vsl.html | ✅ | `planning-poc/` Locaties view | Service-location rows, +Open shifts delen, share dialog (mockup 12) |
 | 12 | batch-dialog.html | ✅ | `dialog-shift-share/` | Reached via "Open shifts delen (N)" header button |
 | 13 | planning-dag.html | ✅ | `planning-poc/` Day zoom | Now-line, 24h strip, prev/next-day navigation fixed (item 9) |
-| 14 | locatie-eigenschappen.html | 🟡 | `dialog-edit-vestiging/` + `dialog-add-service-location/` | Address editing wired; map/locate-button + opening-hours strip missing |
-| 15 | pool-mystaffler.html | 🟡 | `pool/` | Pool list + invite-status table present; `last_login` column shows static "—" until DPS endpoint lands |
-| mobile-mystaffler.html | 🟡 | `mystaffler-preview/` | Strip embedded in the company portal (per PLAN.md: no separate app). Contract list + apply/withdraw works; availabilities CRUD is read-only |
+| 14 | locatie-eigenschappen.html | 🟡 | `dialog-edit-vestiging/` + `dialog-add-service-location/` + `company-locations/` | Address editing wired; per-weekday opening-hours editor + table strip added (gap 2 closed); map preview still deferred |
+| 15 | pool-mystaffler.html | 🟡 | `pool/` | Pool list + invite-status table present; `last_login` now bumps every time the operator opens that employee's MyStaffler preview (gap 3 closed) |
+| mobile-mystaffler.html | 🟡 | `mystaffler-preview/` | Strip embedded in the company portal (per PLAN.md: no separate app). Contract list + apply/withdraw + availability add/remove all wired (gap 4 closed); custom hours selector still hardcoded to 09:00-17:00 |
 | mobile-mystaffler-v2.html | 🟡 | `mystaffler-preview/` | v2 is just polish over v1; same status |
 
 ## Gaps worth picking up next
 
-1. **Mockup 06 — selectie-picker (full-screen)** — when broadcast target is "Specifieke namen", the operator currently uses a plain select. Mockup 06 is a dedicated 300-row picker with statute / group / availability filters. Concrete v1 work.
-2. **Mockup 14 — locatie-eigenschappen** — opening-hours strip per service location, plus a map preview. The address-editing dialog has the input but no map / hours UI.
-3. **Mockup 15 + mobile views — last_login + uitzendkracht availability CRUD** — read-side works, write-side from MyStaffler doesn't sync availabilities back to the company portal. Item 2 only seeded demo data.
-4. **Niveau-2 candidate flow polishing** — `dialog-shift-detail` lists candidates; the "Kies" wiring exists but doesn't yet copy a real wage package into the resulting contract (PoC uses a placeholder). Production-grade fix.
+Round 2026-05-14 closed gaps 1–4 (filter-and-bulk-add in the SELECTION
+picker, opening hours per service location, live last_login bumps,
+MyStaffler availability remove). What's still on the list:
+
+1. **Mockup 06 — full-screen selectie-picker** — the current inline
+   picker now has a "Beschikbaar deze week" filter + bulk-add, but
+   the dedicated 300-row fullscreen with statuut / group filters
+   from the mockup is still deferred.
+2. **Mockup 14 map preview** — Google Maps autocomplete + embed for
+   the service-location address. The wiring already exists in
+   `dialog-edit-vestiging` but isn't reusable as-is.
+3. **Niveau-2 candidate flow polishing** — `dialog-shift-detail`
+   lists candidates; the "Kies" wiring exists but doesn't yet copy
+   a real wage package into the resulting contract (PoC uses a
+   placeholder). Production-grade fix.
+4. **MyStaffler availability custom hours** — the "+" button on a
+   day currently hardcodes 09:00–17:00. Mockup expects a small
+   time-pair input.
 
 ## What's intentionally not built
 
