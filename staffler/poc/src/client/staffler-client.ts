@@ -171,6 +171,22 @@ export class StafflerClient {
     return this.authedCall<DpsUserDetailsWebDto>("GET", "/api/users/currentuser");
   }
 
+  /** PATCH the current user's mutable personal details. Body shape
+   *  follows BCJ-19451 (first/last name + phone). The gateway either
+   *  returns the fresh DpsUserDetails or 405s when the endpoint isn't
+   *  enabled — the proxy lets the caller see either outcome. */
+  async updateCurrentUser(payload: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+  }): Promise<DpsUserDetailsWebDto> {
+    return this.authedCall<DpsUserDetailsWebDto>(
+      "PATCH",
+      "/api/users/currentuser",
+      payload,
+    );
+  }
+
   // -- companies --
 
   async getCompany(companyId: string): Promise<CompanyWebDto> {

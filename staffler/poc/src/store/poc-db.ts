@@ -146,6 +146,13 @@ export interface MyStafflerInvite {
   invited_at: string;
   accepted_at: string | null;
   last_login_at: string | null;
+  /** FCM registration token if the employee accepted push permissions
+   *  on their device. `null` = not subscribed yet. Stored per-invite
+   *  (per-company) so an employee with multiple memberships can have
+   *  different devices subscribed for different companies (though in
+   *  practice it'll be the same token everywhere). */
+  fcm_token?: string | null;
+  fcm_subscribed_at?: string | null;
 }
 
 interface DbShape {
@@ -632,6 +639,25 @@ class PocDb {
     }
     this.save();
     return row;
+  }
+
+  /** Store the FCM registration token for every invite this employee
+   *  has (one row per company they work for). Returns the count of
+   *  invites updated — zero means the employee has no invite rows
+   *  yet, so the token is dropped. Subsequent calls overwrite; that
+   *  matches FCM where a single device → single token, even though
+   *  the token can rotate. */
+  storeFcmToken(employeeId: string, token: string): number {
+    const now = new Date().toISOString();
+    let n = 0;
+    for (const inv of this.data.mystaffler_invites) {
+      if (inv.employee_id !== employeeId) continue;
+      inv.fcm_token = token;
+      inv.fcm_subscribed_at = now;
+      n++;
+    }
+    if (n > 0) this.save();
+    return n;
   }
 
   /** Bump `last_login_at` on every active invite for this employee.

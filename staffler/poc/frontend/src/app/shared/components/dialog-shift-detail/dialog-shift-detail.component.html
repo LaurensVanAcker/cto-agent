@@ -52,12 +52,32 @@
             </td>
             <td class="py-2 text-right">
               @if (row.application.status === 'candidate') {
-                <p-button
-                  label="Kies"
-                  [loading]="row.selecting"
-                  (onClick)="select(row)"
-                  size="small"
-                />
+                <!--
+                  Inline wage-picker — only shown when there's a real
+                  choice (≥ 2 wages). One wage = auto-pick on Kies (no
+                  UI noise); zero wages = button disabled + error toast.
+                -->
+                <div class="flex align-items-center justify-content-end gap-2">
+                  @if (row.wages.length >= 2) {
+                    <p-select
+                      [options]="wageOptions(row)"
+                      optionLabel="label"
+                      optionValue="value"
+                      [ngModel]="row.selectedWageId"
+                      (ngModelChange)="onWagePicked(row, $event)"
+                      placeholder="Loonpakket"
+                      appendTo="body"
+                      styleClass="w-12rem"
+                    />
+                  }
+                  <p-button
+                    label="Kies"
+                    [loading]="row.selecting"
+                    [disabled]="row.loadingWages || !row.wages.length"
+                    (onClick)="select(row)"
+                    size="small"
+                  />
+                </div>
               }
             </td>
           </tr>

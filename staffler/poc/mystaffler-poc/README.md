@@ -24,15 +24,28 @@ location).
 
 ## Stack
 
-Vanilla TypeScript-free JS, zero npm dependencies. The portal is
-**100% static** — `index.html` + `src/` is what gets deployed to
-Vercel / Cloudflare Pages.
+TypeScript (zero new npm deps — re-uses the backend's `tsc`), compiled
+to plain ESM JS in `src/dist/`. The portal is **100% static after the
+build step** — `index.html` + `src/dist/` + `src/styles.css` is what
+gets deployed to Vercel / Cloudflare Pages.
 
 `serve.mjs` is a 30-line Node script that:
 1. Serves the static files (with SPA fallback to `index.html`).
 2. Proxies every `/api/*` request to the Fastify backend on `:5173`,
    forwarding cookies in both directions so the HTTP-only session
    survives a reload. Replace with a Vercel rewrite in prod.
+
+### Building
+
+`npm start` runs tsc + boots serve.mjs. Useful one-shots:
+
+```bash
+npm run build         # tsc → src/dist/*.js
+npm run typecheck     # tsc --noEmit
+npm run watch         # tsc --watch for tight inner loop
+```
+
+The `src/dist/` artifact is gitignored.
 
 ## Running it locally
 

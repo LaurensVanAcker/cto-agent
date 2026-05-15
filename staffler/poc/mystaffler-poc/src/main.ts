@@ -1,3 +1,7 @@
+// @ts-nocheck — main.ts is the view layer (DOM-heavy templating + event
+// wiring). The meaningful types live in `state.ts` and `api.ts`, both
+// of which ARE typechecked. Skipping main keeps the conversion cheap
+// without sacrificing API-shape safety; tighten later if it pays off.
 /**
  * MyStaffler employee-side PoC — entry point. Builds the four-tab mobile
  * shell described by `staffler/mockups/mobile-mystaffler-v2.html`:
@@ -11,6 +15,7 @@
  * have a server-side feed in the PoC-DB yet.
  */
 import { api } from './api.js';
+import { subscribeToFcm } from './fcm.js';
 import {
   store,
   weekDays,
@@ -315,6 +320,16 @@ function renderPermissions() {
       // Some browsers throw on insecure origins — surface as denied.
     }
     store.set({ permGrants: { ...grants, notifications: result } });
+    // If the operator granted, chase down the FCM registration token
+    // (loads Firebase from CDN, getToken, POST to /api/fcm-subscribe).
+    // Best-effort: failures are silent — the perm row stays "granted"
+    // and the employee gets local toasts instead of push. Real push
+    // delivery needs prod Firebase config (FCM_* env vars) on the
+    // backend.
+    if (result) {
+      const emp = store.get().employee;
+      if (emp?.id) subscribeToFcm(emp.id);
+    }
   });
   document.querySelector('[data-act="ask-location"]')?.addEventListener('click', () => {
     if (!('geolocation' in navigator)) {
@@ -770,6 +785,75 @@ function openAvailSheet(date, current) {
 // (removeAvailability merged into openAvailSheet — the bottom-sheet
 // now owns both edit + delete so there's a single confirm path.)
 
+/** Profile-edit bottom-sheet (BCJ-19451). Three optional fields; we
+ *  PATCH only the ones the operator changed, so empty inputs don't
+ *  blank a field on the gateway side. */
+function openProfileEditSheet(me) {
+  const fullName = me?.user?.name ?? '';
+  const [firstNameInit, ...rest] = fullName.split(' ');
+  const lastNameInit = rest.join(' ');
+  const phoneInit = me?.user?.phoneNumber ?? '';
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet-backdrop';
+  sheet.innerHTML = `
+    <div class="sheet" role="dialog" aria-modal="true">
+      <h2>Persoonlijke gegevens</h2>
+      <div class="sub">Wijzigingen worden naar je werkgever gestuurd.</div>
+      <label class="sheet-field">
+        <span>Voornaam</span>
+        <input id="prof-firstName" type="text" value="${escapeHtml(firstNameInit ?? '')}" autocomplete="given-name" />
+      </label>
+      <label class="sheet-field">
+        <span>Achternaam</span>
+        <input id="prof-lastName" type="text" value="${escapeHtml(lastNameInit ?? '')}" autocomplete="family-name" />
+      </label>
+      <label class="sheet-field">
+        <span>Telefoon</span>
+        <input id="prof-phoneNumber" type="tel" value="${escapeHtml(phoneInit)}" autocomplete="tel" placeholder="+32 ..." />
+      </label>
+      <div class="sheet-actions">
+        <button class="cancel" data-act="cancel">Annuleren</button>
+        <button class="confirm" data-act="confirm">Opslaan</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+  const close = () => sheet.remove();
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+  sheet.querySelector('[data-act="cancel"]').addEventListener('click', close);
+  sheet.querySelector('[data-act="confirm"]').addEventListener('click', async () => {
+    const firstName = sheet.querySelector('#prof-firstName').value.trim();
+    const lastName = sheet.querySelector('#prof-lastName').value.trim();
+    const phoneNumber = sheet.querySelector('#prof-phoneNumber').value.trim();
+    // Diff against initial — only send what changed so we don't
+    // overwrite the gateway's value with a derived split (e.g.
+    // "Van Acker" splits as "Van" + "Acker", round-tripping that
+    // would falsely flag a change every time).
+    const patch = {};
+    if (firstName && firstName !== firstNameInit) patch.firstName = firstName;
+    if (lastName && lastName !== lastNameInit) patch.lastName = lastName;
+    if (phoneNumber !== phoneInit) patch.phoneNumber = phoneNumber;
+    if (Object.keys(patch).length === 0) {
+      close();
+      store.toast('Niets gewijzigd.', 'info');
+      return;
+    }
+    close();
+    try {
+      const updated = await api.updateMe(patch);
+      store.set({ me: updated });
+      store.toast('Persoonlijke gegevens bijgewerkt.', 'success');
+    } catch (err) {
+      const msg =
+        err?.status === 405
+          ? 'Deze gateway accepteert wijzigingen nog niet.'
+          : err?.body?.message ?? 'Bijwerken mislukt.';
+      store.toast(msg, 'error');
+    }
+  });
+}
+
 // ── Kandidaat-bevestiging (mockup mobile-mystaffler-v2 #2) ──────────────
 function renderCandidateConfirmation() {
   const s = store.get();
@@ -929,6 +1013,11 @@ function renderProfile() {
           <div class="id">id: ${escapeHtml(emp.id)}</div>
         </div>
 
+        <button class="profile-action" data-act="edit-profile">
+          <span>Persoonlijke gegevens bewerken</span>
+          <span>›</span>
+        </button>
+
         <button class="profile-action" data-act="change-password">
           <span>Wachtwoord wijzigen</span>
           <span>›</span>
@@ -949,6 +1038,9 @@ function renderProfile() {
     try { await api.logout(); } catch { /* best-effort */ }
     store.setEmployee(null);
     store.set({ shifts: [], availabilities: [], notifications: [], me: null, tab: 'planning' });
+  });
+  document.querySelector('[data-act="edit-profile"]').addEventListener('click', () => {
+    openProfileEditSheet(store.get().me);
   });
   document.querySelector('[data-act="change-password"]').addEventListener('click', () => {
     // The DPS password-change flow goes via Cognito email reset

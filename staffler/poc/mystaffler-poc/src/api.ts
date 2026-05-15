@@ -7,24 +7,34 @@
 
 const BASE = '/api';
 
-async function call(path, init = {}) {
+/** Error subtype that carries the response status + parsed body so
+ *  callers can do `err.status === 423` without re-fetching. */
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+  constructor(message: string, status: number, body: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+async function call<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(BASE + path, {
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
+      ...((init.headers ?? {}) as Record<string, string>),
     },
     ...init,
   });
   const ct = res.headers.get('content-type') ?? '';
   const body = ct.includes('json') ? await res.json() : await res.text();
   if (!res.ok) {
-    const err = new Error(`HTTP ${res.status}`);
-    err.status = res.status;
-    err.body = body;
-    throw err;
+    throw new ApiError(`HTTP ${res.status}`, res.status, body);
   }
-  return body;
+  return body as T;
 }
 
 export const api = {
@@ -79,6 +89,34 @@ export const api = {
    *  is in localStorage when the upstream call 401s. */
   me() {
     return call('/me');
+  },
+
+  /** BCJ-19451 — update mutable personal details. Server bubbles the
+   *  upstream error (typically 405 if the gateway hasn't enabled the
+   *  endpoint yet) so the UI can show a friendly toast. */
+  updateMe(payload) {
+    return call('/me', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** BCJ-19517 — public Firebase Web SDK config + a flag telling the
+   *  client whether FCM is wired in this env. `enabled: false`
+   *  means "skip FCM setup" so a demo without prod Firebase keys
+   *  doesn't crash with a missing-config error. */
+  fcmConfig() {
+    return call('/fcm-config');
+  },
+
+  /** Send the device-specific FCM registration token to the backend so
+   *  it can be paired with the employee's invite rows for outbound
+   *  push from the company side. */
+  fcmSubscribe(employeeId, token) {
+    return call('/fcm-subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ employeeId, token }),
+    });
   },
 
   /** Open shifts targeted at this employee (broadcast SELECTION or

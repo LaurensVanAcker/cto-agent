@@ -15,6 +15,7 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { EmployeeApiService, EmployeeWageApiService } from '@dps/core/api';
 import {
   EmployeeModel,
+  EmployeeWageModel,
   ContractDayScheduleModel,
   ContractModel,
   ContractStatusEnum,
@@ -24,6 +25,7 @@ import {
   ShiftApplicationModel,
   ShiftModel,
 } from '@dps/core/api/shift/shift.api.service';
+import { SelectModule } from 'primeng/select';
 
 interface ShiftDetailData {
   shift: ShiftModel;
@@ -33,6 +35,15 @@ interface ShiftDetailData {
 interface CandidateRow {
   application: ShiftApplicationModel;
   employee: EmployeeModel | null;
+  /** All wage packages for this candidate at this company. Empty → the
+   *  candidate can't be selected (we'd have nothing to POST). */
+  wages: EmployeeWageModel[];
+  /** Operator's pick. Defaults to the first wage; can be flipped via
+   *  the inline select when the candidate has multiple wages (different
+   *  positions / statutes). */
+  selectedWageId: string | null;
+  /** Spinner while wages are being fetched on dialog-open. */
+  loadingWages: boolean;
   selecting: boolean;
 }
 
@@ -45,7 +56,7 @@ interface CandidateRow {
 @Component({
   selector: 'dps-dialog-shift-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule],
+  imports: [CommonModule, FormsModule, ButtonModule, SelectModule],
   templateUrl: './dialog-shift-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -119,9 +130,17 @@ export class DialogShiftDetailComponent {
         const partial: CandidateRow[] = apps.map(a => ({
           application: a,
           employee: null,
+          wages: [],
+          selectedWageId: null,
+          loadingWages: true,
           selecting: false,
         }));
         this.candidates.set(partial);
+        // Hydrate employee + wages in parallel per row. Wages drive the
+        // inline picker the operator uses on Kies-click; pre-loading them
+        // (instead of fetching after click) keeps the click cheap and
+        // surfaces "no loonpakket" early so the operator can route the
+        // candidate to onboarding before they bother to pick.
         for (const row of partial) {
           this.employeesApi.getEmployee(row.application.employee_id).subscribe({
             next: emp => {
@@ -129,6 +148,27 @@ export class DialogShiftDetailComponent {
               this.cdr.markForCheck();
             },
           });
+          this.wagesApi
+            .getEmployeeWages({
+              companyId: this.companyId,
+              employeeId: row.application.employee_id,
+              page: 0,
+              size: 10,
+            })
+            .subscribe({
+              next: wages => {
+                row.wages = wages ?? [];
+                row.selectedWageId = row.wages[0]?.id ?? null;
+                row.loadingWages = false;
+                this.cdr.markForCheck();
+              },
+              error: () => {
+                row.wages = [];
+                row.selectedWageId = null;
+                row.loadingWages = false;
+                this.cdr.markForCheck();
+              },
+            });
         }
         this.loading.set(false);
         this.cdr.markForCheck();
@@ -147,94 +187,105 @@ export class DialogShiftDetailComponent {
     return `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || emp.id;
   }
 
-  /** Build a ContractModel for the picked candidate using their primary wage. */
+  /** Build a ContractModel for the picked candidate using the wage
+   *  the operator selected via the inline picker (or the only one
+   *  available when there's no choice). Wages are pre-loaded in
+   *  `loadCandidates`, so this method no longer fetches — it just
+   *  picks. */
   protected select(row: CandidateRow): void {
     if (row.application.status !== 'candidate') return;
+    if (!row.wages.length) {
+      this.error.set(`Geen loonpakket gevonden voor ${this.employeeName(row)}.`);
+      this.cdr.markForCheck();
+      return;
+    }
+    const wage =
+      row.wages.find(w => w.id === row.selectedWageId) ?? row.wages[0];
+    if (!wage) {
+      this.error.set(`Geen loonpakket geselecteerd voor ${this.employeeName(row)}.`);
+      this.cdr.markForCheck();
+      return;
+    }
+
     row.selecting = true;
     this.cdr.markForCheck();
 
-    this.wagesApi
-      .getEmployeeWages({
-        companyId: this.companyId,
-        employeeId: row.application.employee_id,
-        page: 0,
-        size: 1,
-      })
-      .subscribe({
-        next: wages => {
-          const wage = wages?.[0];
-          if (!wage) {
-            row.selecting = false;
-            this.error.set(`Geen loonpakket gevonden voor ${this.employeeName(row)}.`);
-            this.cdr.markForCheck();
-            return;
-          }
+    const daySchedule: ContractDayScheduleModel = {
+      shiftTemplateName: null,
+      createShiftTemplate: false,
+      date: this.shift.date_from,
+      fromTime: this.shift.from_time,
+      toTime: this.shift.to_time,
+      pauseFromTime: this.shift.pause_from,
+      pauseToTime: this.shift.pause_to,
+    };
 
-          const daySchedule: ContractDayScheduleModel = {
-            shiftTemplateName: null,
-            createShiftTemplate: false,
-            date: this.shift.date_from,
-            fromTime: this.shift.from_time,
-            toTime: this.shift.to_time,
-            pauseFromTime: this.shift.pause_from,
-            pauseToTime: this.shift.pause_to,
-          };
+    const contract: ContractModel = {
+      id: '',
+      employeeId: row.application.employee_id,
+      companyId: this.companyId,
+      dateFrom: this.shift.date_from,
+      dateTo: this.shift.date_to,
+      status: ContractStatusEnum.DRAFT,
+      timetable: { schedule: [daySchedule] },
+      // All wage-derived fields come from the picked wage row — no more
+      // implicit "first one wins". The invoicing block stays zero'd
+      // because those coefficients live on the company, not the wage,
+      // and the gateway populates them on POST /api/contracts.
+      allocationId: wage.allocationId,
+      wageHour: wage.wageHour,
+      position: wage.position,
+      compensationHours: wage.compensationHours,
+      mealVoucher: wage.mealVoucher,
+      travelAllowance: wage.travelAllowance,
+      statute: wage.statute,
+      paritairComite: wage.paritairComite,
+      reason: wage.reason,
+      employmentAddress: wage.employmentAddress,
+      revenueConsultant: wage.revenueConsultant,
+      revenueOfficeCode: wage.revenueOfficeCode,
+      invoicing: {
+        coefficient: 0,
+        coefficientTravelAllowance: 0,
+        coefficientMealVouchers: 0,
+        coefficientEcoVouchers: 0,
+        coefficientBankHoliday: 0,
+        dimonaCost: 0,
+        defaultTaxRate: { code: '', name: '' },
+      },
+      companyHoursPerWeek: 40,
+      employeeHoursPerWeek: 40,
+      cancelReason: null,
+      cancelExtraInfo: null,
+      result: null,
+      socialSecurityCategory: null,
+    };
 
-          const contract: ContractModel = {
-            id: '',
-            employeeId: row.application.employee_id,
-            companyId: this.companyId,
-            dateFrom: this.shift.date_from,
-            dateTo: this.shift.date_to,
-            status: ContractStatusEnum.DRAFT,
-            timetable: { schedule: [daySchedule] },
-            allocationId: wage.allocationId,
-            wageHour: wage.wageHour,
-            position: wage.position,
-            compensationHours: wage.compensationHours,
-            mealVoucher: wage.mealVoucher,
-            travelAllowance: wage.travelAllowance,
-            statute: wage.statute,
-            paritairComite: wage.paritairComite,
-            reason: wage.reason,
-            employmentAddress: wage.employmentAddress,
-            revenueConsultant: wage.revenueConsultant,
-            revenueOfficeCode: wage.revenueOfficeCode,
-            invoicing: {
-              coefficient: 0,
-              coefficientTravelAllowance: 0,
-              coefficientMealVouchers: 0,
-              coefficientEcoVouchers: 0,
-              coefficientBankHoliday: 0,
-              dimonaCost: 0,
-              defaultTaxRate: { code: '', name: '' },
-            },
-            companyHoursPerWeek: 40,
-            employeeHoursPerWeek: 40,
-            cancelReason: null,
-            cancelExtraInfo: null,
-            result: null,
-            socialSecurityCategory: null,
-          };
+    this.shiftsApi.select(this.shift.id, row.application.id, contract).subscribe({
+      next: result => {
+        row.selecting = false;
+        this.ref.close({ kind: 'shift.select.success', result });
+      },
+      error: err => {
+        row.selecting = false;
+        this.error.set(this.parseError(err));
+        this.cdr.markForCheck();
+      },
+    });
+  }
 
-          this.shiftsApi.select(this.shift.id, row.application.id, contract).subscribe({
-            next: result => {
-              row.selecting = false;
-              this.ref.close({ kind: 'shift.select.success', result });
-            },
-            error: err => {
-              row.selecting = false;
-              this.error.set(this.parseError(err));
-              this.cdr.markForCheck();
-            },
-          });
-        },
-        error: err => {
-          row.selecting = false;
-          this.error.set(this.parseError(err));
-          this.cdr.markForCheck();
-        },
-      });
+  /** Options list for the inline wage select — concise label per row,
+   *  full title via tooltip. */
+  protected wageOptions(row: CandidateRow): Array<{ label: string; value: string }> {
+    return row.wages.map(w => ({
+      label: `${w.position} — ${w.statute?.name ?? '—'} — €${w.wageHour}/u`,
+      value: w.id,
+    }));
+  }
+
+  protected onWagePicked(row: CandidateRow, wageId: string): void {
+    row.selectedWageId = wageId;
+    this.cdr.markForCheck();
   }
 
   protected formatTime(iso: string | null): string {

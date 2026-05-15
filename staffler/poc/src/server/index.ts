@@ -522,6 +522,40 @@ app.post("/api/logout", async (req, reply) => {
   return { ok: true };
 });
 
+// PATCH /api/me
+// BCJ-19451 — update the logged-in employee's personal details.
+// Forwards to the gateway's `/api/users/currentuser` (PATCH). Whatever
+// the upstream returns becomes the new cached profile so subsequent
+// /api/me calls see the fresh values. Errors bubble back to the client
+// untouched so the toast can surface them.
+app.patch<{
+  Body: { firstName?: string; lastName?: string; phoneNumber?: string };
+}>("/api/me", async (req, reply) => {
+  const session = pickSession(req);
+  if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+  // Whitelist the fields we forward — drop anything else so an
+  // accidental field doesn't reach the gateway with a payload it
+  // can't validate.
+  const b = req.body ?? {};
+  const payload: { firstName?: string; lastName?: string; phoneNumber?: string } = {};
+  if (typeof b.firstName === "string") payload.firstName = b.firstName.trim();
+  if (typeof b.lastName === "string") payload.lastName = b.lastName.trim();
+  if (typeof b.phoneNumber === "string") payload.phoneNumber = b.phoneNumber.trim();
+  if (Object.keys(payload).length === 0) {
+    reply.status(400);
+    return { kind: "validation", message: "Niets om bij te werken." };
+  }
+  try {
+    const updated = await clientFor(session).updateCurrentUser(payload);
+    session.profileJson = JSON.stringify(updated);
+    return updated;
+  } catch (err) {
+    const e = asResponse(err);
+    reply.status(e.status);
+    return e.body;
+  }
+});
+
 // GET /api/me
 app.get("/api/me", async (req, reply) => {
   const session = pickSession(req);
@@ -1407,6 +1441,51 @@ app.get<{ Querystring: { employeeId?: string } }>(
         application: appByShift.get(s.id) ?? null,
       };
     });
+  },
+);
+
+// GET /api/fcm-config
+// Returns the Firebase Web SDK public config that the mystaffler-poc
+// client uses to bootstrap `getMessaging`. The "public" config IS
+// safe to expose — auth comes from Cognito, the FCM token comes
+// from the device. Operators set the values via env vars; we ship
+// empty defaults so the call always 200s and the client knows when
+// to skip FCM setup. Per BCJ-19517.
+app.get("/api/fcm-config", async () => {
+  return {
+    apiKey: process.env.FCM_API_KEY ?? "",
+    authDomain: process.env.FCM_AUTH_DOMAIN ?? "",
+    projectId: process.env.FCM_PROJECT_ID ?? "",
+    storageBucket: process.env.FCM_STORAGE_BUCKET ?? "",
+    messagingSenderId: process.env.FCM_MESSAGING_SENDER_ID ?? "",
+    appId: process.env.FCM_APP_ID ?? "",
+    vapidKey: process.env.FCM_VAPID_KEY ?? "",
+    // The client treats `enabled: false` as "skip FCM setup" so we
+    // don't crash with a missing-config error during a demo where no
+    // Firebase project is wired yet.
+    enabled: !!(process.env.FCM_API_KEY && process.env.FCM_PROJECT_ID && process.env.FCM_VAPID_KEY),
+  };
+});
+
+// POST /api/fcm-subscribe
+// The mystaffler-poc client calls this after `getToken()` resolves a
+// device registration token. We store it on every invite for that
+// employee so the company-side can push (e.g. on new broadcast) via
+// the Firebase Admin SDK. Stub-friendly: returns 200 even if the
+// employee has no invites yet (PoC demo flow).
+app.post<{ Body: { employeeId?: string; token?: string } }>(
+  "/api/fcm-subscribe",
+  async (req, reply) => {
+    const session = pickSession(req);
+    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const employeeId = (req.body?.employeeId ?? "").trim();
+    const token = (req.body?.token ?? "").trim();
+    if (!employeeId || !token) {
+      reply.status(400);
+      return { kind: "validation", message: "employeeId en token zijn vereist." };
+    }
+    const updated = pocDb.storeFcmToken(employeeId, token);
+    return { ok: true, invitesUpdated: updated };
   },
 );
 

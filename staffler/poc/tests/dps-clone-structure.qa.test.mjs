@@ -266,7 +266,7 @@ test('dialog-shift-batch dialog still surfaces the m09 chrome (sub-title, slot-l
 
 test('mystaffler-poc: API client targets the real employee endpoints (no stub)', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/api.js'),
+    resolve(repo, 'mystaffler-poc/src/api.ts'),
     'utf8',
   );
   assert.match(code, /\/employee-login/, 'real login route');
@@ -277,7 +277,7 @@ test('mystaffler-poc: API client targets the real employee endpoints (no stub)',
 
 test('mystaffler-poc: client-side password validator matches the server', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /validatePasswordClient/);
@@ -288,7 +288,7 @@ test('mystaffler-poc: client-side password validator matches the server', () => 
 
 test('mystaffler-poc: force-reset screen renders when authStatus === FORCE_PASSWORD_RESET', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderForceReset\(\)/);
@@ -297,7 +297,7 @@ test('mystaffler-poc: force-reset screen renders when authStatus === FORCE_PASSW
 
 test('mystaffler-poc: profile screen loads /me + surfaces memberships + change-password CTA', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /reloadMe\(\)/, 'profile fetches /api/me');
@@ -307,7 +307,7 @@ test('mystaffler-poc: profile screen loads /me + surfaces memberships + change-p
 
 test('mystaffler-poc: 4-tab bar (planning, beschikbaarheid, meldingen, profiel) + badge', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /'planning'/);
@@ -349,7 +349,7 @@ test('backend my-shifts joins service-group name + city', () => {
 
 test('mystaffler-poc: hero has refresh button + greeting from /me', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /data-act="refresh"/, 'refresh button wired in hero');
@@ -359,14 +359,14 @@ test('mystaffler-poc: hero has refresh button + greeting from /me', () => {
 
 test('mystaffler-poc: forgot-password flow surfaces both steps', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderForgotRequest\(\)/);
   assert.match(code, /renderForgotConfirm\(\)/);
   assert.match(code, /data-act="forgot"/, 'login screen exposes the forgot link');
   const api = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/api.js'),
+    resolve(repo, 'mystaffler-poc/src/api.ts'),
     'utf8',
   );
   assert.match(api, /forgotPassword\(username\)/);
@@ -381,7 +381,7 @@ test('backend exposes the two-step reset routes', () => {
 
 test('mystaffler-poc: first-login permissions screen wired behind needsPermissions', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderPermissions\(\)/);
@@ -393,7 +393,7 @@ test('mystaffler-poc: first-login permissions screen wired behind needsPermissio
 
 test('mystaffler-poc: password-rule live checklist renders 3 rules', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderPasswordChecklist/);
@@ -405,7 +405,7 @@ test('mystaffler-poc: password-rule live checklist renders 3 rules', () => {
 
 test('mystaffler-poc: kandidaat-bevestiging screen renders after apply', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderCandidateConfirmation\(\)/);
@@ -415,15 +415,16 @@ test('mystaffler-poc: kandidaat-bevestiging screen renders after apply', () => {
 
 test('mystaffler-poc: service worker pre-caches shell + handles /api network-first', () => {
   const sw = readFileSync(resolve(repo, 'mystaffler-poc/sw.js'), 'utf8');
-  // Shell list contains the entry HTML + the main JS bundle.
+  // Shell list contains the entry HTML + the main JS bundle (post-
+  // TS-ify the bundle lives under /src/dist/).
   assert.match(sw, /'\/index\.html'/);
-  assert.match(sw, /'\/src\/main\.js'/);
+  assert.match(sw, /'\/src\/dist\/main\.js'/);
   // /api/* is network-first (no `caches.match` short-circuit on that path).
   assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(sw, /skipWaiting\(\)/, 'install activates new SW immediately');
   assert.match(sw, /clients\.claim\(\)/, 'activate takes over open tabs');
   // Registration is wired from main.js.
-  const main = readFileSync(resolve(repo, 'mystaffler-poc/src/main.js'), 'utf8');
+  const main = readFileSync(resolve(repo, 'mystaffler-poc/src/main.ts'), 'utf8');
   assert.match(main, /navigator\.serviceWorker\.register\('\/sw\.js'\)/);
 });
 
@@ -441,7 +442,7 @@ test('mystaffler-poc: vercel.json has the right shape (rewrites + SPA fallback)'
 
 test('mystaffler-poc: offline banner is wired via window online/offline events', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /renderOfflineBanner/);
@@ -467,7 +468,7 @@ test('mystaffler-poc: PWA manifest + icons + apple-touch-icon link', () => {
 
 test('mystaffler-poc: availability row is whole-row clickable (tap to edit)', () => {
   const code = readFileSync(
-    resolve(repo, 'mystaffler-poc/src/main.js'),
+    resolve(repo, 'mystaffler-poc/src/main.ts'),
     'utf8',
   );
   assert.match(code, /class="avail-row as-button"/);
