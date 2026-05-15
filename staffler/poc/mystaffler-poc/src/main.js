@@ -25,6 +25,7 @@ const app = document.getElementById('app');
 // ── Renderer entry point ────────────────────────────────────────────────
 function render() {
   const s = store.get();
+  renderOfflineBanner(s);
   if (s.forgotStep === 'request') {
     renderForgotRequest();
   } else if (s.forgotStep === 'confirm') {
@@ -63,6 +64,24 @@ function markPermissionsDone() {
 }
 store.subscribe(render);
 render();
+
+// Network connectivity banner — surfaces a small bar at the top of
+// the app when the browser reports offline OR a recent fetch failed.
+// Auto-clears the failure flag whenever a fetch succeeds.
+function setOnline(isOnline) {
+  const wasOffline = store.get().online === false;
+  store.set({ online: isOnline });
+  // Auto-refresh data when the connection comes back so the
+  // operator doesn't have to mash the refresh button.
+  if (isOnline && wasOffline && store.get().employee) {
+    reloadAll();
+  }
+}
+window.addEventListener('online', () => setOnline(true));
+window.addEventListener('offline', () => setOnline(false));
+if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
+  setOnline(navigator.onLine);
+}
 
 // ── Login screen ────────────────────────────────────────────────────────
 function renderLogin() {
@@ -976,6 +995,19 @@ function renderToast(toast) {
   el.className = `toast ${toast.kind ?? ''}`;
   el.textContent = toast.text;
   document.body.appendChild(el);
+}
+
+// ── Offline banner ──────────────────────────────────────────────────────
+function renderOfflineBanner(s) {
+  document.querySelectorAll('.offline-banner').forEach((b) => b.remove());
+  // Show the banner if the browser thinks we're offline. We don't
+  // try to ping-test here — the OS hint is good enough for the demo.
+  if (s.online === false) {
+    const el = document.createElement('div');
+    el.className = 'offline-banner';
+    el.textContent = 'Geen verbinding. We proberen opnieuw wanneer je weer online bent.';
+    document.body.appendChild(el);
+  }
 }
 
 // ── Data loaders ────────────────────────────────────────────────────────

@@ -77,9 +77,28 @@ because the Fastify backend talks to the same gateway).
 ## Deployment
 
 The `index.html` + `src/` + `manifest.webmanifest` + `icon-*.svg`
-files are pure static. Push them to Vercel / Cloudflare Pages /
-Netlify and add a rewrite rule for `/api/*` → the Fastify origin so
-cookies stay same-origin.
+files are pure static.
+
+### Vercel (one-click)
+
+The repo ships a `vercel.json` already wired with:
+
+- `cleanUrls: true`
+- SPA fallback (any non-`/api` path → `index.html`)
+- `/api/:path*` rewrite (placeholder `BACKEND_URL` — replace with
+  the hostname where you deploy the Fastify proxy)
+- `Content-Type` + `Cache-Control` headers for the manifest + icons
+
+Steps:
+
+1. Deploy `staffler/poc` (the Fastify proxy in `src/server`) to
+   Render / Fly / a Vercel Node function. Note the hostname.
+2. Open `mystaffler-poc/vercel.json` and replace `BACKEND_URL` with
+   that hostname.
+3. `cd staffler/poc/mystaffler-poc && vercel deploy --prod`.
+
+Cookies stay same-origin via the rewrite, so the
+HTTP-only `poc_sid` cookie survives.
 
 Add a service worker later (out of scope for this PoC).
 

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "echo no-build-step",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "comment": "Replace BACKEND_URL with the hostname where the Fastify proxy is deployed (Render / Fly / a Vercel Node function). Same-origin via Vercel rewrite means cookies keep working without cross-site quirks.",
+      "source": "/api/:path*",
+      "destination": "https://BACKEND_URL/api/:path*"
+    },
+    {
+      "comment": "SPA fallback — anything that isn't /api routes to index.html so the client-side renderer can pick up deep links.",
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+    },
+    {
+      "source": "/(.*).svg",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
+  ]
+}

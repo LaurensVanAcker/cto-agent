@@ -413,6 +413,29 @@ test('mystaffler-poc: kandidaat-bevestiging screen renders after apply', () => {
   assert.match(code, /Je bent kandidaat/);
 });
 
+test('mystaffler-poc: vercel.json has the right shape (rewrites + SPA fallback)', () => {
+  const cfg = JSON.parse(
+    readFileSync(resolve(repo, 'mystaffler-poc/vercel.json'), 'utf8'),
+  );
+  assert.ok(Array.isArray(cfg.rewrites));
+  const apiRule = cfg.rewrites.find((r) => r.source.startsWith('/api'));
+  assert.ok(apiRule, '/api rewrite present');
+  assert.match(apiRule.destination, /:path\*/);
+  const spa = cfg.rewrites.find((r) => r.destination === '/index.html');
+  assert.ok(spa, 'SPA fallback present');
+});
+
+test('mystaffler-poc: offline banner is wired via window online/offline events', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderOfflineBanner/);
+  assert.match(code, /window\.addEventListener\('online'/);
+  assert.match(code, /window\.addEventListener\('offline'/);
+  assert.match(code, /navigator\.onLine/);
+});
+
 test('mystaffler-poc: PWA manifest + icons + apple-touch-icon link', () => {
   const html = readFileSync(
     resolve(repo, 'mystaffler-poc/index.html'),
