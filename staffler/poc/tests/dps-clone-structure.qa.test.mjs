@@ -413,6 +413,20 @@ test('mystaffler-poc: kandidaat-bevestiging screen renders after apply', () => {
   assert.match(code, /Je bent kandidaat/);
 });
 
+test('mystaffler-poc: service worker pre-caches shell + handles /api network-first', () => {
+  const sw = readFileSync(resolve(repo, 'mystaffler-poc/sw.js'), 'utf8');
+  // Shell list contains the entry HTML + the main JS bundle.
+  assert.match(sw, /'\/index\.html'/);
+  assert.match(sw, /'\/src\/main\.js'/);
+  // /api/* is network-first (no `caches.match` short-circuit on that path).
+  assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
+  assert.match(sw, /skipWaiting\(\)/, 'install activates new SW immediately');
+  assert.match(sw, /clients\.claim\(\)/, 'activate takes over open tabs');
+  // Registration is wired from main.js.
+  const main = readFileSync(resolve(repo, 'mystaffler-poc/src/main.js'), 'utf8');
+  assert.match(main, /navigator\.serviceWorker\.register\('\/sw\.js'\)/);
+});
+
 test('mystaffler-poc: vercel.json has the right shape (rewrites + SPA fallback)', () => {
   const cfg = JSON.parse(
     readFileSync(resolve(repo, 'mystaffler-poc/vercel.json'), 'utf8'),

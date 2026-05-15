@@ -1110,3 +1110,19 @@ function escapeHtml(s) {
 if (store.get().employee) {
   reloadAll();
 }
+
+// Service worker registration — makes the "install to home screen"
+// flow on iOS / Android show the app icon and a content-filled splash
+// on first launch. Guarded by feature detection so it's a no-op in
+// non-secure contexts (e.g. `serve.mjs` over plain http://localhost is
+// allowed by the browser exception for localhost).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      // SW registration is best-effort: the app still works without it.
+      // Log to console so a curious operator can spot the failure.
+      // eslint-disable-next-line no-console
+      console.warn('[mystaffler-poc] sw register failed:', err);
+    });
+  });
+}
