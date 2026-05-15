@@ -1,9 +1,13 @@
 # Mockup → PoC mapping
 
-Snapshot 2026-05-14, after the pilot-feedback round. Each mockup
-under `staffler/mockups/` is either implemented in the PoC, partially
-mapped, or out of scope. Use this as the source of truth when picking
-the next feature.
+Snapshot 2026-05-15 — after the all-night MyStaffler-PoC build (real
+skey auth + lockout + force-reset + forgot-password + tap-to-edit
+availability + Meldingen tab + kandidaat-bevestiging + service worker
++ Vercel config).
+
+Each mockup under `staffler/mockups/` is either implemented in the
+PoC, partially mapped, or out of scope. Use this as the source of
+truth when picking the next feature.
 
 Legend:
 - ✅ implemented and reachable in the PoC
@@ -28,14 +32,42 @@ Legend:
 | 13 | planning-dag.html | ✅ | `planning-poc/` Day zoom | Now-line, 24h strip, prev/next-day navigation fixed (item 9) |
 | 14 | locatie-eigenschappen.html | 🟡 | `dialog-edit-vestiging/` + `dialog-add-service-location/` + `company-locations/` | Address editing wired; per-weekday opening-hours editor + table strip added (gap 2 closed); map preview still deferred |
 | 15 | pool-mystaffler.html | 🟡 | `pool/` | Pool list + invite-status table present; `last_login` now bumps every time the operator opens that employee's MyStaffler preview (gap 3 closed) |
-| mobile-mystaffler.html | 🟡 | `mystaffler-preview/` | Strip embedded in the company portal (per PLAN.md: no separate app). Contract list + apply/withdraw + availability add/remove all wired (gap 4 closed); custom hours selector still hardcoded to 09:00-17:00 |
-| mobile-mystaffler-v2.html | 🟡 | `mystaffler-preview/` | v2 is just polish over v1; same status |
+| mobile-mystaffler.html | 🟡 | `mystaffler-preview/` (in-portal) | Strip embedded in the company portal (per PLAN.md: no separate app). Contract list + apply/withdraw + availability add/remove all wired (gap 4 closed). |
+| mobile-mystaffler-v2.html | ✅ | `mystaffler-poc/` (**standalone, port 4201**) | Full mockup-v2 coverage: real skey login + lockout + force-reset + forgot-password + Meldingen tab + kandidaat-bevestiging + permissions + PWA install. Runs as a separate Vercel-deployable static SPA. |
+
+## Round summary
+
+**2026-05-14** — closed gaps 1–4 (selectie-picker filter, opening
+hours, live last_login, availability remove).
+
+**2026-05-15 (all-night MyStaffler portal build)** — full mockup
+mobile-mystaffler-v2 coverage shipped as `staffler/poc/mystaffler-poc/`,
+a standalone framework-free SPA on port 4201:
+
+- Real BCJ-19426 employee login (`/publicapi/employees/users/login`)
+  with `skey` cookie, 5-fail / 15-min per-email lockout, force-
+  password-reset, "wachtwoord vergeten" 2-step Cognito flow.
+- Server-side password validator (≥ 8, ≥ 1 digit, ≥ 1 upper) +
+  client mirror with live ✓/× rule checklist.
+- First-launch permissions consent (notifications + location), one-
+  shot via `mystaffler.poc.perms` localStorage flag.
+- Planning week-view: open shifts + accepted shifts grouped per day,
+  shift cards show SL name + city (server-side join), tap-to-apply →
+  full-screen kandidaat-bevestiging screen, withdraw inline.
+- Beschikbaarheid tab: whole-row tap opens a bottom-sheet that
+  handles add / edit / delete; locked rows non-interactive.
+- Meldingen tab: derived feed (new open shifts, candidate, selected,
+  rejected) with per-kind dot colour + tab badge.
+- Profiel: DPS-side `/me` (full name + memberships) + change-
+  password CTA + uitloggen.
+- Network: offline banner via `navigator.onLine`, auto-reload on
+  reconnect; service worker (skipWaiting + clients.claim, network-
+  first for `/api`, stale-while-revalidate elsewhere); PWA manifest
+  + icons + apple-touch-icon for home-screen install.
+- Deploy: `vercel.json` with SPA fallback + placeholder `/api`
+  rewrite + README walking the 3-step deploy.
 
 ## Gaps worth picking up next
-
-Round 2026-05-14 closed gaps 1–4 (filter-and-bulk-add in the SELECTION
-picker, opening hours per service location, live last_login bumps,
-MyStaffler availability remove). What's still on the list:
 
 1. **Mockup 06 — full-screen selectie-picker** — the current inline
    picker now has a "Beschikbaar deze week" filter + bulk-add, but
@@ -48,9 +80,14 @@ MyStaffler availability remove). What's still on the list:
    lists candidates; the "Kies" wiring exists but doesn't yet copy
    a real wage package into the resulting contract (PoC uses a
    placeholder). Production-grade fix.
-4. **MyStaffler availability custom hours** — the "+" button on a
-   day currently hardcodes 09:00–17:00. Mockup expects a small
-   time-pair input.
+4. **MyStaffler-PoC custom-hours selector** — the bottom-sheet
+   already supports custom times for both add and edit (Mockup
+   v1 gap closed); the in-portal `mystaffler-preview/` still
+   hardcodes 09:00–17:00 on its "+" button.
+5. **MyStaffler-PoC: in-app password change with current password**
+   — Cognito flow goes through email reset only; an in-app change
+   needs a different upstream path or a custom code-then-confirm
+   screen.
 
 ## What's intentionally not built
 
