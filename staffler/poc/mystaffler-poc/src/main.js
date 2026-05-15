@@ -33,6 +33,8 @@ function render() {
     renderForceReset();
   } else if (!s.employee) {
     renderLogin();
+  } else if (s.needsPermissions) {
+    renderPermissions();
   } else if (s.tab === 'availability') {
     renderAvailability();
   } else if (s.tab === 'notifications') {
@@ -43,6 +45,19 @@ function render() {
     renderPlanning();
   }
   renderToast(s.toast);
+}
+
+/** Per BCJ-19426: "Only on first login ask for camera, location and
+ *  notification permissions." We treat "first login" as "no
+ *  `mystaffler.poc.perms` flag in localStorage for this device". The
+ *  flag is set when the operator either accepts or skips. */
+const PERMS_LS_KEY = 'mystaffler.poc.perms';
+function shouldShowPermissions() {
+  try { return localStorage.getItem(PERMS_LS_KEY) !== 'done'; }
+  catch { return false; }
+}
+function markPermissionsDone() {
+  try { localStorage.setItem(PERMS_LS_KEY, 'done'); } catch { /* ignore */ }
 }
 store.subscribe(render);
 render();
@@ -98,7 +113,11 @@ function renderLogin() {
         throw new Error('Login mislukt');
       }
       store.setEmployee(res.employee);
-      store.set({ loggingIn: false, loginError: null });
+      store.set({
+        loggingIn: false,
+        loginError: null,
+        needsPermissions: shouldShowPermissions(),
+      });
       reloadAll();
     } catch (err) {
       const status = err?.status;
@@ -122,8 +141,9 @@ function renderForceReset() {
       <div class="tagline">Kies een nieuw wachtwoord voor ${escapeHtml(s.forceResetUsername)}</div>
       <form id="reset-form">
         <label>Nieuw wachtwoord
-          <input type="password" name="password" autocomplete="new-password" required placeholder="Minstens 8 tekens, 1 cijfer, 1 hoofdletter" />
+          <input type="password" name="password" autocomplete="new-password" required placeholder="••••••••" />
         </label>
+        <div class="pw-rules-mount">${renderPasswordChecklist('')}</div>
         <label>Bevestig wachtwoord
           <input type="password" name="confirm" autocomplete="new-password" required />
         </label>
@@ -132,9 +152,9 @@ function renderForceReset() {
           ${s.resetting ? 'Opslaan…' : 'Wachtwoord instellen'}
         </button>
       </form>
-      <div class="hint">Vereisten: minstens 8 tekens, 1 cijfer en 1 hoofdletter.</div>
     </section>
   `;
+  bindPasswordChecklist('password', '.pw-rules-mount');
   const form = document.getElementById('reset-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -176,7 +196,13 @@ function renderForceReset() {
         };
       }
       store.setEmployee(employee);
-      store.set({ resetting: false, resetError: null, forceResetUsername: null });
+      store.set({
+        resetting: false,
+        resetError: null,
+        forceResetUsername: null,
+        // BCJ-19426 AC: ask for perms on first login.
+        needsPermissions: shouldShowPermissions(),
+      });
       reloadAll();
     } catch (err) {
       store.set({
@@ -194,6 +220,100 @@ function validatePasswordClient(p) {
   if (!/[0-9]/.test(p)) return 'Wachtwoord moet minstens één cijfer bevatten.';
   if (!/[A-Z]/.test(p)) return 'Wachtwoord moet minstens één hoofdletter bevatten.';
   return null;
+}
+
+/** Live checklist of password rules. Pass the live input value; the
+ *  helper returns markup with ✓ for each satisfied rule. */
+function renderPasswordChecklist(value) {
+  const v = typeof value === 'string' ? value : '';
+  const rules = [
+    { ok: v.length >= 8, label: 'Minstens 8 tekens' },
+    { ok: /[0-9]/.test(v), label: 'Minstens één cijfer' },
+    { ok: /[A-Z]/.test(v), label: 'Minstens één hoofdletter' },
+  ];
+  return `
+    <ul class="pw-rules" aria-live="polite">
+      ${rules.map((r) => `<li class="${r.ok ? 'ok' : ''}"><span>${r.ok ? '✓' : '○'}</span>${escapeHtml(r.label)}</li>`).join('')}
+    </ul>
+  `;
+}
+
+/** Wire input → checklist re-render on a form field. */
+function bindPasswordChecklist(inputName, mountSelector) {
+  const input = document.querySelector(`input[name="${inputName}"]`);
+  const mount = document.querySelector(mountSelector);
+  if (!input || !mount) return;
+  input.addEventListener('input', () => {
+    mount.outerHTML = `<div class="pw-rules-mount">${renderPasswordChecklist(input.value)}</div>`;
+    // The element we just replaced isn't ours anymore — re-bind on the
+    // fresh one so the listener stays attached.
+    bindPasswordChecklist(inputName, '.pw-rules-mount');
+  });
+}
+
+// ── First-login permissions consent (BCJ-19426 AC) ──────────────────────
+function renderPermissions() {
+  const s = store.get();
+  const grants = s.permGrants ?? { notifications: null, location: null };
+  app.innerHTML = `
+    <section class="login">
+      <div class="brand">staffler</div>
+      <div class="tagline">Welkom! Een paar instellingen om je shifts goed te laten werken.</div>
+      <div class="perm-list">
+        <div class="perm-row">
+          <div class="perm-info">
+            <div class="perm-title">Meldingen</div>
+            <div class="perm-sub">Krijg een notificatie wanneer een nieuwe shift voor jou klaar staat.</div>
+          </div>
+          <button class="perm-btn ${grants.notifications ? 'granted' : ''}" data-act="ask-notifications" ${grants.notifications ? 'disabled' : ''}>
+            ${grants.notifications === true ? '✓' : grants.notifications === false ? 'Geweigerd' : 'Sta toe'}
+          </button>
+        </div>
+        <div class="perm-row">
+          <div class="perm-info">
+            <div class="perm-title">Locatie</div>
+            <div class="perm-sub">Helpt om shifts in jouw buurt eerst voor te stellen.</div>
+          </div>
+          <button class="perm-btn ${grants.location ? 'granted' : ''}" data-act="ask-location" ${grants.location ? 'disabled' : ''}>
+            ${grants.location === true ? '✓' : grants.location === false ? 'Geweigerd' : 'Sta toe'}
+          </button>
+        </div>
+      </div>
+      <button class="submit perm-continue" data-act="continue">Verder naar planning</button>
+      <button class="link" data-act="skip">Sla over</button>
+    </section>
+  `;
+  document.querySelector('[data-act="ask-notifications"]')?.addEventListener('click', async () => {
+    let result = false;
+    try {
+      if ('Notification' in window) {
+        const perm = await Notification.requestPermission();
+        result = perm === 'granted';
+      }
+    } catch {
+      // Some browsers throw on insecure origins — surface as denied.
+    }
+    store.set({ permGrants: { ...grants, notifications: result } });
+  });
+  document.querySelector('[data-act="ask-location"]')?.addEventListener('click', () => {
+    if (!('geolocation' in navigator)) {
+      store.set({ permGrants: { ...grants, location: false } });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      () => store.set({ permGrants: { ...grants, location: true } }),
+      () => store.set({ permGrants: { ...grants, location: false } }),
+      { timeout: 5000 },
+    );
+  });
+  document.querySelector('[data-act="continue"]').addEventListener('click', () => {
+    markPermissionsDone();
+    store.set({ needsPermissions: false });
+  });
+  document.querySelector('[data-act="skip"]').addEventListener('click', () => {
+    markPermissionsDone();
+    store.set({ needsPermissions: false });
+  });
 }
 
 // ── Wachtwoord vergeten — step 1: ask for email ─────────────────────────
@@ -256,8 +376,9 @@ function renderForgotConfirm() {
           <input type="text" name="code" autocomplete="one-time-code" inputmode="numeric" required placeholder="6-cijferige code" />
         </label>
         <label>Nieuw wachtwoord
-          <input type="password" name="password" autocomplete="new-password" required placeholder="Minstens 8 tekens, 1 cijfer, 1 hoofdletter" />
+          <input type="password" name="password" autocomplete="new-password" required placeholder="••••••••" />
         </label>
+        <div class="pw-rules-mount">${renderPasswordChecklist('')}</div>
         <label>Bevestig wachtwoord
           <input type="password" name="confirm" autocomplete="new-password" required />
         </label>
@@ -269,6 +390,7 @@ function renderForgotConfirm() {
       </form>
     </section>
   `;
+  bindPasswordChecklist('password', '.pw-rules-mount');
   const form = document.getElementById('forgot-confirm-form');
   document.querySelector('[data-act="back"]').addEventListener('click', () => {
     store.set({ forgotStep: null, forgotError: null });

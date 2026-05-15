@@ -379,6 +379,30 @@ test('backend exposes the two-step reset routes', () => {
   assert.match(code, /"\/api\/employee-confirm-reset-password"/);
 });
 
+test('mystaffler-poc: first-login permissions screen wired behind needsPermissions', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderPermissions\(\)/);
+  assert.match(code, /shouldShowPermissions\(\)/);
+  assert.match(code, /Notification\.requestPermission/);
+  assert.match(code, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(code, /mystaffler\.poc\.perms/);
+});
+
+test('mystaffler-poc: password-rule live checklist renders 3 rules', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderPasswordChecklist/);
+  assert.match(code, /Minstens 8 tekens/);
+  assert.match(code, /Minstens één cijfer/);
+  assert.match(code, /Minstens één hoofdletter/);
+  assert.match(code, /bindPasswordChecklist\('password',/, 'wired on the password input');
+});
+
 test('mystaffler-poc: PWA manifest + icons + apple-touch-icon link', () => {
   const html = readFileSync(
     resolve(repo, 'mystaffler-poc/index.html'),
