@@ -788,6 +788,17 @@ function renderCandidateConfirmation() {
         <div class="confirm-card-label">Shift</div>
         <div class="confirm-card-line">${escapeHtml(shift.date_from ?? '')} · ${escapeHtml(shift.from_time ?? '')} → ${escapeHtml(shift.to_time ?? '')}</div>
         ${where ? `<div class="confirm-card-where">${escapeHtml(where)}</div>` : ''}
+        ${
+          shift.deadline
+            ? `
+              <div class="confirm-card-deadline">
+                <span class="confirm-card-deadline-label">Wanneer hoor je het?</span>
+                <span class="confirm-card-deadline-val">${escapeHtml(formatDeadline(shift.deadline))}</span>
+                <span class="confirm-card-deadline-sub">Je krijgt een melding bij keuze.</span>
+              </div>
+            `
+            : ''
+        }
       </div>
       <div class="confirm-actions">
         <button class="btn-respond withdraw confirm-secondary" data-act="withdraw">Terugtrekken</button>
@@ -856,6 +867,18 @@ function renderNotificationRow(n) {
       <span class="notif-time">${escapeHtml(formatRelative(n.at))}</span>
     </button>
   `;
+}
+
+/** Friendly "uiterlijk vrij 18:00" format (mockup pattern). Falls
+ *  back to the raw ISO if the date can't be parsed. */
+function formatDeadline(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso ?? '';
+  const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const day = days[d.getDay()];
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `Uiterlijk ${day} ${hh}:${mm}`;
 }
 
 function formatRelative(iso) {
