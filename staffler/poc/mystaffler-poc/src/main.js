@@ -465,7 +465,9 @@ function renderPlanning() {
               </div>
               ${
                 (shiftsByDay.get(d.iso) ?? []).map(renderShift).join('') ||
-                `<div class="day-empty">${s.loadingShifts ? 'Laden…' : 'Niets gepland'}</div>`
+                (s.loadingShifts && !s.shifts?.length
+                  ? `<div class="skeleton-shift" aria-hidden="true"></div>`
+                  : `<div class="day-empty">Niets gepland</div>`)
               }
             </article>
           `,

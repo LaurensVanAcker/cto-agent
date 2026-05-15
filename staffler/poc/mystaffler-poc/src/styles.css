@@ -672,6 +672,16 @@ a { color: var(--brand); }
   100% { background-position: -200% 0; }
 }
 
+/* Skeleton card mimicking a shift block so the planning week-view
+   doesn't flicker from "empty" to "filled" on first paint. */
+.skeleton-shift {
+  height: 56px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
 /* ── Material-icons-like glyphs (no font, plain unicode) ─────────────── */
 .icon::before { font-style: normal; }
 .icon-calendar::before { content: '🗓'; }
