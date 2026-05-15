@@ -444,6 +444,43 @@ a { color: var(--brand); }
 }
 .profile-action.danger { color: #ef4444; border-color: #ef4444; }
 
+.profile-memberships {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--slate-200);
+}
+.profile-memberships .memberships-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.profile-memberships .membership-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.profile-memberships .membership-role {
+  font-size: 11px;
+  background: var(--slate-100);
+  color: var(--slate-500);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+
+.profile-footer {
+  text-align: center;
+  color: var(--slate-400);
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  padding: 16px 0 0;
+}
+
 /* ── Notifications tab ───────────────────────────────────────────────── */
 .notif-list {
   display: flex;

@@ -295,6 +295,16 @@ test('mystaffler-poc: force-reset screen renders when authStatus === FORCE_PASSW
   assert.match(code, /forceResetUsername/);
 });
 
+test('mystaffler-poc: profile screen loads /me + surfaces memberships + change-password CTA', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /reloadMe\(\)/, 'profile fetches /api/me');
+  assert.match(code, /membership-row/, 'memberships are rendered');
+  assert.match(code, /change-password/, 'wachtwoord-wijzigen action wired');
+});
+
 test('mystaffler-poc: 4-tab bar (planning, beschikbaarheid, meldingen, profiel) + badge', () => {
   const code = readFileSync(
     resolve(repo, 'mystaffler-poc/src/main.js'),

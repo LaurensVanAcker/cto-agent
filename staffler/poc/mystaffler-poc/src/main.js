@@ -494,23 +494,52 @@ function formatRelative(iso) {
 
 // ── Profile tab ─────────────────────────────────────────────────────────
 function renderProfile() {
-  const emp = store.get().employee;
+  const s = store.get();
+  const emp = s.employee;
+  const me = s.me;
+  const fullName = me?.user?.name || `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || emp.email;
+  const memberships = me?.companyMemberships ?? [];
   app.innerHTML = `
     <section class="screen">
       <header class="hero">
         <h1>Profiel</h1>
-        <div class="sub">Jouw account in deze PoC.</div>
+        <div class="sub">${escapeHtml(fullName)}</div>
       </header>
       <div class="profile">
         <div class="profile-card">
-          <div class="name">${escapeHtml(emp.firstName || emp.email)}</div>
+          <div class="name">${escapeHtml(fullName)}</div>
           <div class="email">${escapeHtml(emp.email)}</div>
+          ${
+            memberships.length > 0
+              ? `<div class="profile-memberships">
+                  <div class="memberships-label">Werkgevers</div>
+                  ${memberships
+                    .map(
+                      (m) => `
+                      <div class="membership-row">
+                        <span>${escapeHtml(m.companyName ?? m.companyId)}</span>
+                        <span class="membership-role">${escapeHtml(m.role ?? '')}</span>
+                      </div>
+                    `,
+                    )
+                    .join('')}
+                </div>`
+              : ''
+          }
           <div class="id">id: ${escapeHtml(emp.id)}</div>
         </div>
+
+        <button class="profile-action" data-act="change-password">
+          <span>Wachtwoord wijzigen</span>
+          <span>›</span>
+        </button>
+
         <button class="profile-action danger" data-act="logout">
           <span>Uitloggen</span>
           <span>›</span>
         </button>
+
+        <div class="profile-footer">MyStaffler PoC · v0.1.0</div>
       </div>
       ${renderTabbar('profile')}
     </section>
@@ -519,7 +548,19 @@ function renderProfile() {
   document.querySelector('[data-act="logout"]').addEventListener('click', async () => {
     try { await api.logout(); } catch { /* best-effort */ }
     store.setEmployee(null);
-    store.set({ shifts: [], availabilities: [], tab: 'planning' });
+    store.set({ shifts: [], availabilities: [], notifications: [], me: null, tab: 'planning' });
+  });
+  document.querySelector('[data-act="change-password"]').addEventListener('click', () => {
+    // The DPS password-change flow goes via Cognito email reset
+    // (resetPassword → email → confirmResetPassword). Implementing the
+    // round-trip would need: a "request reset link" route here, an
+    // email-out hop, then a code-entry screen. Deferred until the BCJ
+    // ticket for self-service password change lands; for now we point
+    // the operator at the employer-managed reset path.
+    store.toast(
+      'Voor een wachtwoord-reset: vraag je werkgever om je MyStaffler-account te resetten.',
+      'info',
+    );
   });
 }
 
@@ -581,7 +622,29 @@ function renderToast(toast) {
 
 // ── Data loaders ────────────────────────────────────────────────────────
 async function reloadAll() {
-  await Promise.all([reloadShifts(), reloadAvailabilities(), reloadNotifications()]);
+  await Promise.all([
+    reloadMe(),
+    reloadShifts(),
+    reloadAvailabilities(),
+    reloadNotifications(),
+  ]);
+}
+
+/** Loads the DPS-side identity so the Profile screen can show real
+ *  name + companyMemberships instead of the email-derived placeholder. */
+async function reloadMe() {
+  const s = store.get();
+  if (!s.employee) return;
+  try {
+    const me = await api.me();
+    store.set({ me });
+  } catch (err) {
+    // Stub-style sessions 401 here; we keep going so the rest of the
+    // app still renders.
+    if (err?.status === 401) {
+      store.set({ me: null });
+    }
+  }
 }
 
 async function reloadNotifications() {
