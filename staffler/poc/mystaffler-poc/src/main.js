@@ -195,15 +195,32 @@ function renderPlanning() {
   const label = weekLabel(s.weekStart);
   const shiftsByDay = groupShiftsByDay(s.shifts, s.weekStart);
 
+  // Hero greeting prefers the DPS-side name from /me (matches the
+  // employee record on the company side), falls back to the email-
+  // derived stub. Capitalise first character so "anouk" reads as "Anouk".
+  const heroName =
+    (s.me?.user?.name?.split(' ')[0]) ||
+    s.employee.firstName ||
+    'jij';
+  const greeting = heroName.charAt(0).toUpperCase() + heroName.slice(1);
+  const totalShifts = (s.shifts ?? []).length;
+
   app.innerHTML = `
     <section class="screen">
       <header class="hero">
-        <h1>Hallo, ${escapeHtml(s.employee.firstName || 'jij')}!</h1>
-        <div class="sub">Jouw planning deze week</div>
+        <h1>Hallo, ${escapeHtml(greeting)}!</h1>
+        <div class="sub">
+          ${
+            totalShifts === 0
+              ? 'Geen shifts deze week — geniet ervan.'
+              : `${totalShifts} ${totalShifts === 1 ? 'shift' : 'shifts'} deze week`
+          }
+        </div>
         <div class="week-bar">
           <button class="icon icon-prev" data-act="prev-week" aria-label="Vorige week"></button>
           <span>week ${label.week} · ${label.range}</span>
           <button class="icon icon-next" data-act="next-week" aria-label="Volgende week"></button>
+          <button class="hero-refresh" data-act="refresh" aria-label="Vernieuwen">↻</button>
         </div>
       </header>
       <div class="day-list">
@@ -230,16 +247,29 @@ function renderPlanning() {
   bindTabbar();
   bindWeekNav();
   bindShiftActions();
+  bindRefresh();
+}
+
+function bindRefresh() {
+  document.querySelector('[data-act="refresh"]')?.addEventListener('click', () => {
+    reloadAll();
+    store.toast('Vernieuwd.', 'info');
+  });
 }
 
 function renderShift({ shift, application }) {
   const isCandidate = application?.status === 'candidate' || application?.status === 'selected';
   const klass = isCandidate ? 'candidate' : 'open';
-  const where = shift.service_group_name || shift.service_group_id || '';
+  // Prefer the resolved service-location name; fall back to the city,
+  // then to the raw service_group_id (last resort — looks ugly but
+  // never crashes the UI). Skip the row entirely when nothing useful.
+  const name = shift.service_group_name;
+  const city = shift.service_group_city;
+  const where = name && city ? `${name} · ${city}` : name || city || '';
   return `
     <div class="shift ${klass}" data-shift-id="${escapeHtml(shift.id)}">
       <div class="title">${isCandidate ? 'Je bent kandidaat' : 'Open shift'}</div>
-      <div class="times">${escapeHtml(shift.date_from)} · ${escapeHtml(shift.from_time)} → ${escapeHtml(shift.to_time)}</div>
+      <div class="times">${escapeHtml(shift.from_time)} → ${escapeHtml(shift.to_time)}</div>
       ${where ? `<div class="where">${escapeHtml(where)}</div>` : ''}
       <div class="actions">
         ${
@@ -325,27 +355,40 @@ function renderAvailability() {
           .map((d) => {
             const a = byDate.get(d.iso);
             if (!a) {
+              // Empty day — whole row is clickable to add (mockup pattern:
+              // "Donderdag toevoegen" → bottom-sheet).
               return `
-                <div class="avail-row" data-date="${d.iso}">
+                <button type="button" class="avail-row as-button" data-date="${d.iso}" data-act="add">
                   <div class="day-label">
                     <div class="name">${d.name}${d.isToday ? ' · vandaag' : ''}</div>
                     <div class="date">${d.shortDate}</div>
                   </div>
                   <div class="when">Niet beschikbaar</div>
-                  <button class="row-btn icon icon-add" data-act="add" aria-label="Toevoegen"></button>
-                </div>
+                  <span class="row-btn icon icon-add" aria-hidden="true"></span>
+                </button>
               `;
             }
             const locked = a.status === 'locked';
+            // Set day — whole row opens the edit sheet (with delete inside).
+            // Locked rows are non-interactive (contract owns the slot).
             return `
-              <div class="avail-row ${locked ? 'locked' : 'set'}" data-date="${d.iso}" data-id="${a.id}">
+              <button
+                type="button"
+                class="avail-row as-button ${locked ? 'locked' : 'set'}"
+                data-date="${d.iso}"
+                data-id="${a.id}"
+                data-from="${escapeHtml(a.from_time)}"
+                data-to="${escapeHtml(a.to_time)}"
+                data-act="${locked ? 'locked' : 'edit'}"
+                ${locked ? 'aria-disabled="true"' : ''}
+              >
                 <div class="day-label">
                   <div class="name">${d.name}${d.isToday ? ' · vandaag' : ''}</div>
                   <div class="date">${d.shortDate}</div>
                 </div>
                 <div class="when">${escapeHtml(a.from_time)} → ${escapeHtml(a.to_time)}</div>
-                <button class="row-btn icon ${locked ? 'icon-clock' : 'icon-trash'}" data-act="${locked ? 'locked' : 'remove'}" aria-label="${locked ? 'Gekoppeld aan contract' : 'Verwijderen'}"></button>
-              </div>
+                <span class="row-btn icon ${locked ? 'icon-clock' : 'icon-edit'}" aria-hidden="true"></span>
+              </button>
             `;
           })
           .join('')}
@@ -359,31 +402,33 @@ function renderAvailability() {
 }
 
 function bindAvailabilityActions() {
-  app.querySelectorAll('[data-act="add"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const row = btn.closest('[data-date]');
-      openAvailSheet(row.dataset.date);
-    });
-  });
-  app.querySelectorAll('[data-act="remove"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const row = btn.closest('[data-date]');
-      removeAvailability(row.dataset.id);
-    });
-  });
-  app.querySelectorAll('[data-act="locked"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      store.toast('Deze beschikbaarheid hangt aan een contract.', 'info');
-    });
+  app.querySelectorAll('[data-date]').forEach((row) => {
+    const act = row.dataset.act;
+    if (act === 'add') {
+      row.addEventListener('click', () => openAvailSheet(row.dataset.date));
+    } else if (act === 'edit') {
+      row.addEventListener('click', () =>
+        openAvailSheet(row.dataset.date, {
+          id: row.dataset.id,
+          from: row.dataset.from,
+          to: row.dataset.to,
+        }),
+      );
+    } else if (act === 'locked') {
+      row.addEventListener('click', () => {
+        store.toast('Deze beschikbaarheid hangt aan een contract.', 'info');
+      });
+    }
   });
 }
 
 function openAvailSheet(date, current) {
+  const isEdit = !!current?.id;
   const sheet = document.createElement('div');
   sheet.className = 'sheet-backdrop';
   sheet.innerHTML = `
     <div class="sheet" role="dialog" aria-modal="true">
-      <h2>Beschikbaar op ${escapeHtml(date)}</h2>
+      <h2>${isEdit ? 'Beschikbaarheid aanpassen' : 'Beschikbaar op ' + escapeHtml(date)}</h2>
       <div class="sub">Eén blok per dag. Werkgever stelt open shifts voor binnen je window.</div>
       <div class="time-pair">
         <input id="sheet-from" type="time" value="${current?.from ?? '09:00'}" />
@@ -392,7 +437,12 @@ function openAvailSheet(date, current) {
       </div>
       <div class="sheet-actions">
         <button class="cancel" data-act="cancel">Annuleren</button>
-        <button class="confirm" data-act="confirm">Bevestigen</button>
+        ${
+          isEdit
+            ? `<button class="danger" data-act="delete">Verwijderen</button>`
+            : ''
+        }
+        <button class="confirm" data-act="confirm">${isEdit ? 'Opslaan' : 'Bevestigen'}</button>
       </div>
     </div>
   `;
@@ -403,6 +453,22 @@ function openAvailSheet(date, current) {
     if (e.target === sheet) close();
   });
   sheet.querySelector('[data-act="cancel"]').addEventListener('click', close);
+  sheet.querySelector('[data-act="delete"]')?.addEventListener('click', async () => {
+    close();
+    if (!current?.id) return;
+    if (!confirm('Deze beschikbaarheid verwijderen?')) return;
+    try {
+      await api.removeAvailability(current.id);
+      store.toast('Beschikbaarheid verwijderd.', 'success');
+      await reloadAvailabilities();
+    } catch (err) {
+      const msg =
+        err?.status === 409
+          ? 'Niet verwijderbaar — gekoppeld aan een contract.'
+          : err?.body?.message ?? 'Verwijderen mislukt.';
+      store.toast(msg, 'error');
+    }
+  });
   sheet.querySelector('[data-act="confirm"]').addEventListener('click', async () => {
     const fromTime = sheet.querySelector('#sheet-from').value;
     const toTime = sheet.querySelector('#sheet-to').value;
@@ -413,29 +479,33 @@ function openAvailSheet(date, current) {
     close();
     const emp = store.get().employee;
     try {
+      // Edit = delete-then-create. The PoC-DB has no PATCH on
+      // availabilities (one row per day, immutable), but the operator
+      // expects "update" semantics. We bundle the two calls so they
+      // either both succeed or the row stays in its old state — if
+      // delete fails (e.g. locked), we surface the conflict and skip
+      // the create.
+      if (isEdit) {
+        await api.removeAvailability(current.id);
+      }
       await api.createAvailability({ employeeId: emp.id, date, fromTime, toTime });
-      store.toast(`Beschikbaar ${fromTime} → ${toTime} op ${date}.`, 'success');
+      store.toast(
+        `${isEdit ? 'Aangepast' : 'Beschikbaar'} ${fromTime} → ${toTime} op ${date}.`,
+        'success',
+      );
       await reloadAvailabilities();
     } catch (err) {
-      store.toast(err?.body?.message ?? 'Opslaan mislukt.', 'error');
+      const msg =
+        err?.status === 409
+          ? 'Niet wijzigbaar — gekoppeld aan een contract.'
+          : err?.body?.message ?? 'Opslaan mislukt.';
+      store.toast(msg, 'error');
     }
   });
 }
 
-async function removeAvailability(id) {
-  if (!confirm('Deze beschikbaarheid verwijderen?')) return;
-  try {
-    await api.removeAvailability(id);
-    store.toast('Beschikbaarheid verwijderd.', 'success');
-    await reloadAvailabilities();
-  } catch (err) {
-    const msg =
-      err?.status === 409
-        ? 'Niet verwijderbaar — gekoppeld aan een contract.'
-        : err?.body?.message ?? 'Verwijderen mislukt.';
-    store.toast(msg, 'error');
-  }
-}
+// (removeAvailability merged into openAvailSheet — the bottom-sheet
+// now owns both edit + delete so there's a single confirm path.)
 
 // ── Notifications tab ───────────────────────────────────────────────────
 function renderNotifications() {

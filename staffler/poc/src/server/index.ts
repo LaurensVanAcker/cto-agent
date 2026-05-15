@@ -1324,11 +1324,27 @@ app.get<{ Querystring: { employeeId?: string } }>(
     );
     const apps = pocDb.listApplicationsForEmployee(employeeId);
     const appByShift = new Map(apps.map((a) => [a.shift_id, a] as const));
+    // Resolve service-location names so the mobile client can show
+    // "Toog Gent" instead of "sg-…-uuid". One pass over service_groups
+    // is fine — the PoC has dozens, not thousands.
+    const sgById = new Map(
+      pocDb.raw().service_groups.map((sg) => [sg.id, sg] as const),
+    );
     // Same login-touch as /api/my-staffler/employees/:id/contracts —
     // viewing my-shifts in the preview counts as the employee being
     // present in their MyStaffler view.
     pocDb.touchMyStafflerLogin(employeeId);
-    return targeted.map((s) => ({ shift: s, application: appByShift.get(s.id) ?? null }));
+    return targeted.map((s) => {
+      const sg = sgById.get(s.service_group_id);
+      return {
+        shift: {
+          ...s,
+          service_group_name: sg?.name ?? null,
+          service_group_city: sg?.city ?? null,
+        },
+        application: appByShift.get(s.id) ?? null,
+      };
+    });
   },
 );
 

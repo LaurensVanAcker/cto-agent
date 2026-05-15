@@ -108,6 +108,19 @@ a { color: var(--brand); }
   font-size: 18px;
 }
 .hero .week-bar button:hover { background: rgba(255, 255, 255, 0.18); }
+.hero-refresh {
+  background: transparent !important;
+  border: 0;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.hero-refresh:hover { background: rgba(255, 255, 255, 0.18) !important; }
+.hero-refresh:active { transform: rotate(180deg); transition: transform 200ms ease; }
 
 /* ── Day list ────────────────────────────────────────────────────────── */
 .day-list {
@@ -352,6 +365,24 @@ a { color: var(--brand); }
   color: var(--slate-700);
 }
 .avail-row .row-btn:hover { background: var(--slate-200); }
+
+/* Whole row is the click target now (mockup pattern). Keep button
+   default styling out of the way so it reads as a normal row. */
+.avail-row.as-button {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: 12px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.avail-row.as-button:hover { background: var(--slate-50); }
+.avail-row.as-button.set { background: var(--green-soft); border-color: rgba(22, 163, 74, 0.4); }
+.avail-row.as-button.set:hover { background: rgba(34, 197, 94, 0.28); }
+.avail-row.as-button.locked { background: var(--indigo-soft); border-color: var(--indigo-border); cursor: not-allowed; }
+.avail-row.as-button.locked:hover { background: var(--indigo-soft); }
 
 /* ── Bottom-sheet dialog (set availability) ──────────────────────────── */
 .sheet-backdrop {

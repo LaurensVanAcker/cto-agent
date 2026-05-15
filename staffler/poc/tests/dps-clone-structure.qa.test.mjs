@@ -340,3 +340,42 @@ test('backend notifications route surfaces the 4 known kinds', () => {
   assert.match(code, /"selected"/);
   assert.match(code, /"rejected"/);
 });
+
+test('backend my-shifts joins service-group name + city', () => {
+  const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
+  assert.match(code, /service_group_name:\s*sg\?\.name/);
+  assert.match(code, /service_group_city:\s*sg\?\.city/);
+});
+
+test('mystaffler-poc: hero has refresh button + greeting from /me', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /data-act="refresh"/, 'refresh button wired in hero');
+  assert.match(code, /bindRefresh\(\)/);
+  assert.match(code, /s\.me\?\.user\?\.name\?\.split\(' '\)\[0\]/, 'greeting prefers /me name');
+});
+
+test('mystaffler-poc: availability row is whole-row clickable (tap to edit)', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /class="avail-row as-button"/);
+  assert.match(
+    code,
+    /act\s*===\s*'edit'/,
+    'edit branch handled in bindAvailabilityActions',
+  );
+  assert.match(
+    code,
+    /locked\s*\?\s*'locked'\s*:\s*'edit'/,
+    'set rows render with data-act="edit" via ternary',
+  );
+  assert.doesNotMatch(
+    code,
+    /async function removeAvailability/,
+    'removeAvailability merged into the sheet',
+  );
+});
