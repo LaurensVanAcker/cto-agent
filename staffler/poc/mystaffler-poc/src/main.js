@@ -35,6 +35,8 @@ function render() {
     renderLogin();
   } else if (s.needsPermissions) {
     renderPermissions();
+  } else if (s.confirmCandidate) {
+    renderCandidateConfirmation();
   } else if (s.tab === 'availability') {
     renderAvailability();
   } else if (s.tab === 'notifications') {
@@ -531,10 +533,19 @@ function bindShiftActions() {
 
 async function applyShift(shiftId) {
   const emp = store.get().employee;
+  // Capture the shift card data BEFORE the API call so the
+  // confirmation screen has stable details even if the refresh
+  // races with the render.
+  const card = (store.get().shifts ?? []).find((r) => r?.shift?.id === shiftId);
   try {
     await api.apply(shiftId, emp.id);
-    store.toast('Je bent nu kandidaat voor deze shift.', 'success');
+    // Mockup mobile-mystaffler-v2 #2: "Klik op Kandidaat stellen →
+    // direct bevestigingsscherm". We show a full-screen overlay with
+    // the shift details so the operator gets explicit confirmation;
+    // the planning refresh runs in the background.
+    if (card) store.set({ confirmCandidate: card });
     await reloadShifts();
+    await reloadNotifications();
   } catch (err) {
     store.toast(err?.body?.message ?? 'Kandidaat stellen mislukt.', 'error');
   }
@@ -739,6 +750,50 @@ function openAvailSheet(date, current) {
 
 // (removeAvailability merged into openAvailSheet — the bottom-sheet
 // now owns both edit + delete so there's a single confirm path.)
+
+// ── Kandidaat-bevestiging (mockup mobile-mystaffler-v2 #2) ──────────────
+function renderCandidateConfirmation() {
+  const s = store.get();
+  const card = s.confirmCandidate;
+  if (!card) return;
+  const shift = card.shift ?? {};
+  const sgName = shift.service_group_name;
+  const sgCity = shift.service_group_city;
+  const where = sgName && sgCity ? `${sgName} · ${sgCity}` : sgName || sgCity || '';
+  app.innerHTML = `
+    <section class="screen confirm-screen">
+      <div class="confirm-icon">✓</div>
+      <h1 class="confirm-title">Je bent kandidaat</h1>
+      <div class="confirm-sub">We laten je werkgever weten dat je beschikbaar bent.</div>
+      <div class="confirm-card">
+        <div class="confirm-card-label">Shift</div>
+        <div class="confirm-card-line">${escapeHtml(shift.date_from ?? '')} · ${escapeHtml(shift.from_time ?? '')} → ${escapeHtml(shift.to_time ?? '')}</div>
+        ${where ? `<div class="confirm-card-where">${escapeHtml(where)}</div>` : ''}
+      </div>
+      <div class="confirm-actions">
+        <button class="btn-respond withdraw confirm-secondary" data-act="withdraw">Terugtrekken</button>
+        <button class="btn-respond yes confirm-primary" data-act="back">Terug naar planning</button>
+      </div>
+    </section>
+  `;
+  document.querySelector('[data-act="back"]').addEventListener('click', () => {
+    store.set({ confirmCandidate: null });
+  });
+  document.querySelector('[data-act="withdraw"]').addEventListener('click', async () => {
+    const emp = store.get().employee;
+    if (!emp || !shift.id) return;
+    if (!confirm('Je kandidatuur intrekken?')) return;
+    try {
+      await api.withdraw(shift.id, emp.id);
+      store.toast('Je kandidatuur is ingetrokken.', 'success');
+      store.set({ confirmCandidate: null });
+      await reloadShifts();
+      await reloadNotifications();
+    } catch (err) {
+      store.toast(err?.body?.message ?? 'Terugtrekken mislukt.', 'error');
+    }
+  });
+}
 
 // ── Notifications tab ───────────────────────────────────────────────────
 function renderNotifications() {

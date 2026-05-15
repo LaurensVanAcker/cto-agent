@@ -640,6 +640,75 @@ a { color: var(--brand); }
   padding: 24px;
 }
 
+/* ── Kandidaat-bevestiging screen ────────────────────────────────────── */
+.confirm-screen {
+  padding: 32px 24px 24px;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(180deg, #fff 0%, var(--green-soft) 100%);
+}
+.confirm-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--green);
+  color: white;
+  font-size: 40px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 18px;
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.25);
+  animation: pop 220ms ease;
+}
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.confirm-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.confirm-sub {
+  font-size: 14px;
+  color: var(--slate-500);
+  max-width: 320px;
+  margin: 0 auto 28px;
+}
+.confirm-card {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: 14px;
+  padding: 16px 18px;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+.confirm-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.confirm-card-line { font-weight: 600; }
+.confirm-card-where { font-size: 12px; color: var(--slate-500); }
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.confirm-primary { flex: 1; }
+.confirm-secondary { flex: 0 0 auto; }
+
 /* ── Toast ───────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;

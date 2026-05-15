@@ -403,6 +403,16 @@ test('mystaffler-poc: password-rule live checklist renders 3 rules', () => {
   assert.match(code, /bindPasswordChecklist\('password',/, 'wired on the password input');
 });
 
+test('mystaffler-poc: kandidaat-bevestiging screen renders after apply', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderCandidateConfirmation\(\)/);
+  assert.match(code, /confirmCandidate/);
+  assert.match(code, /Je bent kandidaat/);
+});
+
 test('mystaffler-poc: PWA manifest + icons + apple-touch-icon link', () => {
   const html = readFileSync(
     resolve(repo, 'mystaffler-poc/index.html'),
