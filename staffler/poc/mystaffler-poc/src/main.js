@@ -25,7 +25,11 @@ const app = document.getElementById('app');
 // ── Renderer entry point ────────────────────────────────────────────────
 function render() {
   const s = store.get();
-  if (s.forceResetUsername) {
+  if (s.forgotStep === 'request') {
+    renderForgotRequest();
+  } else if (s.forgotStep === 'confirm') {
+    renderForgotConfirm();
+  } else if (s.forceResetUsername) {
     renderForceReset();
   } else if (!s.employee) {
     renderLogin();
@@ -61,10 +65,14 @@ function renderLogin() {
         <button type="submit" class="submit" ${s.loggingIn ? 'disabled' : ''}>
           ${s.loggingIn ? 'Inloggen…' : 'Inloggen'}
         </button>
+        <button type="button" class="link" data-act="forgot">Wachtwoord vergeten?</button>
       </form>
       <div class="hint">Gebruik je MyStaffler-credentials. Eerste keer? Je krijgt een tijdelijk wachtwoord en wordt gevraagd er een nieuw te kiezen.</div>
     </section>
   `;
+  document.querySelector('[data-act="forgot"]').addEventListener('click', () => {
+    store.set({ forgotStep: 'request', forgotError: null, forgotEmail: '' });
+  });
   const form = document.getElementById('login-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -186,6 +194,107 @@ function validatePasswordClient(p) {
   if (!/[0-9]/.test(p)) return 'Wachtwoord moet minstens één cijfer bevatten.';
   if (!/[A-Z]/.test(p)) return 'Wachtwoord moet minstens één hoofdletter bevatten.';
   return null;
+}
+
+// ── Wachtwoord vergeten — step 1: ask for email ─────────────────────────
+function renderForgotRequest() {
+  const s = store.get();
+  app.innerHTML = `
+    <section class="login">
+      <div class="brand">staffler</div>
+      <div class="tagline">Wachtwoord vergeten</div>
+      <form id="forgot-form">
+        <label>E-mail
+          <input type="email" name="email" autocomplete="email" required placeholder="naam@bedrijf.be" value="${escapeHtml(s.forgotEmail ?? '')}" />
+        </label>
+        ${s.forgotError ? `<div class="err">${escapeHtml(s.forgotError)}</div>` : ''}
+        <button type="submit" class="submit" ${s.forgotSubmitting ? 'disabled' : ''}>
+          ${s.forgotSubmitting ? 'Versturen…' : 'Stuur code per e-mail'}
+        </button>
+        <button type="button" class="link" data-act="back">Terug naar inloggen</button>
+      </form>
+      <div class="hint">Je krijgt een code in je inbox. Vul die in op het volgende scherm en kies een nieuw wachtwoord.</div>
+    </section>
+  `;
+  const form = document.getElementById('forgot-form');
+  document.querySelector('[data-act="back"]').addEventListener('click', () => {
+    store.set({ forgotStep: null, forgotError: null });
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = String(new FormData(form).get('email') ?? '').trim();
+    if (!email) return;
+    store.set({ forgotSubmitting: true, forgotError: null });
+    try {
+      await api.forgotPassword(email);
+      // Server hides upstream errors — we always move to step 2.
+      store.set({
+        forgotSubmitting: false,
+        forgotError: null,
+        forgotStep: 'confirm',
+        forgotEmail: email,
+      });
+    } catch (err) {
+      // Network issue only — upstream errors already swallowed.
+      store.set({
+        forgotSubmitting: false,
+        forgotError: err?.body?.message ?? 'Verzenden mislukt. Controleer je verbinding.',
+      });
+    }
+  });
+}
+
+// ── Wachtwoord vergeten — step 2: code + new password ───────────────────
+function renderForgotConfirm() {
+  const s = store.get();
+  app.innerHTML = `
+    <section class="login">
+      <div class="brand">staffler</div>
+      <div class="tagline">Code uit e-mail + nieuw wachtwoord voor ${escapeHtml(s.forgotEmail ?? '')}</div>
+      <form id="forgot-confirm-form">
+        <label>Confirmatie-code
+          <input type="text" name="code" autocomplete="one-time-code" inputmode="numeric" required placeholder="6-cijferige code" />
+        </label>
+        <label>Nieuw wachtwoord
+          <input type="password" name="password" autocomplete="new-password" required placeholder="Minstens 8 tekens, 1 cijfer, 1 hoofdletter" />
+        </label>
+        <label>Bevestig wachtwoord
+          <input type="password" name="confirm" autocomplete="new-password" required />
+        </label>
+        ${s.forgotError ? `<div class="err">${escapeHtml(s.forgotError)}</div>` : ''}
+        <button type="submit" class="submit" ${s.forgotSubmitting ? 'disabled' : ''}>
+          ${s.forgotSubmitting ? 'Opslaan…' : 'Wachtwoord instellen'}
+        </button>
+        <button type="button" class="link" data-act="back">Terug naar inloggen</button>
+      </form>
+    </section>
+  `;
+  const form = document.getElementById('forgot-confirm-form');
+  document.querySelector('[data-act="back"]').addEventListener('click', () => {
+    store.set({ forgotStep: null, forgotError: null });
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const code = String(fd.get('code') ?? '').trim();
+    const password = String(fd.get('password') ?? '');
+    const confirm = String(fd.get('confirm') ?? '');
+    if (!code) return store.set({ forgotError: 'Vul de code uit je e-mail in.' });
+    const localErr = validatePasswordClient(password);
+    if (localErr) return store.set({ forgotError: localErr });
+    if (password !== confirm) return store.set({ forgotError: 'De twee wachtwoorden zijn niet identiek.' });
+    store.set({ forgotSubmitting: true, forgotError: null });
+    try {
+      await api.confirmForgotPassword(store.get().forgotEmail, password, code);
+      store.toast('Wachtwoord ingesteld. Log nu in.', 'success');
+      store.set({ forgotStep: null, forgotError: null, forgotSubmitting: false });
+    } catch (err) {
+      store.set({
+        forgotSubmitting: false,
+        forgotError: err?.body?.message ?? 'Code of wachtwoord werd niet aanvaard.',
+      });
+    }
+  });
 }
 
 // ── Planning week-view ──────────────────────────────────────────────────

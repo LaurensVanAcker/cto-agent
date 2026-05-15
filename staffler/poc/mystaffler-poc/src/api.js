@@ -53,6 +53,24 @@ export const api = {
     });
   },
 
+  /** "Wachtwoord vergeten" step 1 — Cognito mails a confirmation code.
+   *  Always returns ok (server hides upstream errors to avoid account
+   *  enumeration). */
+  forgotPassword(username) {
+    return call('/employee-reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    });
+  },
+
+  /** "Wachtwoord vergeten" step 2 — submit code + new password. */
+  confirmForgotPassword(username, newPassword, confirmationCode) {
+    return call('/employee-confirm-reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ username, newPassword, confirmationCode }),
+    });
+  },
+
   logout() {
     return call('/logout', { method: 'POST' });
   },

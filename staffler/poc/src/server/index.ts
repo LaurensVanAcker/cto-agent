@@ -426,6 +426,68 @@ app.post<{ Body: { password?: string } }>(
   },
 );
 
+// POST /api/employee-reset-password
+// Step 1 of the "wachtwoord vergeten" flow. Always returns 200 to
+// avoid account enumeration — upstream Cognito mails a confirmation
+// code to the email on file, or silently does nothing if the email
+// is unknown. The client just shows a generic confirmation screen.
+app.post<{ Body: { username?: string } }>(
+  "/api/employee-reset-password",
+  async (req, reply) => {
+    const username = (req.body?.username ?? "").trim().toLowerCase();
+    if (!username) {
+      reply.status(400);
+      return { kind: "validation", message: "username required" };
+    }
+    try {
+      await new StafflerClient({ gateway }).employeeResetPassword(username);
+    } catch {
+      // Swallow upstream errors — same response shape either way so a
+      // probe can't tell a known vs unknown email apart.
+    }
+    return { ok: true };
+  },
+);
+
+// POST /api/employee-confirm-reset-password
+// Step 2 of "wachtwoord vergeten" — operator pastes the code from
+// their email + picks a new password. Same password validator as
+// /api/employee-set-password.
+app.post<{
+  Body: { username?: string; newPassword?: string; confirmationCode?: string };
+}>(
+  "/api/employee-confirm-reset-password",
+  async (req, reply) => {
+    const username = (req.body?.username ?? "").trim().toLowerCase();
+    const newPassword = req.body?.newPassword ?? "";
+    const confirmationCode = (req.body?.confirmationCode ?? "").trim();
+    if (!username || !newPassword || !confirmationCode) {
+      reply.status(400);
+      return {
+        kind: "validation",
+        message: "username, newPassword en confirmationCode zijn vereist.",
+      };
+    }
+    const validity = validatePassword(newPassword);
+    if (!validity.ok) {
+      reply.status(400);
+      return { kind: "validation", message: validity.reason };
+    }
+    try {
+      await new StafflerClient({ gateway }).employeeConfirmResetPassword({
+        username,
+        newPassword,
+        confirmationCode,
+      });
+      return { ok: true };
+    } catch (err) {
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
+    }
+  },
+);
+
 /**
  * BCJ-19426 password rule: ≥ 8 chars, at least one digit, at least one
  * uppercase letter. Mirrors the Cognito policy upstream so a client

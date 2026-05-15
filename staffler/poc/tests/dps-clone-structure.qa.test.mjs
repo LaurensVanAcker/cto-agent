@@ -357,6 +357,43 @@ test('mystaffler-poc: hero has refresh button + greeting from /me', () => {
   assert.match(code, /s\.me\?\.user\?\.name\?\.split\(' '\)\[0\]/, 'greeting prefers /me name');
 });
 
+test('mystaffler-poc: forgot-password flow surfaces both steps', () => {
+  const code = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/main.js'),
+    'utf8',
+  );
+  assert.match(code, /renderForgotRequest\(\)/);
+  assert.match(code, /renderForgotConfirm\(\)/);
+  assert.match(code, /data-act="forgot"/, 'login screen exposes the forgot link');
+  const api = readFileSync(
+    resolve(repo, 'mystaffler-poc/src/api.js'),
+    'utf8',
+  );
+  assert.match(api, /forgotPassword\(username\)/);
+  assert.match(api, /confirmForgotPassword\(username,\s*newPassword,\s*confirmationCode\)/);
+});
+
+test('backend exposes the two-step reset routes', () => {
+  const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
+  assert.match(code, /"\/api\/employee-reset-password"/);
+  assert.match(code, /"\/api\/employee-confirm-reset-password"/);
+});
+
+test('mystaffler-poc: PWA manifest + icons + apple-touch-icon link', () => {
+  const html = readFileSync(
+    resolve(repo, 'mystaffler-poc/index.html'),
+    'utf8',
+  );
+  assert.match(html, /rel="manifest"\s+href="\/manifest\.webmanifest"/);
+  assert.match(html, /apple-touch-icon/);
+  const manifest = JSON.parse(
+    readFileSync(resolve(repo, 'mystaffler-poc/manifest.webmanifest'), 'utf8'),
+  );
+  assert.equal(manifest.start_url, '/');
+  assert.equal(manifest.theme_color.toLowerCase(), '#fc074f');
+  assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 2);
+});
+
 test('mystaffler-poc: availability row is whole-row clickable (tap to edit)', () => {
   const code = readFileSync(
     resolve(repo, 'mystaffler-poc/src/main.js'),

@@ -136,6 +136,30 @@ export class StafflerClient {
     return result;
   }
 
+  /** Initiates the "wachtwoord vergeten" flow — Cognito mails the
+   *  employee a confirmation code. Followed up by
+   *  `employeeConfirmResetPassword`. Always 200 from the gateway,
+   *  even if the email is unknown, to avoid account enumeration. */
+  async employeeResetPassword(username: string): Promise<void> {
+    await this.publicCall<void>(
+      "POST",
+      "/publicapi/employees/users/resetPassword",
+      { username },
+    );
+  }
+
+  async employeeConfirmResetPassword(payload: {
+    username: string;
+    newPassword: string;
+    confirmationCode: string;
+  }): Promise<void> {
+    await this.publicCall<void>(
+      "POST",
+      "/publicapi/employees/users/confirmResetPassword",
+      payload,
+    );
+  }
+
   async logout(): Promise<void> {
     await this.authedCall<void>("GET", "/api/users/logout");
     this.skey = undefined;

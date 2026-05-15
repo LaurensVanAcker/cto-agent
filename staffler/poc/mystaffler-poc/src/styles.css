@@ -317,6 +317,19 @@ a { color: var(--brand); }
   font-size: 15px;
 }
 .login .submit:disabled { opacity: 0.6; }
+.login .link {
+  background: transparent;
+  border: 0;
+  color: white;
+  font: inherit;
+  text-decoration: underline;
+  padding: 8px 0;
+  margin-top: 4px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.login .link:hover { opacity: 1; }
 .login .hint {
   margin-top: 16px;
   font-size: 12px;
