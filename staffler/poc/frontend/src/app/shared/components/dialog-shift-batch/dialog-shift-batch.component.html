@@ -24,33 +24,38 @@
   </header>
 
   <section class="m09-body">
-    <!-- Service location (only when none pre-selected) -->
-    @if (!config.data?.serviceGroupId && serviceGroupOptions().length > 1) {
-      <div class="m09-field">
-        <label class="m09-field-label">Service location</label>
-        <p-select
-          [options]="serviceGroupOptions()"
-          [(ngModel)]="form.serviceGroupId"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Kies service location"
-          appendTo="body"
-        />
-      </div>
-    }
+    <!--
+      Service location + Datum on one row to save vertical real-estate
+      (pilot feedback 2026-05-18). When the service-group is fixed by
+      the caller the date input expands to fill the full row.
+    -->
+    <div class="m09-row-2col">
+      @if (!config.data?.serviceGroupId && serviceGroupOptions().length > 1) {
+        <div class="m09-field m09-field-grid">
+          <label class="m09-field-label">Service location</label>
+          <p-select
+            [options]="serviceGroupOptions()"
+            [(ngModel)]="form.serviceGroupId"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Kies service location"
+            appendTo="body"
+          />
+        </div>
+      }
 
-    <!-- Datum range -->
-    <div class="m09-field">
-      <label class="m09-field-label">Datum</label>
-      <div class="m09-daterange">
-        <span class="dps-icon dps-icon-event-note"></span>
-        <input
-          type="date"
-          [(ngModel)]="form.dateFrom"
-          (ngModelChange)="onDateFromChange($event)"
-        />
-        <span class="m09-arrow">›</span>
-        <input type="date" [(ngModel)]="form.dateTo" />
+      <div class="m09-field m09-field-grid">
+        <label class="m09-field-label">Datum</label>
+        <div class="m09-daterange">
+          <span class="dps-icon dps-icon-event-note"></span>
+          <input
+            type="date"
+            [(ngModel)]="form.dateFrom"
+            (ngModelChange)="onDateFromChange($event)"
+          />
+          <span class="m09-arrow">›</span>
+          <input type="date" [(ngModel)]="form.dateTo" />
+        </div>
       </div>
     </div>
 
@@ -140,72 +145,87 @@
 
             @switch (slot.kind) {
               @case ('assigned') {
-                <div class="m09-name">
+                <div class="m09-name m09-name-picker">
                   @if (slot.employeeName) {
                     {{ slot.employeeName }}
                   } @else {
                     <!--
-                      Persoon-kiezen p-select — mockup 09 column 2 layout.
-                      Grouped into three sections (Beschikbaar / Andere
-                      medewerkers / Vaste werknemers) via PrimeNG's native
-                      group support. Group header colour is driven by the
-                      `variant` field via .persoon-kiezen-panel SCSS rules.
+                      Inline Persoon-kiezen picker — true in-row scroll list,
+                      NOT a p-select overlay. The earlier p-select with
+                      appendTo="body" rendered as a second popup on top of
+                      the dialog; pilot 2026-05-18 flagged it as
+                      "popup-over-popup". We render a contained filter input
+                      + scrollable list inside the slot card.
+
+                      Sections (restored 2026-05-18 after pilot reported
+                      vaste werknemers had disappeared):
+                        - Beschikbaar       (full overlap)
+                        - Andere medewerkers (partial / no overlap)
+                        - Vaste werknemers  (permanent, teal header)
+
+                      Each row carries a green/orange availability chip
+                      keyed to the shift window so the operator sees per
+                      medewerker which uren ze die dag vrij zijn.
                     -->
-                    <p-select
-                      class="flex-1 persoon-kiezen"
-                      panelStyleClass="persoon-kiezen-panel"
-                      [options]="employeeGroups()"
-                      [group]="true"
-                      optionGroupLabel="label"
-                      optionGroupChildren="items"
-                      [filter]="true"
-                      filterBy="label,statute,phone"
-                      [ngModel]="slot.employeeId"
-                      (ngModelChange)="onSlotEmployeeSelected($index, $event)"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Kies medewerker"
-                      appendTo="body"
-                    >
-                      <ng-template let-grp pTemplate="group">
-                        <div
-                          class="persoon-group-header"
-                          [class.is-available]="grp.variant === 'available'"
-                          [class.is-other]="grp.variant === 'other'"
-                          [class.is-fixed]="grp.variant === 'fixed'"
-                        >
-                          <span class="persoon-group-label">{{ grp.label }}</span>
-                          <span class="persoon-group-count">{{ grp.count }}</span>
-                        </div>
-                      </ng-template>
-                      <ng-template let-opt pTemplate="item">
-                        <div
-                          class="persoon-row"
-                          [class.is-fixed]="opt.isPermanent"
-                        >
-                          <span class="persoon-avatar">{{ opt.initials }}</span>
-                          <div class="persoon-main">
-                            <div class="persoon-name">
-                              {{ opt.firstName }} {{ opt.lastName }}
-                            </div>
-                            @if (opt.statute) {
-                              <div class="persoon-meta">
-                                <span>{{ opt.statute }}</span>
-                              </div>
-                            }
+                    <div class="persoon-inline">
+                      <input
+                        type="text"
+                        class="persoon-inline-filter"
+                        placeholder="Zoek op naam of statuut"
+                        autocomplete="off"
+                        [value]="personFilter()[$index] ?? ''"
+                        (input)="onPersonFilterInput($index, $any($event.target).value)"
+                      />
+                      <div class="persoon-inline-list" role="listbox">
+                        @for (grp of filteredEmployeeGroups($index); track grp.label) {
+                          <div
+                            class="persoon-group-header"
+                            [class.is-available]="grp.variant === 'available'"
+                            [class.is-other]="grp.variant === 'other'"
+                            [class.is-fixed]="grp.variant === 'fixed'"
+                          >
+                            <span class="persoon-group-label">{{ grp.label }}</span>
+                            <span class="persoon-group-count">{{ grp.count }}</span>
                           </div>
-                          @if (opt.availabilityRange) {
-                            <span
-                              class="availability-badge"
-                              [class.match]="opt.availability === 'match'"
-                              [class.partial]="opt.availability === 'partial'"
+                          @for (opt of grp.items; track opt.value) {
+                            <button
+                              type="button"
+                              class="persoon-inline-row"
+                              [class.is-fixed]="opt.isPermanent"
+                              role="option"
+                              (click)="onSlotEmployeeSelected($index, opt.value)"
                             >
-                              {{ opt.availabilityRange }}
-                            </span>
+                              <span class="persoon-avatar">{{ opt.initials }}</span>
+                              <div class="persoon-main">
+                                <div class="persoon-name">
+                                  {{ opt.firstName }} {{ opt.lastName }}
+                                </div>
+                                @if (opt.statute) {
+                                  <div class="persoon-meta">
+                                    <span>{{ opt.statute }}</span>
+                                  </div>
+                                }
+                              </div>
+                              @if (opt.availabilityRange) {
+                                <span
+                                  class="availability-badge"
+                                  [class.match]="opt.availability === 'match'"
+                                  [class.partial]="opt.availability === 'partial'"
+                                  [attr.aria-label]="
+                                    (opt.availability === 'match' ? 'Past — ' : 'Past deels — ')
+                                    + opt.availabilityRange
+                                  "
+                                >
+                                  {{ opt.availabilityRange }}
+                                </span>
+                              }
+                            </button>
                           }
-                        </div>
-                      </ng-template>
-                    </p-select>
+                        } @empty {
+                          <div class="persoon-inline-empty">Geen medewerkers gevonden</div>
+                        }
+                      </div>
+                    </div>
                   }
                 </div>
               }
@@ -237,7 +257,7 @@
               }
             }
 
-            @if (mode !== 'single') {
+            @if (mode !== 'single' && !isSplitBranchEdit) {
               <button
                 type="button"
                 class="m09-undo"
@@ -249,14 +269,14 @@
             }
           </div>
 
-          @if (slot.kind === 'assigned' && slot.employeeName) {
+          @if (slot.kind === 'assigned' && slot.employeeName && !slot.isPermanent) {
             <div class="m09-slot-detail">
               <div class="m09-pakket-label">
                 Loonpakket voor {{ firstName(slot.employeeName) }}
               </div>
               <p-select
                 class="m09-pakket-select-pn"
-                [options]="loonpakketOptions"
+                [options]="loonpakketOptions()"
                 [ngModel]="slot.loonpakketId"
                 (ngModelChange)="onSlotLoonpakketChanged($index, $event)"
                 optionLabel="label"
@@ -296,7 +316,7 @@
         </div>
       }
 
-      @if (mode !== 'single') {
+      @if (mode !== 'single' && !isSplitBranchEdit) {
         <button type="button" class="m09-add-slot" (click)="addSlot()">
           <span class="dps-icon dps-icon-add"></span> Shift toevoegen
         </button>

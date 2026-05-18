@@ -56,15 +56,25 @@
   wraps so the controls re-stack instead of overflowing.
 -->
 <div class="contract-dialog-top-row flex flex-wrap align-items-end gap-3">
-    <div class="flex flex-column">
+    <div class="flex flex-column contract-dialog-date">
       <label class="contract-dialog-field-label">
         {{ 'CONTRACT.DATE_LABEL' | translate }}
       </label>
+      <!--
+        Pilot feedback 2026-05-18: "datum veldje is nu breder, maar valt
+        uit de popup." The previous fixed inputStyleClass="w-15rem" plus
+        the trailing calendar-icon button pushed the datepicker past the
+        34rem dialog width on the narrow popup chrome. We now let the
+        datepicker fill its column (controlled by .contract-dialog-date
+        in styles.scss — 14rem max, shrinks below that) so it stays
+        inside the dialog regardless of locale / icon button width.
+      -->
       <p-datepicker
         selectionMode="range"
         appendTo="body"
         rangeSeparator=">"
-        inputStyleClass="w-15rem"
+        styleClass="w-full"
+        inputStyleClass="w-full"
         [showIcon]="true"
         [readonlyInput]="true"
         [minDate]="minDate"
@@ -73,25 +83,34 @@
       ></p-datepicker>
     </div>
 
-    <div class="flex flex-column flex-auto contract-dialog-service-location">
-      <label class="contract-dialog-field-label">
-        {{ 'CONTRACT.EMPLOYMENT_ADDRESS_LABEL' | translate }}
-      </label>
-      @if (form.controls.employmentAddress.value) {
-        <dps-address-autocomplete-field
-          label=""
-          [control]="form.controls.employmentAddress"
-        ></dps-address-autocomplete-field>
-      } @else {
-        <input
-          type="text"
-          pInputText
-          [value]="'CONTRACT.EMPLOYMENT_ADDRESS_PLACEHOLDER' | translate"
-          [disabled]="true"
-          class="flex-auto"
-        />
-      }
-    </div>
+    <!--
+      Service location is only shown in Locaties planning, where the
+      operator picked a specific vestiging. In Medewerkers planning the
+      vestiging context is implicit — the loonpakket's own address is
+      leading, so we drop the field entirely (and skip any mismatch
+      warning). Driven by ContractDialogDataModel.hideServiceLocation.
+    -->
+    @if (!data.hideServiceLocation) {
+      <div class="flex flex-column flex-auto contract-dialog-service-location">
+        <label class="contract-dialog-field-label">
+          {{ 'CONTRACT.EMPLOYMENT_ADDRESS_LABEL' | translate }}
+        </label>
+        @if (form.controls.employmentAddress.value) {
+          <dps-address-autocomplete-field
+            label=""
+            [control]="form.controls.employmentAddress"
+          ></dps-address-autocomplete-field>
+        } @else {
+          <input
+            type="text"
+            pInputText
+            [value]="'CONTRACT.EMPLOYMENT_ADDRESS_PLACEHOLDER' | translate"
+            [disabled]="true"
+            class="flex-auto"
+          />
+        }
+      </div>
+    }
   </div>
 
   <!--
@@ -134,6 +153,17 @@
         <p-skeleton styleClass="w-15rem h-2rem"></p-skeleton>
       }
     } @else if (originalContract) {
+      <!--
+        Pilot feedback 2026-05-18: "wage template moet gefetched en
+        read-only zijn als je een bestaand contract opent." We surface
+        the loonpakket (position + statute) as a disabled input so the
+        operator can SEE which wage-template the contract uses, but
+        can't change it. The actual immutability is enforced in TS via
+        applyExistingContractEditRules() which disables wageControl +
+        the entire form except fromTime/toTime (and even those flip
+        read-only once the contract starts within 8h, see
+        isContractEditLocked).
+      -->
       <input
         type="text"
         pInputText
@@ -141,6 +171,15 @@
         [disabled]="true"
         class="flex-auto"
       />
+    } @else {
+      <!--
+        Skeleton placeholder while /api/contracts/:id is in flight so
+        the wage row reads "loading" instead of empty space. Without
+        this the dialog body would render schedule fields without the
+        loonpakket strip and the operator wouldn't know which contract
+        they're editing until the GET resolves.
+      -->
+      <p-skeleton styleClass="w-15rem h-2rem"></p-skeleton>
     }
   </div>
 

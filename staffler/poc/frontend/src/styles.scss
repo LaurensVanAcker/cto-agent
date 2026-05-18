@@ -83,7 +83,11 @@
   background: #fc074f !important;
   border: none !important;
   width: 2px !important;
-  z-index: 6;
+  // Bryntum event wrappers sit at z-index 4-5 in the timeline-foreground.
+  // Bump the now-line above that so contracts + open-shift bars never
+  // occlude the live-time indicator (esp. in Dag-zoom where shifts overlap
+  // it most). High value + !important to win against any per-event z-index.
+  z-index: 20 !important;
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(252, 7, 79, 0.25);
 }
@@ -247,9 +251,15 @@
   font-weight: 700;
 }
 
+// SL-row "rename / attach" trigger. Used to fade in on row hover only,
+// but pilot feedback 2026-05-18: "ik zie geen icoon, alleen een verborgen
+// vierkant" — the rounded button background rendered before the icon
+// glyph (Material font loading race) so the operator saw an empty box.
+// Render the button visibly all the time at low opacity, pop to full on
+// hover. Icon is always painted now so there's no mystery square.
 .poc-sl-gear {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.45;
+  pointer-events: auto;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -257,17 +267,28 @@
   margin-left: auto;
   padding: 4px;
   border-radius: 4px;
-  transition: opacity 100ms ease;
+  transition: opacity 100ms ease, background-color 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+}
+
+.poc-sl-gear .dps-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .b-grid-row:hover .poc-sl-gear,
-.b-grid-row.b-hover .poc-sl-gear {
+.b-grid-row.b-hover .poc-sl-gear,
+.poc-sl-gear:focus-visible {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .poc-sl-gear:hover {
   background: rgba(15, 23, 42, 0.06);
+  opacity: 1;
 }
 
 // Mockup-09 dialog host: zero out PrimeNG's content padding so the
@@ -277,6 +298,17 @@
 // clip beyond viewport — bug reported 2026-05-12).
 .p-dialog.m09-host {
   max-height: calc(100vh - 32px);
+}
+
+// The mockup-09 dialog host sets font-size: 13px for the tight label
+// chrome. We want every p-select trigger inside the dialog to read at
+// that same 13px so labels like "Kies medewerker" don't tower over the
+// rest of the form (pilot feedback 2026-05-18: "Persoon-kiezen rendert
+// enorm groot vergeleken met andere labels"). The panel (appendTo=body)
+// is normalised to 13px via the .persoon-kiezen-panel rules below.
+.p-dialog.m09-host .p-select-label,
+.p-dialog.m09-host .p-select .p-placeholder {
+  font-size: 13px;
 }
 .p-dialog.m09-host .p-dialog-content {
   padding: 0 !important;
@@ -542,6 +574,40 @@ dps-contract-dialog .contract-dialog-loading-banner .p-progress-spinner-circle {
 // same baseline.
 dps-contract-dialog .contract-dialog-top-row {
   margin-bottom: 8px;
+  // Cap the row to the inner body width so a long date input + icon
+  // button can't shoot past the dialog edge. The flex-wrap on the
+  // markup handles the actual reflow when both children no longer fit
+  // side-by-side. Pilot feedback 2026-05-18: "datum veldje valt uit
+  // de popup" — without max-width the right edge of the datepicker
+  // overflowed the 34rem dialog chrome on a few zoom levels.
+  max-width: 100%;
+  min-width: 0;
+}
+
+// Date column: shrink/grow within 14rem so the calendar icon button
+// + input + label all stay inside the dialog. The datepicker itself
+// is set to w-full above, so it inherits this cap. min-width:0 is
+// the canonical "let flex children shrink past their content" trick.
+dps-contract-dialog .contract-dialog-date {
+  flex: 0 1 14rem;
+  min-width: 10rem;
+  max-width: 100%;
+}
+
+dps-contract-dialog .contract-dialog-date p-datepicker {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker {
+  width: 100%;
+  min-width: 0;
+}
+
+dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker-input {
+  width: 100% !important;
+  min-width: 0;
 }
 
 dps-contract-dialog .contract-dialog-top-row dps-address-autocomplete-field > label {
@@ -1256,6 +1322,21 @@ $smallScreenSize: 425px;
 
 .p-step-title {
   font-size: 1rem;
+}
+
+// ── Shared toolbar-button height (40px) ─────────────────────────────────
+//
+// Pool + locations already standardised on a 40px PrimeNG p-button via the
+// .pool-toolbar-btn class scoped inside pool.component.scss. Pilot feedback
+// 2026-05-18: user-accounts, invitations and actuals shipped with PrimeNG's
+// default ~46px CTA which towered over the 40px reference. Promoted to the
+// global stylesheet so any module can opt in (just set
+// `styleClass="pool-toolbar-btn"` on the p-button) and the rule survives
+// Angular's component view encapsulation.
+.p-button.pool-toolbar-btn {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 // ── Shared "PoC banner" card (mockup 10/11 stijl) ──────────────────────

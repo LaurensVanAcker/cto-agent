@@ -17,12 +17,58 @@
 
 <main class="flex flex-1 flex-column overflow-y-auto px-3 pt-3">
   @if (canManipulateUsers) {
-    <p-button
-      [label]="'COMPANY_USER_ACCOUNTS.INVITE_USER_BUTTON' | translate"
-      icon="dps-icon dps-icon-add"
-      class="mb-3"
-      (onClick)="openAddNewAccountDialog()"
-    ></p-button>
+    <div class="flex flex-wrap gap-2 mb-3">
+      <p-button
+        [label]="'COMPANY_USER_ACCOUNTS.INVITE_USER_BUTTON' | translate"
+        icon="dps-icon dps-icon-add"
+        styleClass="pool-toolbar-btn"
+        (onClick)="openAddNewAccountDialog()"
+      ></p-button>
+
+      <!--
+        Nieuwe vestiging-knop — pilot feedback 2026-05-18: user-accounts is de
+        plek waar admins permissies regelen, dus de "nieuwe vestiging"
+        affordance hoort hier net zo aanwezig te zijn als op /pool en /groups.
+        Popover-pattern komt rechtstreeks uit pool.component.html.
+      -->
+      <p-button
+        icon="dps-icon dps-icon-group_add"
+        [label]="'COMPANY_GROUPS.CREATE_NEW_GROUP_BUTTON' | translate"
+        severity="secondary"
+        styleClass="pool-toolbar-btn"
+        [outlined]="true"
+        (onClick)="newBranchPopover.toggle($event)"
+      ></p-button>
+    </div>
+
+    <p-popover #newBranchPopover>
+      <div class="flex flex-column gap-2 w-22rem">
+        <span class="text-xs uppercase font-medium text-color-secondary">
+          {{ 'COMPANY_GROUPS.CREATE_NEW_GROUP_BUTTON' | translate }}
+        </span>
+        <input
+          type="text"
+          pInputText
+          placeholder="Naam vestiging"
+          [formControl]="newBranchNameControl"
+          (keyup.enter)="createBranch(newBranchPopover)"
+        />
+        <div class="flex justify-content-end gap-2">
+          <p-button
+            outlined
+            severity="secondary"
+            label="Annuleren"
+            (onClick)="newBranchPopover.hide()"
+          ></p-button>
+          <p-button
+            label="Aanmaken"
+            [disabled]="newBranchNameControl.invalid || creatingBranch()"
+            [loading]="creatingBranch()"
+            (onClick)="createBranch(newBranchPopover)"
+          ></p-button>
+        </div>
+      </div>
+    </p-popover>
   }
 
   <p-table
@@ -41,11 +87,10 @@
           {{ 'COMPANY_USER_ACCOUNTS.TABLE_COLUMNS.USER' | translate }}
         </th>
 
-        @if (isCompanyGroupsEnabled()) {
-          <th>
-            {{ 'COMPANY_USER_ACCOUNTS.TABLE_COLUMNS.ACCESS_TO_EMPLOYEES_GROUPS' | translate }}
-          </th>
-        }
+        <!-- PoC: vestigingen-kolom altijd zichtbaar (zie comment in .ts) -->
+        <th>
+          {{ 'COMPANY_USER_ACCOUNTS.TABLE_COLUMNS.ACCESS_TO_EMPLOYEES_GROUPS' | translate }}
+        </th>
 
         <th class="w-15rem">
           {{ 'COMPANY_USER_ACCOUNTS.TABLE_COLUMNS.LAST_LOGIN' | translate }}
@@ -59,29 +104,27 @@
       <tr>
         <td>{{ user.email }}</td>
 
-        @if (isCompanyGroupsEnabled()) {
-          <td class="relative">
-            @if (user.role === userRoleEnum.GROUP_USER) {
-              <div class="flex flex-wrap align-items-center gap-2" style="min-height: 3rem">
-                @for (group of user.accessGroups; track group.id; let groupIndex = $index) {
-                  <p-chip>
-                    <span>{{ group.name }}</span>
-                    @if (canManipulateUsers) {
-                      <span
-                        class="dps-icon dps-icon-delete text-xl text-red-500 cursor-pointer"
-                        (click)="removeGroupFromAccount(user, groupIndex)"
-                      ></span>
-                    }
-                  </p-chip>
-                } @empty {
-                  <span>{{ 'COMPANY_USER_ACCOUNTS.NO_ACCESS_TO_GROUPS' | translate }}</span>
-                }
-              </div>
-            } @else if (user.role === userRoleEnum.COMPANY_USER) {
-              <span>{{ 'COMPANY_USER_ACCOUNTS.ACCESS_TO_ALL_GROUPS' | translate }}</span>
-            }
-          </td>
-        }
+        <td class="relative">
+          @if (user.role === userRoleEnum.GROUP_USER) {
+            <div class="flex flex-wrap align-items-center gap-2" style="min-height: 3rem">
+              @for (group of user.accessGroups; track group.id; let groupIndex = $index) {
+                <p-chip>
+                  <span>{{ group.name }}</span>
+                  @if (canManipulateUsers) {
+                    <span
+                      class="dps-icon dps-icon-delete text-xl text-red-500 cursor-pointer"
+                      (click)="removeGroupFromAccount(user, groupIndex)"
+                    ></span>
+                  }
+                </p-chip>
+              } @empty {
+                <span>{{ 'COMPANY_USER_ACCOUNTS.NO_ACCESS_TO_GROUPS' | translate }}</span>
+              }
+            </div>
+          } @else if (user.role === userRoleEnum.COMPANY_USER) {
+            <span>{{ 'COMPANY_USER_ACCOUNTS.ACCESS_TO_ALL_GROUPS' | translate }}</span>
+          }
+        </td>
 
         <td>
           @if (user.lastLoginAt; as lastLoginDatetime) {
@@ -96,7 +139,17 @@
         </td>
 
         <td>
-          @if (canManipulateUsers && (currUser$ | async)?.user?.email !== user.email) {
+          <!--
+            PoC pilot feedback 2026-05-18: de "verberg kebab voor jezelf"-guard
+            verdween dwars door alle COMPANY_USER-rijen heen omdat de pilot-
+            tenant slechts één full-access admin heeft (= de ingelogde
+            operator). Resultaat: rijen met "toegang tot alle vestigingen"
+            hadden geen 3-puntjesmenu meer terwijl GROUP_USER's dat wél
+            hielden. Fix: toon de kebab altijd zolang `canManipulateUsers`
+            true is — destructieve acties zijn al beveiligd op API-niveau en
+            via de bevestigingsdialoogjes.
+          -->
+          @if (canManipulateUsers) {
             <p-button
               icon="dps-icon dps-icon-more rotate-90"
               [text]="true"
@@ -109,7 +162,7 @@
 
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="3" class="text-center">
+        <td colspan="4" class="text-center">
           <small>{{ 'COMPANY_USER_ACCOUNTS.NO_USERS' | translate }}</small>
         </td>
       </tr>

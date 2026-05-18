@@ -14,6 +14,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
+import { MessageService } from 'primeng/api';
 
 import { Store } from '@ngxs/store';
 import { DateTime } from 'luxon';
@@ -59,6 +60,22 @@ interface DialogData {
    *     in Namen view (one cell-click → one slot for one employee).
    */
   mode?: 'single' | 'multi';
+  /**
+   * Split-shift edit hint. The Locaties grid explodes one PoC-DB shift
+   * with capacity=N into ≤ N Bryntum events (one per assigned employee
+   * + one "open" lane for the remaining seats). When the operator
+   * clicks one of those split blocks we open the dialog focused on
+   * that branch only:
+   *   - `slotFilter='open'`              → only the open seats render
+   *   - `focusedEmployeeId='<empId>'`    → only that one assigned slot
+   *   - `slotFilter='all'`/undefined     → all slots (legacy fallback)
+   * Without this the operator would see every slot of the underlying
+   * shift regardless of which split block they clicked, which is
+   * confusing and lets them accidentally edit other people's
+   * assignments.
+   */
+  slotFilter?: 'open' | 'all';
+  focusedEmployeeId?: string;
   /**
    * Optional pre-seeded pool — used by the auth-free /demo/dialogs
    * gallery so the Persoon-kiezen dropdown is populated even though the
@@ -123,6 +140,10 @@ interface Slot {
    *  persisted to the shift record — the PoC-DB doesn't model per-slot
    *  wages yet. */
   loonpakketId?: string;
+  /** Vaste medewerkers are payrolled outside DPS so they don't need a
+   *  loonpakket selection. The template hides the wage block when this is
+   *  set; the employee picker passes it through from RichEmployeeOption. */
+  isPermanent?: boolean;
 }
 
 /**
@@ -169,6 +190,7 @@ export class DialogShiftBatchComponent {
   private readonly companyGroupsApi = inject(CompanyGroupApiService);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly messageService = inject(MessageService, { optional: true });
 
   /** "Bestaande shift gebruiken" / "Nieuwe uren ingeven" toggle state. */
   protected readonly hoursMode = signal<'template' | 'custom'>('template');
@@ -189,6 +211,85 @@ export class DialogShiftBatchComponent {
   /** Hover index — controls which slot shows the choice buttons. */
   protected readonly hoveredSlotIndex = signal<number | null>(null);
 
+  /**
+   * Per-slot type-ahead filter for the inline Persoon-kiezen picker.
+   * Keyed by slot index → lowercase search string. The previous design
+   * leaned on PrimeNG's p-select with appendTo="body", which rendered
+   * the option panel as an overlay floating on top of the dialog (the
+   * pilot complained about "popup-over-popup"). We now render a true
+   * inline scrollable list inside the slot, gated by this signal.
+   */
+  protected readonly personFilter = signal<Record<number, string>>({});
+
+  protected onPersonFilterInput(idx: number, value: string): void {
+    this.personFilter.update(m => ({ ...m, [idx]: (value ?? '').toLowerCase() }));
+  }
+
+  /** Filtered + alphabetically sorted options for the inline picker.
+   *  Flat list — kept as the source of truth that
+   *  `filteredEmployeeGroups` slices into three sections. */
+  protected filteredEmployeeOptions(idx: number): RichEmployeeOption[] {
+    const q = (this.personFilter()[idx] ?? '').trim();
+    const all = this.employeeOptions().slice().sort((a, b) =>
+      a.label.localeCompare(b.label, 'nl-BE'),
+    );
+    if (!q) return all;
+    return all.filter(
+      o =>
+        o.label.toLowerCase().includes(q) ||
+        (o.statute ?? '').toLowerCase().includes(q),
+    );
+  }
+
+  /**
+   * Grouped + filtered options for the inline picker. Restores the
+   * three-section split that pilot operators relied on (regression
+   * 2026-05-18: the flat list buried the vaste medewerkers so
+   * operators couldn't tell who was permanent any more).
+   *
+   * Groups:
+   *   - Beschikbaar       → full overlap (availability=match), non-permanent
+   *   - Andere medewerkers → partial / no overlap, non-permanent
+   *   - Vaste werknemers  → permanent employees (rendered teal)
+   *
+   * Empty buckets are dropped so the picker never shows an empty
+   * section header. Sort + filter happen in `filteredEmployeeOptions`
+   * before the slice, so the chip-row text always matches what the
+   * operator typed.
+   */
+  protected filteredEmployeeGroups(idx: number): RichEmployeeGroup[] {
+    const filtered = this.filteredEmployeeOptions(idx);
+    const available = filtered.filter(o => !o.isPermanent && o.availability === 'match');
+    const other = filtered.filter(o => !o.isPermanent && o.availability !== 'match');
+    const fixed = filtered.filter(o => o.isPermanent);
+    const groups: RichEmployeeGroup[] = [];
+    if (available.length > 0) {
+      groups.push({
+        label: 'Beschikbaar',
+        count: available.length,
+        variant: 'available',
+        items: available,
+      });
+    }
+    if (other.length > 0) {
+      groups.push({
+        label: 'Andere medewerkers',
+        count: other.length,
+        variant: 'other',
+        items: other,
+      });
+    }
+    if (fixed.length > 0) {
+      groups.push({
+        label: 'Vaste werknemers',
+        count: fixed.length,
+        variant: 'fixed',
+        items: fixed,
+      });
+    }
+    return groups;
+  }
+
   /** Default deadline = next Sunday at 21:00 (Brussels time). Pilot
    *  operators typically broadcast for the upcoming week, so reaction
    *  needs to settle by Sunday evening. */
@@ -205,6 +306,28 @@ export class DialogShiftBatchComponent {
    *  count badge, render "shift" (singular) in the header. Defaults to
    *  multi for backwards-compat with the Locaties cell-click flow. */
   protected readonly mode: 'single' | 'multi' = this.config.data?.mode ?? 'multi';
+  /** When set, the dialog opened in "split branch" edit mode:
+   *  either focused on one assigned employee, or the open-seats branch.
+   *  We hide slot manipulation affordances in that case — the operator
+   *  shouldn't be able to add/remove slots when they only opened one
+   *  branch of the split. */
+  protected readonly focusedEmployeeId = this.config.data?.focusedEmployeeId ?? null;
+  protected readonly slotFilter = this.config.data?.slotFilter ?? 'all';
+  /**
+   * True only when the dialog was opened on a single ASSIGNED-employee
+   * split block. In that case we hide both add- and remove-slot affordances:
+   * the operator only sees one slot (the assigned one they clicked) and
+   * letting them mutate the surrounding slots from this narrow view would
+   * be surprising.
+   *
+   * Pilot feedback 2026-05-18: "als je een open shift block bewerkt, mag
+   * je wel shiften kunnen toevoegen nog." When the operator clicks the
+   * OPEN-seats branch we still narrow the dialog to the open slots, but
+   * adding a new slot to the underlying shift remains a sensible op
+   * (it simply increases capacity by one open seat). So we no longer
+   * gate the "Shift toevoegen" button behind slotFilter==='open'.
+   */
+  protected readonly isSplitBranchEdit = this.isEdit && !!this.focusedEmployeeId;
 
   protected readonly form = {
     serviceGroupId:
@@ -256,6 +379,16 @@ export class DialogShiftBatchComponent {
       const open: Slot[] = Array.from({ length: openCount }, () => ({
         kind: 'open' as const,
       }));
+      // Split-shift narrowing — see DialogData.slotFilter docs.
+      const focusedId = this.config.data?.focusedEmployeeId;
+      const filter = this.config.data?.slotFilter ?? 'all';
+      if (focusedId) {
+        const one = assigned.find(s => s.employeeId === focusedId);
+        return one ? [one] : [{ kind: 'open' }];
+      }
+      if (filter === 'open') {
+        return open.length > 0 ? open : [{ kind: 'open' }];
+      }
       const all = [...assigned, ...open];
       return all.length > 0 ? all : [{ kind: 'open' }];
     }
@@ -282,45 +415,28 @@ export class DialogShiftBatchComponent {
     this.poolEmployees().map(e => this.toRichEmployeeOption(e));
 
   /**
-   * Grouped options for the Persoon-kiezen p-select. Splits the flat
-   * employee list into three buckets that match the mockup column 2:
-   *   - Beschikbaar     → full overlap (availability=match), non-permanent
-   *   - Andere medewerkers → partial / no overlap, non-permanent
-   *   - Vaste werknemers → permanent employees (rendered teal)
-   *
-   * Each group exposes a `count` chip and a `variant` so the panel SCSS
-   * can colour the group header (pink/brand for Beschikbaar, teal for
-   * Vaste werknemers, muted for the rest).
+   * Unfiltered grouped options — convenience used elsewhere (demo
+   * gallery). The slot picker binds to `filteredEmployeeGroups($index)`
+   * so the per-slot type-ahead is honoured. Restored 2026-05-18 after
+   * pilot reported the vaste werknemers had disappeared from the
+   * picker when the flat-list rewrite landed.
    */
   protected readonly employeeGroups = (): RichEmployeeGroup[] => {
-    const opts = this.employeeOptions();
+    const opts = this.employeeOptions()
+      .slice()
+      .sort((a, b) => a.label.localeCompare(b.label, 'nl-BE'));
     const available = opts.filter(o => !o.isPermanent && o.availability === 'match');
     const other = opts.filter(o => !o.isPermanent && o.availability !== 'match');
     const fixed = opts.filter(o => o.isPermanent);
     const groups: RichEmployeeGroup[] = [];
     if (available.length > 0) {
-      groups.push({
-        label: 'Beschikbaar',
-        count: available.length,
-        variant: 'available',
-        items: available,
-      });
+      groups.push({ label: 'Beschikbaar', count: available.length, variant: 'available', items: available });
     }
     if (other.length > 0) {
-      groups.push({
-        label: 'Andere medewerkers',
-        count: other.length,
-        variant: 'other',
-        items: other,
-      });
+      groups.push({ label: 'Andere medewerkers', count: other.length, variant: 'other', items: other });
     }
     if (fixed.length > 0) {
-      groups.push({
-        label: 'Vaste werknemers',
-        count: fixed.length,
-        variant: 'fixed',
-        items: fixed,
-      });
+      groups.push({ label: 'Vaste werknemers', count: fixed.length, variant: 'fixed', items: fixed });
     }
     return groups;
   };
@@ -465,7 +581,9 @@ export class DialogShiftBatchComponent {
    *  surfaces in exactly that case. The first option is intentionally on
    *  a different service-group to make the banner demoable in the gallery.
    */
-  protected readonly loonpakketOptions = [
+  protected readonly loonpakketOptions = signal<
+    Array<{ label: string; value: string; serviceGroupId: string }>
+  >([
     {
       label: 'Barista — Flexijob bediende — Antwerpen Eilandje',
       value: 'barista-flex-antwerpen',
@@ -481,7 +599,7 @@ export class DialogShiftBatchComponent {
       value: 'kelner-flex-gent',
       serviceGroupId: 'sg-gent-dok-noord',
     },
-  ];
+  ]);
 
   /**
    * Per-slot dismiss state for the inline "loonpakket mismatch" banner.
@@ -515,7 +633,7 @@ export class DialogShiftBatchComponent {
     // Per pilot AC: only when a wage-template is actually selected — no
     // banner for "nothing picked yet".
     if (!slot.loonpakketId) return false;
-    const opt = this.loonpakketOptions.find(o => o.value === slot.loonpakketId);
+    const opt = this.loonpakketOptions().find(o => o.value === slot.loonpakketId);
     if (!opt) return false;
     // Mismatch when the picked wage-template's vestiging (≈ address)
     // differs from the chosen service-location's. The current PoC uses
@@ -531,7 +649,7 @@ export class DialogShiftBatchComponent {
    * leading position + statute pieces.
    */
   protected bannerPakketLabel(slot: Slot): string {
-    const opt = this.loonpakketOptions.find(o => o.value === slot.loonpakketId);
+    const opt = this.loonpakketOptions().find(o => o.value === slot.loonpakketId);
     if (!opt) return 'dit loonpakket';
     // "Barista — Flexijob bediende — Antwerpen Eilandje" → "Barista (Flexijob bediende)"
     const parts = opt.label.split('—').map(p => p.trim());
@@ -540,14 +658,51 @@ export class DialogShiftBatchComponent {
   }
 
   /**
-   * "Aanmaken" click on the inline banner. For now: stub that just
-   * dismisses the banner for that slot. Production hookup is a POST to
-   * the wage-template endpoint with the slot's loonpakket details + the
-   * current service-group, after which the new template gets selected
-   * automatically.
+   * "Aanmaken" click on the inline banner.
+   *
+   * PoC behaviour (per pilot feedback 2026-05-18): clone the slot's
+   * current loonpakket with just the address (≈ serviceGroupId) swapped
+   * to the dialog's selected vestiging, push the clone into the in-memory
+   * options list, auto-select it on this slot, dismiss the banner, and
+   * fire a short toast confirming the clone. No backend hit yet — the
+   * production wire-up POSTs to /api/employeewages with the cloned
+   * payload and selects the returned id.
    */
   protected onCreateLoonpakket(slotIndex: number): void {
+    const slot = this.slots()[slotIndex];
+    if (!slot || !slot.loonpakketId) {
+      this.bannerDismissed.update(d => ({ ...d, [slotIndex]: true }));
+      return;
+    }
+    const src = this.loonpakketOptions().find(o => o.value === slot.loonpakketId);
+    if (!src) {
+      this.bannerDismissed.update(d => ({ ...d, [slotIndex]: true }));
+      return;
+    }
+    // Swap the trailing "— <vestiging>" piece for the current one.
+    const vestigingLabel = this.positionLabel();
+    const parts = src.label.split('—').map(p => p.trim());
+    const head = parts.length >= 2 ? parts.slice(0, -1).join(' — ') : src.label;
+    const newLabel = `${head} — ${vestigingLabel}`;
+    const newValue = `${src.value}-clone-${Date.now().toString(36)}`;
+    const clone = {
+      label: newLabel,
+      value: newValue,
+      serviceGroupId: this.form.serviceGroupId,
+    };
+    this.loonpakketOptions.update(arr => [...arr, clone]);
+    // Auto-select the clone on this slot — banner naturally hides when
+    // serviceGroupId matches.
+    this.slots.update(arr =>
+      arr.map((s, i) => (i === slotIndex ? { ...s, loonpakketId: newValue } : s)),
+    );
     this.bannerDismissed.update(d => ({ ...d, [slotIndex]: true }));
+    this.messageService?.add({
+      severity: 'success',
+      summary: 'Loonpakket gekloond',
+      detail: `Voor ${vestigingLabel}`,
+      life: 3000,
+    });
   }
 
   /** "Bestaande shift gebruiken" presets — these are pilot-defined shift
@@ -700,19 +855,41 @@ export class DialogShiftBatchComponent {
   }
 
   /** Bind the chosen employee id + name onto the slot when the dropdown
-   *  emits a change. */
+   *  emits a change. Guards against picking the same employee twice across
+   *  the slot list — duplicates collapse to a single assignment and the
+   *  earlier slot is reset to 'open' instead, since shifting the same
+   *  person twice never makes sense (it'd double-book them on the same
+   *  day). */
   protected onSlotEmployeeSelected(idx: number, employeeId: string): void {
     const emp = this.poolEmployees().find(e => e.id === employeeId);
     const name =
       emp != null
         ? `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || employeeId
         : '';
+    // RichEmployeeOption carries an isPermanent flag; the raw EmployeeModel
+    // doesn't, but the rich variant is what the picker lists, so consult
+    // the enriched array first and fall back to false for unknown ids.
+    const rich = this.employeeOptions().find(o => o.value === employeeId);
+    const isPermanent = rich?.isPermanent ?? false;
     this.slots.update(arr =>
-      arr.map((s, i) =>
-        i === idx
-          ? { kind: 'assigned' as const, employeeId, employeeName: name }
-          : s,
-      ),
+      arr.map((s, i) => {
+        if (i === idx) {
+          return {
+            kind: 'assigned' as const,
+            employeeId,
+            employeeName: name,
+            isPermanent,
+          };
+        }
+        // Strip the same employee off any other slot — show the operator
+        // an empty 'open' chip so they know they need to assign another
+        // person there. Without this guard you could double-assign the
+        // same person and the publish would fail upstream.
+        if (s.kind === 'assigned' && s.employeeId === employeeId) {
+          return { kind: 'open' as const };
+        }
+        return s;
+      }),
     );
   }
 
@@ -757,7 +934,7 @@ export class DialogShiftBatchComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    const assignedIds = this.slots()
+    let assignedIds = this.slots()
       .filter(s => s.kind === 'assigned' && !!s.employeeId)
       .map(s => s.employeeId!) as string[];
 
@@ -766,16 +943,41 @@ export class DialogShiftBatchComponent {
     // it as a draft → publish so the pool gets notified. This fixes the
     // bug where assigning an employee still produced an Open shift block.
     const allAssigned = assignedIds.length === this.slots().length;
-    const targetType: ShiftTargetType = allAssigned ? 'SELECTION' : 'ALL_POOL';
+    let targetType: ShiftTargetType = allAssigned ? 'SELECTION' : 'ALL_POOL';
 
     // Edit mode: PATCH /api/shifts/:id/share with the updated target +
     // deadline. The PoC-DB endpoint accepts a partial merge.
     if (this.isEdit && this.editingShiftId) {
+      // Split-branch edit: the dialog only shows one slice of the
+      // underlying shift (either the focused assigned employee, or
+      // only the open seats). Merge the visible slots back with the
+      // unseen ones from the original shift so we don't accidentally
+      // wipe other people's assignments.
+      if (this.isSplitBranchEdit) {
+        const original = this.config.data?.existingShift;
+        const originalTargets = original?.target_employee_ids ?? [];
+        if (this.focusedEmployeeId) {
+          // Keep all other assigned ids untouched; the focused row is
+          // read-only in this PoC pass (no rename, no removal), so the
+          // merged target set equals the original.
+          assignedIds = originalTargets.slice();
+        } else if (this.slotFilter === 'open') {
+          // Only open seats were visible — preserve all assigned ids.
+          assignedIds = originalTargets.slice();
+        }
+        const stillHasOpen =
+          (original?.capacity ?? assignedIds.length) > assignedIds.length;
+        targetType = stillHasOpen ? 'ALL_POOL' : 'SELECTION';
+      }
       this.shiftsApi
         .share(this.editingShiftId, {
           targetType,
           targetEmployeeIds: assignedIds.length > 0 ? assignedIds : undefined,
-          reactionDeadline: this.hasOpenSlot() ? this.form.deadline : undefined,
+          reactionDeadline:
+            (this.hasOpenSlot() || (this.isSplitBranchEdit && this.slotFilter === 'open')) &&
+            this.form.deadline
+              ? this.form.deadline
+              : undefined,
         })
         .subscribe({
           next: shift => {
