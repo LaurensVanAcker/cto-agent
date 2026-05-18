@@ -5,6 +5,15 @@ import { DateTime } from 'luxon';
 
 export const MOBILE_ACTUALS_SCHEDULER_CONFIG = {
   ...MOBILE_SCHEDULER_CONFIG,
+  // Pilot feedback 2026-05-18: in day-view, dragging a new contract / open
+  // shift onto a slot that already contains a contract landed exactly on top
+  // of the existing one (Bryntum's default `pack` layout shrinks bars to fit
+  // overlaps inside a single lane). Mirror the planning-poc fix: allow
+  // overlap, switch to `stack` so each overlap gets its own y-lane, and add
+  // a small bar margin so the lanes read as distinct cards.
+  allowOverlap: true,
+  eventLayout: 'stack',
+  barMargin: 6,
   eventRenderer({ eventRecord, renderData, scheduler }) {
     const { position, workTime, contractEndDate } = (eventRecord as any)
       .data as ContractConfirmation;
@@ -68,10 +77,35 @@ export const MOBILE_ACTUALS_SCHEDULER_CONFIG = {
 
 export const ACTUALS_SCHEDULER_CONFIG = {
   ...GENERAL_SCHEDULER_CONFIG,
+  // Pilot feedback 2026-05-18: the actuals toolbar already renders the
+  // "<from> - <to> (Week N)" range above the scheduler, so the week-level
+  // header row inside Bryntum is a duplicate. Drop it (mirror planning-poc)
+  // and keep only the day header row. The shared `:has(.b-sch-header-row-1)`
+  // rule in company.component.scss still gates the legacy big right-aligned
+  // styling so nothing else changes — it just no longer matches here.
+  viewPreset: {
+    base: 'dayAndWeek',
+    headers: [
+      {
+        unit: 'day',
+        dateFormat: 'ddd D',
+      },
+    ],
+  },
   features: {
     ...GENERAL_SCHEDULER_CONFIG.features,
     eventDragCreate: false,
   },
+  // Pilot feedback 2026-05-18: in day-view, dropping a new contract / open
+  // shift onto a slot that already had a contract rendered the new bar
+  // exactly on top of the existing one (Bryntum `pack` mode squeezes both
+  // bars into the same lane). Switching to `stack` puts each overlap on its
+  // own y-lane below; `allowOverlap: true` is required for `stack` to kick
+  // in and `barMargin: 6` reserves vertical breathing room between lanes.
+  // Mirrors the planning-poc fix that already shipped for the planning grid.
+  allowOverlap: true,
+  eventLayout: 'stack',
+  barMargin: 6,
   eventRenderer({ eventRecord, renderData }) {
     const { position, workTime, contractEndDate } = (eventRecord as any)
       .data as ContractConfirmation;
