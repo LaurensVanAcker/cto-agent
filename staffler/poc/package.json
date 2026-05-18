@@ -17,10 +17,11 @@
     "gen:types": "openapi-typescript ../api/openapi/openapi.json -o src/types/staffler.generated.ts"
   },
   "dependencies": {
-    "fastify": "^4.28.0",
-    "@fastify/static": "^7.0.4"
+    "@fastify/static": "^7.0.4",
+    "fastify": "^4.28.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20.0.0",
     "openapi-typescript": "^7.0.0",
     "tsx": "^4.0.0",
