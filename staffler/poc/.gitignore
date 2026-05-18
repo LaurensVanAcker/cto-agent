@@ -14,3 +14,8 @@ data/
 .hive-mind/
 .swarm/
 CLAUDE.md
+
+# Playwright auth state — contains live session cookies, never commit
+e2e/.auth/
+playwright-report/
+test-results/

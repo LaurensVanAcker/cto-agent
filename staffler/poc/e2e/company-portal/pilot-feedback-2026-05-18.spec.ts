@@ -12,37 +12,16 @@ import { expect, test, type Page, type APIRequestContext } from '@playwright/tes
  *   6. backend /api/availabilities seed is populated for current week
  *   7. user-accounts kebab renders for both COMPANY_USER and GROUP_USER rows
  *
- * Each test self-skips cleanly when seed data / fixtures / creds aren't
- * available so the suite stays green on machines without QA access. The
- * fixes themselves are the system-under-test and are NEVER edited here.
+ * Auth is handled by the `setup` project (`e2e/_setup/auth.setup.ts`), which
+ * persists a storageState file at `e2e/.auth/staffler.json`. The
+ * company-portal project in `playwright.config.ts` declares
+ * `dependencies: ['setup']` and loads that storageState, so every spec
+ * starts already logged-in. See `e2e/README.md` for the local-run flow.
  *
- * Fixture gap (TODO): no shared login page-object / session yet. Each test
- * inlines a thin helper that posts to /api/login; once a real fixture lands
- * in `e2e/_fixtures/`, swap the helper for `test.use({ storageState })`.
+ * Tests still self-skip on missing seed data so the suite stays green on
+ * machines without QA fixtures. The fixes themselves are the
+ * system-under-test and are NEVER edited here.
  */
-
-const username = process.env.STAFFLER_QA_USER;
-const password = process.env.STAFFLER_QA_PASSWORD;
-const haveCreds = !!username && !!password;
-
-// Helper: best-effort UI login. Returns true if we landed in the app shell.
-async function login(page: Page): Promise<boolean> {
-  await page.goto('/');
-  const emailField = page.locator('input[type="email"], input[name="username"]').first();
-  if (!(await emailField.isVisible().catch(() => false))) {
-    // Already authenticated via reused session — bail out happily.
-    return true;
-  }
-  await emailField.fill(username!);
-  await page.locator('input[type="password"]').first().fill(password!);
-  await page.getByRole('button', { name: /inloggen|sign in|login/i }).click();
-  try {
-    await page.waitForResponse(r => r.url().includes('/api/me') && r.ok(), { timeout: 15_000 });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // Helper: navigate to planning grid + wait until Bryntum is alive.
 async function gotoPlanning(page: Page): Promise<boolean> {
@@ -57,11 +36,6 @@ async function gotoPlanning(page: Page): Promise<boolean> {
 }
 
 test.describe('pilot-feedback 2026-05-18', () => {
-  test.skip(!haveCreds, 'STAFFLER_QA_USER + STAFFLER_QA_PASSWORD not set — skipping pilot-feedback suite');
-
-  test.beforeEach(async ({ page }) => {
-    test.skip(!(await login(page)), 'login flow failed — seed/QA env unreachable');
-  });
 
   // 1) Drag-stack in day-view ----------------------------------------------
   test('1) day-view drag stacks overlapping events into separate y-lanes', async ({ page }) => {
