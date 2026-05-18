@@ -46,6 +46,25 @@ test('frontend uses the dps-clone layout (pages/auth/login, pages/company/module
   }
 });
 
+// Anti-regression: the login background photo has been stripped 4× now,
+// every time by an agent thinking "white surface looks more brand-light".
+// Upstream dps-reference ships the photo and the PoC must keep it.
+test('login screen keeps the background photo (do NOT strip again)', () => {
+  const scss = readFileSync(
+    resolve(frontendApp, 'pages/auth/login/login.component.scss'),
+    'utf8',
+  );
+  assert.match(
+    scss,
+    /background:\s*url\(['"]?src\/assets\/images\/background\.jpeg['"]?\)/,
+    'login.component.scss must set :host background to assets/images/background.jpeg',
+  );
+  assert.ok(
+    existsSync(resolve(frontendSrc, 'assets/images/background.jpeg')),
+    'background.jpeg asset must exist on disk',
+  );
+});
+
 test('no console.log / debugger leftover in shipped TS', () => {
   for (const file of walk(frontendApp).filter(
     (f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'),
