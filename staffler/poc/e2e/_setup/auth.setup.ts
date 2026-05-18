@@ -55,11 +55,23 @@ setup('authenticate and persist storageState', async ({ page }) => {
 
   if (haveCreds) {
     // Headless / CI path — fill the form ourselves.
-    const emailField = page.locator('input[type="email"], input[name="username"]').first();
+    const emailField = page
+      .locator('input[name="email"], input#email, input[formcontrolname="email"], input[type="email"], input[name="username"]')
+      .first();
     await expect(emailField).toBeVisible({ timeout: 15_000 });
     await emailField.fill(user!);
-    await page.locator('input[type="password"]').first().fill(pass!);
-    await page.getByRole('button', { name: /inloggen|sign in|login/i }).click();
+    await page
+      .locator('input[name="password"], input#password, input[formcontrolname="password"], input[type="password"]')
+      .first()
+      .fill(pass!);
+    // Form submit is the most resilient — works whether the button label is
+    // "Log in", "Inloggen", or translated.
+    const submit = page.locator('button[type="submit"]').first();
+    if (await submit.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await submit.click();
+    } else {
+      await page.keyboard.press('Enter');
+    }
   } else {
     // Interactive path — Laurens logs in by hand in the headed browser.
     // eslint-disable-next-line no-console
