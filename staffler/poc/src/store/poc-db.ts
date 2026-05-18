@@ -13,6 +13,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 
+import {
+  DEMO_AVAILABILITY_WEEK,
+  demoAvailabilityDate,
+} from "./demo-availability-week.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DATA_DIR = join(__dirname, "..", "..", "data");
@@ -216,6 +221,19 @@ class PocDb {
     return this.data.service_groups
       .filter((g) => g.company_id === companyId && !g.deleted_at)
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Bulk fetch by id — used by `/api/my-shifts` and `/api/notifications`
+   * to resolve service-location names without dragging in the whole table
+   * via `raw()`. Empty list returns []; unknown ids are silently dropped
+   * (the caller filters via Map.get anyway). Matches the Postgres adapter
+   * which uses `WHERE id = ANY($1::text[])`.
+   */
+  listServiceGroupsByIds(ids: string[]): ServiceGroup[] {
+    if (ids.length === 0) return [];
+    const set = new Set(ids);
+    return this.data.service_groups.filter((g) => set.has(g.id) && !g.deleted_at);
   }
 
   getServiceGroup(id: string): ServiceGroup | undefined {
@@ -451,6 +469,23 @@ class PocDb {
   }
 
   /**
+   * Shifts an employee is allowed to see in their MyStaffler-zicht. The
+   * targeting rule mirrors what `/api/my-shifts` + `/api/notifications`
+   * filtered manually before: open shifts where either the broadcast is
+   * `ALL_POOL` or the employee is named in `target_employee_ids`.
+   * Returns raw shift rows; callers join service-location names via
+   * `listServiceGroupsByIds`.
+   */
+  listShiftsForEmployee(employeeId: string): Shift[] {
+    return this.data.shifts.filter((s) => {
+      if (s.status !== "open") return false;
+      if (s.target_type === "ALL_POOL") return true;
+      if (s.target_type === "SELECTION" && s.target_employee_ids?.includes(employeeId)) return true;
+      return false;
+    });
+  }
+
+  /**
    * Cancel a shift. Only draft / open shifts may be cancelled — closed,
    * fulfilled or already-cancelled shifts are no-ops returning the
    * existing row unchanged so the route can disambiguate via the
@@ -549,6 +584,13 @@ class PocDb {
   }
 
   // -- availabilities --
+
+  /** Single-row lookup by id. Used by `/api/availabilities/:id` to
+   *  disambiguate 404 vs 409 before calling delete (which silently
+   *  refuses locked rows). */
+  findAvailability(id: string): Availability | null {
+    return this.data.availabilities.find((a) => a.id === id) ?? null;
+  }
 
   listAvailabilities(employeeId: string, from?: string, to?: string): Availability[] {
     return this.data.availabilities.filter((a) => {
@@ -713,9 +755,27 @@ class PocDb {
   } {
     const existingServiceGroups = this.listServiceGroups(input.companyId);
     const existingPermanentEmployees = this.listPermanentEmployees(input.companyId);
-    if (existingServiceGroups.length > 0 || existingPermanentEmployees.length > 0) {
+    const hasStructure =
+      existingServiceGroups.length > 0 || existingPermanentEmployees.length > 0;
+    if (hasStructure) {
+      // SGs / vaste medewerkers are already in place — leave them alone.
+      // But pilot feedback 2026-05-18: availabilities are still missing
+      // because the previous seed only ran end-to-end on a fresh PoC. We
+      // separately top up the green hour-blocks below so the Names grid
+      // shows the mockup pattern even on PoC-DBs that grew organically.
+      const availabilities = this.seedAvailabilitiesIfEmpty(input.employeeIds ?? []);
+      // Always top up the pilot's hand-curated demo-week rows — the
+      // patterns helper above is a no-op once any availability row
+      // exists for the employee, but the demo template is keyed on
+      // (employee_id, date) so it can fill the 2026-05-18 .. 2026-05-24
+      // gaps without disturbing other dates.
+      const demoWeek = this.applyDemoAvailabilityWeek(input.employeeIds ?? []);
       return {
-        created: { serviceGroups: [], permanentEmployees: [], availabilities: 0 },
+        created: {
+          serviceGroups: [],
+          permanentEmployees: [],
+          availabilities: availabilities + demoWeek,
+        },
         skipped: true,
       };
     }
@@ -792,47 +852,270 @@ class PocDb {
       ],
     ];
 
-    let availabilitiesCount = 0;
-    const employees = input.employeeIds ?? [];
-    if (employees.length > 0) {
-      // Anchor Monday of this week (local date for the server's clock).
-      const today = new Date();
-      const day = today.getDay();
-      const mondayOffset = (day + 6) % 7;
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - mondayOffset);
-      monday.setHours(0, 0, 0, 0);
-      const toIso = (d: Date): string => {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        return `${y}-${m}-${dd}`;
-      };
-      for (let i = 0; i < employees.length; i++) {
-        const pattern = patterns[i % patterns.length];
-        for (const slot of pattern) {
-          // This week + next week (mondayOffset + 7).
-          for (const weekOffset of [0, 7]) {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + (slot.dayOfWeek - 1) + weekOffset);
-            this.createAvailability({
-              employee_id: employees[i],
-              date: toIso(date),
-              from_time: slot.from,
-              to_time: slot.to,
-              status: "open",
-              locked_by_contract_id: null,
-            });
-            availabilitiesCount++;
-          }
+    const availabilitiesCount = this.seedAvailabilityPattern(input.employeeIds ?? [], patterns);
+    const demoWeekCount = this.applyDemoAvailabilityWeek(input.employeeIds ?? []);
+
+    return {
+      created: {
+        serviceGroups,
+        permanentEmployees,
+        availabilities: availabilitiesCount + demoWeekCount,
+      },
+      skipped: false,
+    };
+  }
+
+  /**
+   * Apply the hand-curated demo-week availability template (see
+   * `demo-availability-week.ts`) for every employee in `employeeIds`
+   * that has a matching template entry. Rows that would violate the
+   * `(employee_id, date)` UNIQUE constraint are skipped so this can run
+   * idempotently on top of an already-seeded PoC-DB. Wrapped in
+   * try/catch — a malformed template row must never break the wider
+   * seed. Returns the count of rows actually inserted.
+   */
+  private applyDemoAvailabilityWeek(employeeIds: string[]): number {
+    if (employeeIds.length === 0) return 0;
+    let inserted = 0;
+    try {
+      const requested = new Set(employeeIds);
+      // Existing (employee, date) pairs in this table — cheap dedupe so
+      // we mirror the Postgres UNIQUE constraint without throwing.
+      const existingPairs = new Set<string>();
+      for (const a of this.data.availabilities) {
+        existingPairs.add(`${a.employee_id}|${a.date}`);
+      }
+      for (const [employeeId, slots] of Object.entries(DEMO_AVAILABILITY_WEEK)) {
+        if (!requested.has(employeeId)) continue;
+        for (const slot of slots) {
+          const date = demoAvailabilityDate(slot.dayOffset);
+          const key = `${employeeId}|${date}`;
+          if (existingPairs.has(key)) continue;
+          this.createAvailability({
+            employee_id: employeeId,
+            date,
+            from_time: slot.from_time,
+            to_time: slot.to_time,
+            status: "open",
+            locked_by_contract_id: null,
+          });
+          existingPairs.add(key);
+          inserted++;
+        }
+      }
+    } catch (err) {
+      // Swallow on purpose: the seed must be best-effort. Log to
+      // stderr so a CI smoke-run still surfaces the misconfiguration.
+      console.warn(
+        `applyDemoAvailabilityWeek: failed to apply template — ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return inserted;
+  }
+
+  /**
+   * Seed two weeks of "open" availability rows for the given employees,
+   * cycling through the same 4-pattern set as `seedDemo`. Used as a
+   * standalone top-up so a grown-up PoC-DB (with existing service groups
+   * and permanent employees) still gets the mockup-shaped green
+   * hour-blocks behind contracts on the planning grid. No-op when the
+   * employees already have any availability rows.
+   */
+  seedAvailabilitiesIfEmpty(employeeIds: string[]): number {
+    if (employeeIds.length === 0) return 0;
+    const alreadyHasSome = employeeIds.some(
+      (id) => this.data.availabilities.some((a) => a.employee_id === id),
+    );
+    if (alreadyHasSome) return 0;
+    const patterns: Array<Array<{ dayOfWeek: number; from: string; to: string }>> = [
+      [
+        { dayOfWeek: 1, from: "09:00", to: "17:00" },
+        { dayOfWeek: 2, from: "09:00", to: "17:00" },
+        { dayOfWeek: 3, from: "09:00", to: "17:00" },
+      ],
+      [
+        { dayOfWeek: 2, from: "12:00", to: "22:00" },
+        { dayOfWeek: 4, from: "12:00", to: "22:00" },
+      ],
+      [
+        { dayOfWeek: 5, from: "17:00", to: "23:00" },
+        { dayOfWeek: 6, from: "09:00", to: "15:00" },
+      ],
+      [
+        { dayOfWeek: 1, from: "09:00", to: "13:00" },
+        { dayOfWeek: 2, from: "09:00", to: "13:00" },
+        { dayOfWeek: 3, from: "09:00", to: "13:00" },
+        { dayOfWeek: 4, from: "09:00", to: "13:00" },
+        { dayOfWeek: 5, from: "09:00", to: "13:00" },
+      ],
+    ];
+    return this.seedAvailabilityPattern(employeeIds, patterns);
+  }
+
+  /**
+   * Wipe and re-seed THIS week's availabilities (Mon–Sun) for the given
+   * employees with a varied, realistic horeca-shift pattern. Only `status=open`
+   * rows are touched — locked rows (already promoted to contracts) are
+   * preserved so we never accidentally undo a confirmed shift.
+   *
+   * Each employee gets a deterministic but varied set of 2–3 windows for
+   * the week, picked from a rotating set of 8 patterns so two adjacent
+   * rows in the grid never look identical.
+   *
+   * Returns the number of rows created and the number wiped.
+   */
+  reseedAvailabilitiesThisWeek(employeeIds: string[]): {
+    wiped: number;
+    created: number;
+  } {
+    if (employeeIds.length === 0) return { wiped: 0, created: 0 };
+    // Anchor Monday of this week (server-local).
+    const today = new Date();
+    const day = today.getDay();
+    const mondayOffset = (day + 6) % 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const toIso = (d: Date): string => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    };
+    const fromIso = toIso(monday);
+    const toIsoEnd = toIso(sunday);
+
+    // Wipe existing open availabilities in [Mon..Sun] for these employees.
+    const empSet = new Set(employeeIds);
+    let wiped = 0;
+    this.data.availabilities = this.data.availabilities.filter((a) => {
+      const inRange =
+        empSet.has(a.employee_id) &&
+        a.status === "open" &&
+        a.date >= fromIso &&
+        a.date <= toIsoEnd;
+      if (inRange) wiped++;
+      return !inRange;
+    });
+    if (wiped > 0) this.save();
+
+    // Eight horeca-flavoured patterns. The grid cycles through them so
+    // adjacent rows feel hand-rolled instead of stamped. Times are
+    // plausible bar/kitchen windows — never lorem-style "9–17 every day".
+    const patterns: Array<Array<{ dayOfWeek: number; from: string; to: string }>> = [
+      // Lunchman/-vrouw: 5 lunchen.
+      [
+        { dayOfWeek: 1, from: "10:30", to: "15:00" },
+        { dayOfWeek: 2, from: "10:30", to: "15:00" },
+        { dayOfWeek: 4, from: "10:30", to: "15:00" },
+        { dayOfWeek: 5, from: "10:30", to: "15:00" },
+      ],
+      // Avond-cowboy: di/wo/do/vrij avond.
+      [
+        { dayOfWeek: 2, from: "17:00", to: "23:30" },
+        { dayOfWeek: 3, from: "17:00", to: "23:30" },
+        { dayOfWeek: 4, from: "17:00", to: "23:30" },
+      ],
+      // Weekend-cluster: vr-za-zo lange shifts.
+      [
+        { dayOfWeek: 5, from: "16:00", to: "01:00" },
+        { dayOfWeek: 6, from: "12:00", to: "23:00" },
+        { dayOfWeek: 7, from: "11:00", to: "18:00" },
+      ],
+      // Vroege brigade: 4 ochtenden.
+      [
+        { dayOfWeek: 1, from: "07:30", to: "13:00" },
+        { dayOfWeek: 2, from: "07:30", to: "13:00" },
+        { dayOfWeek: 3, from: "07:30", to: "13:00" },
+        { dayOfWeek: 5, from: "07:30", to: "13:00" },
+      ],
+      // Doublures: ma + woe doublé, vrij avond.
+      [
+        { dayOfWeek: 1, from: "11:00", to: "22:00" },
+        { dayOfWeek: 3, from: "11:00", to: "22:00" },
+        { dayOfWeek: 5, from: "18:00", to: "00:30" },
+      ],
+      // Student-mix: wo middag, vrij + za avond.
+      [
+        { dayOfWeek: 3, from: "13:00", to: "18:00" },
+        { dayOfWeek: 5, from: "18:30", to: "00:00" },
+        { dayOfWeek: 6, from: "18:30", to: "01:00" },
+      ],
+      // Vaste do/vrij/za.
+      [
+        { dayOfWeek: 4, from: "16:30", to: "22:30" },
+        { dayOfWeek: 5, from: "16:30", to: "23:30" },
+        { dayOfWeek: 6, from: "14:00", to: "22:00" },
+      ],
+      // Zon-cluster brunch.
+      [
+        { dayOfWeek: 7, from: "09:00", to: "16:00" },
+        { dayOfWeek: 2, from: "12:00", to: "17:00" },
+        { dayOfWeek: 4, from: "12:00", to: "17:00" },
+      ],
+    ];
+
+    let created = 0;
+    for (let i = 0; i < employeeIds.length; i++) {
+      const pattern = patterns[i % patterns.length];
+      for (const slot of pattern) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + (slot.dayOfWeek - 1));
+        this.createAvailability({
+          employee_id: employeeIds[i],
+          date: toIso(date),
+          from_time: slot.from,
+          to_time: slot.to,
+          status: "open",
+          locked_by_contract_id: null,
+        });
+        created++;
+      }
+    }
+    return { wiped, created };
+  }
+
+  private seedAvailabilityPattern(
+    employees: string[],
+    patterns: Array<Array<{ dayOfWeek: number; from: string; to: string }>>,
+  ): number {
+    if (employees.length === 0) return 0;
+    // Anchor Monday of this week (local date for the server's clock).
+    const today = new Date();
+    const day = today.getDay();
+    const mondayOffset = (day + 6) % 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const toIso = (d: Date): string => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    };
+    let count = 0;
+    for (let i = 0; i < employees.length; i++) {
+      const pattern = patterns[i % patterns.length];
+      for (const slot of pattern) {
+        // This week + next week (mondayOffset + 7).
+        for (const weekOffset of [0, 7]) {
+          const date = new Date(monday);
+          date.setDate(monday.getDate() + (slot.dayOfWeek - 1) + weekOffset);
+          this.createAvailability({
+            employee_id: employees[i],
+            date: toIso(date),
+            from_time: slot.from,
+            to_time: slot.to,
+            status: "open",
+            locked_by_contract_id: null,
+          });
+          count++;
         }
       }
     }
-
-    return {
-      created: { serviceGroups, permanentEmployees, availabilities: availabilitiesCount },
-      skipped: false,
-    };
+    return count;
   }
 }
 
