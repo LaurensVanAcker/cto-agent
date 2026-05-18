@@ -14,4 +14,10 @@ export interface ContractDialogDataModel {
    * from the Bryntum event record (legacy behaviour).
    */
   initialDate?: string;
+  /**
+   * When true the dialog hides the "Vestiging / werkplek" field — used
+   * by the Medewerkers-planning surface where the wage-pakket's address
+   * is the implicit context and the operator cannot override it.
+   */
+  hideServiceLocation?: boolean;
 }
