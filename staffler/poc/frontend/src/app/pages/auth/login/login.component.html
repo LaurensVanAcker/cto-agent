@@ -8,6 +8,19 @@
   <dps-app-locale-selector></dps-app-locale-selector>
 </header>
 
+@if (proxyEnv(); as env) {
+  @if (env.env !== 'qa') {
+    <div
+      class="z-2 mx-3 mb-2 p-2 border-round text-sm text-white"
+      style="background: rgba(252, 7, 79, 0.85);"
+      data-testid="env-mismatch-banner"
+    >
+      ⚠ proxy → <strong>{{ env.gateway }}</strong> (STAFFLER_ENV={{ env.env }}).
+      Creds moeten bij deze omgeving horen — Cognito-users zijn per env.
+    </div>
+  }
+}
+
 <form
   autocomplete="on"
   class="flex flex-column flex-1 gap-3 p-5 sm:align-self-center w-full max-w-30rem justify-content-center"

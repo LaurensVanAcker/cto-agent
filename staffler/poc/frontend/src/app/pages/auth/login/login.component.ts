@@ -62,6 +62,21 @@ export class LoginComponent implements OnInit {
       .stream('AUTH.LOGIN')
       .pipe(untilDestroyed(this))
       .subscribe(loginTitle => this.title.setTitle(loginTitle));
+
+    // Probe the proxy so a stale `STAFFLER_ENV=dev` on the dev shell
+    // doesn't silently send QA creds to the dev Cognito pool (where they
+    // always 401). The chip is rendered only when env !== "qa" — the
+    // default — so prod-like setups stay clean.
+    fetch('/api/health')
+      .then(r => (r.ok ? r.json() : null))
+      .then(h => {
+        if (h && typeof h.env === 'string' && typeof h.gateway === 'string') {
+          this.proxyEnv.set({ env: h.env, gateway: h.gateway });
+        }
+      })
+      .catch(() => {
+        // /api/health is best-effort; silent failure is fine
+      });
   }
 
   readonly form = this.fb.group({
@@ -70,6 +85,7 @@ export class LoginComponent implements OnInit {
   });
   readonly inProcess = signal(false);
   readonly forgotPasswordRoute = ['/', AuthRoutePath.FORGOT_PASSWORD];
+  readonly proxyEnv = signal<{ env: string; gateway: string } | null>(null);
 
   login(): void {
     if (this.form.invalid) {

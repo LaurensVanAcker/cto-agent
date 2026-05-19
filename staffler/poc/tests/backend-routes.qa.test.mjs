@@ -51,6 +51,27 @@ test('auth routes — login / employee-login / set-password / reset / confirm / 
   expectRoute('post', '/api/logout');
 });
 
+// /api/health exists so the login page can detect "proxy points at the
+// wrong env" (stale STAFFLER_ENV=dev sending QA creds to dev Cognito).
+// The endpoint must return BOTH env and gateway — env alone isn't enough
+// to spot a custom STAFFLER_GATEWAY_* override.
+test('health route — /api/health exposes env + gateway', () => {
+  expectRoute('get', '/api/health');
+  assert.match(src, /return\s*\{\s*env,\s*gateway,/);
+});
+
+// /api/login + /api/employee-login must log the gateway/env on auth
+// failure so dev-time misconfigs are self-diagnosing. The login page
+// renders the env banner, but the server-side warn is the fallback
+// when only the proxy log is available (e.g. when running headless).
+test('auth failure logs gateway + STAFFLER_ENV', () => {
+  assert.match(
+    src,
+    /\[auth\][^\n]*\/api\/login[^\n]*\$\{gateway\}[^\n]*STAFFLER_ENV=\$\{env\}/,
+    '/api/login FAILURE/401 path must console.warn the gateway+env',
+  );
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CURRENT USER
 // ═══════════════════════════════════════════════════════════════════════════

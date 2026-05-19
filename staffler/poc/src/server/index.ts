@@ -232,6 +232,17 @@ function asResponse(err: unknown) {
   };
 }
 
+// ── health / env probe ──────────────────────────────────────────────────
+// GET /api/health → { env, gateway, ts }. Used by the login page to
+// surface the *actual* upstream the proxy is hitting, so a stale
+// `STAFFLER_ENV=dev` shell export doesn't silently send QA credentials
+// to the dev Cognito pool (and vice versa). The login flow's "incorrect
+// username or password" is otherwise indistinguishable from a real bad
+// password — the banner makes the env-mismatch case self-diagnosing.
+app.get("/api/health", async () => {
+  return { env, gateway, ts: new Date().toISOString() };
+});
+
 // ── auth endpoints ──────────────────────────────────────────────────────
 
 // POST /api/login
@@ -253,6 +264,10 @@ app.post<{ Body: { username: string; password: string } }>(
     try {
       const result = await client.login({ username, password });
       if (result.authStatus !== "SUCCESS" || !result.skey) {
+        console.warn(
+          `[auth] /api/login FAILURE for "${username}" via ${gateway} (STAFFLER_ENV=${env}). ` +
+            `If these creds work on a different env, unset STAFFLER_ENV or set it to the matching one.`,
+        );
         return {
           authStatus: result.authStatus ?? "FAILURE",
           username,
@@ -285,6 +300,12 @@ app.post<{ Body: { username: string; password: string } }>(
       };
     } catch (err) {
       const e = asResponse(err);
+      if (e.status === 401) {
+        console.warn(
+          `[auth] /api/login 401 for "${username}" via ${gateway} (STAFFLER_ENV=${env}). ` +
+            `Verify creds belong to this env (Cognito users are per-env).`,
+        );
+      }
       reply.status(e.status);
       return e.body;
     }
