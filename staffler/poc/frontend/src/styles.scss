@@ -591,14 +591,25 @@ dps-contract-dialog .contract-dialog-top-row {
 // children shrink past their content" trick. overflow:hidden on the
 // column is a defensive belt-and-braces: even if PrimeNG renders an
 // off-cap icon button on some zoom level, it won't escape the popup.
-// Pilot feedback 2026-05-19 (re-report): "datum veldje valt nog
-// steeds uit de popup" — dropped from 13rem to 12rem so the rendered
-// "DD/MM/YYYY > DD/MM/YYYY" string + inline icon definitely fits the
-// 34rem dialog chrome on every zoom level we test.
+// Pilot feedback 2026-05-19 (re-report, 2nd round): "datum veldje
+// valt nog steeds uit de popup" — the 12rem cap is what we WANT
+// visually (keeps the e482509 readability win), but the previous
+// rules let the column escape on narrow viewports because:
+//   - min-width: 9rem refused to shrink below 144px even when the
+//     dialog body was narrower (e.g. mobile zoom), pushing the
+//     trigger past the right edge instead of wrapping cleanly;
+//   - max-width: 12rem was an absolute cap, not viewport-relative,
+//     so it couldn't yield to a smaller parent.
+// Switch to min-width:0 + max-width:min(12rem, 100%) so the column
+// stays at 12rem when there's room (readable widening from e482509)
+// but clips to the dialog body when there isn't. box-sizing:
+// border-box guards against any future padding from sneaking past
+// the cap.
 dps-contract-dialog .contract-dialog-date {
   flex: 0 1 12rem;
-  min-width: 9rem;
-  max-width: 12rem;
+  min-width: 0;
+  max-width: min(12rem, 100%);
+  box-sizing: border-box;
   overflow: hidden;
 }
 
