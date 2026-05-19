@@ -115,15 +115,19 @@ $muted: #64748b;
 }
 
 // ── Banner card (mockup 10/11) ──────────────────────────────────────────
+// Pilot feedback (item 5): brand-aligned with #fc074f instead of indigo;
+// canonical source is global styles.scss .poc-banner. Kept here too because
+// the planning-poc scoped scss otherwise wins over the global rules due to
+// component view-encapsulation.
 .poc-banner {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 1px solid #c7d2fe;
-  background: #eef2ff;
+  border: 1px solid #fbcfd9;
+  background: #fff1f4;
   border-radius: 8px;
-  color: #1e3a8a;
+  color: #3e2b30;
   font-size: 13px;
 }
 
@@ -132,7 +136,7 @@ $muted: #64748b;
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #4f46e5;
+  background: #fc074f;
   color: white;
   display: inline-flex;
   align-items: center;
@@ -152,7 +156,7 @@ $muted: #64748b;
 .poc-banner-body strong {
   font-size: 14px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #3e2b30;
 }
 
 .poc-banner-body span {

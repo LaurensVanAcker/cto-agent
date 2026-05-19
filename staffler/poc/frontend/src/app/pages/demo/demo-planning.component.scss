@@ -28,15 +28,16 @@
 
 // Banner card (mockup 10/11) — kept in sync with the auth-gated
 // planning-poc.scss so the demo route previews the same chrome.
+// Brand-aligned with Staffler pink #fc074f (pilot feedback item 5).
 .poc-banner {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 1px solid #c7d2fe;
-  background: #eef2ff;
+  border: 1px solid #fbcfd9;
+  background: #fff1f4;
   border-radius: 8px;
-  color: #1e3a8a;
+  color: #3e2b30;
   font-size: 13px;
 }
 
@@ -45,7 +46,7 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #4f46e5;
+  background: #fc074f;
   color: white;
   display: inline-flex;
   align-items: center;
@@ -65,7 +66,7 @@
 .poc-banner-body strong {
   font-size: 14px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #3e2b30;
 }
 
 .poc-banner-body span {
