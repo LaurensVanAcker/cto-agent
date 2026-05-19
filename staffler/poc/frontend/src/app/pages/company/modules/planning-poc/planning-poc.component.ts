@@ -577,13 +577,32 @@ export class PlanningPocComponent implements AfterViewInit {
     setTimeout(() => {
       const scheduler = this.schedulerComponent?.instance as Scheduler | undefined;
       if (!scheduler) return;
-      (scheduler as unknown as { on: (name: string, fn: (ev: unknown) => void) => void }).on(
-        'beforeEventEdit',
-        (ev: unknown) => this.handleBeforeEventEdit(ev as {
+      const on = (scheduler as unknown as {
+        on: (name: string, fn: (ev: unknown) => void) => void;
+      }).on.bind(scheduler);
+      on('beforeEventEdit', (ev: unknown) =>
+        this.handleBeforeEventEdit(ev as {
           resourceRecord: ResourceModel;
           eventRecord: EventModel;
         }),
       );
+      // Item 7 (re-fix, pilot feedback 2026-05-19): switching Dag/Week/2 weken
+      // still wiped every contract from the grid. The earlier setTimeout(0)
+      // band-aid raced Bryntum's internal preset rebuild — sometimes it
+      // landed before `updateViewPreset` had finished its synchronous
+      // `suspendRefresh → reconfigure → resumeRefresh → refresh` sequence
+      // and Bryntum's follow-up reconcile clobbered our event push.
+      //
+      // The deterministic hook is Bryntum's own `presetChange` event,
+      // which fires AT THE END of `updateViewPreset` (see scheduler.module.js
+      // ~line 132259, `me.trigger("presetChange", event)`). Re-pushing the
+      // resources + events from the still-fresh signals there guarantees
+      // the contracts survive the rebuild regardless of how many other
+      // schedulerConfig inputs (columns / eventRenderer / timeRanges)
+      // also changed in the same Angular tick.
+      on('presetChange', () => {
+        this.syncSchedulerStores(this.resources(), this.events());
+      });
     });
   }
 
