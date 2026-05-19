@@ -14,14 +14,17 @@
   <div class="flex align-items-center">
     <!--
       Pilot feedback 2026-05-19: "I shouldn't be able to remove the
-      user in the shift list" when editing an existing contract within
-      the 8h lock-down window. The cancel-contract trash IS the remove-
-      user action (canceling = removing the operator's only link to
-      that shift), so we hide it whenever applyExistingContractEditRules
-      has flipped isContractEditLocked() to true. Outside the 8h window
-      eligible roles can still cancel via the same button.
+      user in the shift list" when editing an existing contract — the
+      cancel-contract trash IS the only "remove employee from this
+      shift" affordance in this dialog (cancelling the contract = the
+      operator's only link to that shift), so we hide it for ALL
+      existing-contract edits, not just within the 8h lock window.
+      Creating a NEW contract still shows the normal full editor with
+      no cancel button anyway (canCancelContract is false in create
+      mode). Within-8h coverage is kept implicit: hidden in edit ⇒
+      hidden within 8h.
     -->
-    @if (canCancelContract && !isContractEditLocked()) {
+    @if (canCancelContract && !isEditMode) {
       <p-button
         [text]="true"
         [rounded]="true"
