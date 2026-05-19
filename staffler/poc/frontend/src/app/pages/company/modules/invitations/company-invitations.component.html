@@ -20,23 +20,16 @@
     @if (isInviteNewEmployeeBtnShown$ | async) {
       <div class="flex align-items-center gap-2 flex-wrap">
         <!--
-          Two side-by-side buttons replace the single "Nieuwe medewerker
-          uitnodigen" CTA. Bijverdiener = the existing DPS invitation flow
-          (Dimona-triggering). Vaste medewerker = PoC-DB-only permanent
-          record opened in a dedicated dialog.
+          Pilot feedback 2026-05-19 (item 9): "Bijverdiener toevoegen"
+          moved off this page onto the Pool toolbar — the Dimona/DPS
+          invite flow now lives next to the pool list where the operator
+          picks who they want to invite. "Vaste medewerker toevoegen"
+          stays here (PoC-DB-only permanent record, dedicated dialog).
         -->
         <p-button
           icon="dps-icon dps-icon-person_add"
-          label="Bijverdiener toevoegen"
-          styleClass="pool-toolbar-btn"
-          (onClick)="navigateToCreateInvitationPage()"
-        ></p-button>
-        <p-button
-          icon="dps-icon dps-icon-person_add"
           label="Vaste medewerker toevoegen"
-          severity="secondary"
           styleClass="pool-toolbar-btn"
-          [outlined]="true"
           (onClick)="openAddPermanentDialog()"
         ></p-button>
       </div>

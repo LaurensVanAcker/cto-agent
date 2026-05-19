@@ -44,6 +44,8 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService } from 'primeng/dynamicdialog';
 
 import { AppRouteEnum } from 'src/app/app.routes.model';
+import { CompanyRouteEnum } from 'src/app/pages/company/company.routes.model';
+import { InvitationsRouteEnum } from '../invitations/company-invitations.routes.model';
 import { RootState, AuthStore } from '@dps/core/store';
 import { CompanyGroupApiService, EmployeeApiService } from '@dps/core/api';
 import {
@@ -266,6 +268,23 @@ export class PoolComponent {
 
   protected goToProfile(emp: EmployeeModel | EmployeeGroupEngagement): void {
     this.router.navigate([AppRouteEnum.EMPLOYEE, emp.id, 'profile']);
+  }
+
+  /**
+   * Pilot feedback 2026-05-19 (item 9): "Bijverdiener toevoegen" was moved
+   * off /invitations onto the pool page. Same destination as the old
+   * `navigateToCreateInvitationPage()` — the DPS invitation/Dimona flow
+   * lives at /company/:companyId/invitations/create.
+   */
+  protected addBijverdiener(): void {
+    const company = this.company();
+    if (!company) return;
+    this.router.navigate([
+      AppRouteEnum.COMPANY,
+      company.id,
+      CompanyRouteEnum.INVITATIONS,
+      InvitationsRouteEnum.CREATE,
+    ]);
   }
 
   protected invite(row: PoolRow): void {

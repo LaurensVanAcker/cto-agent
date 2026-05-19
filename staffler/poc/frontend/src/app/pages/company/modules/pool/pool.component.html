@@ -12,11 +12,27 @@
     save vertical space (per /groups layout).
   -->
   <div class="flex align-items-stretch gap-2 flex-wrap pool-toolbar">
+    <!--
+      Pilot feedback 2026-05-19 (item 9): "Bijverdiener toevoegen" CTA was
+      removed from the /invitations page yesterday and moved here, but
+      the 0acc935 tenant-cleanup commit dropped it again. Restored on the
+      pool toolbar — same /invitations/create route as before.
+    -->
+    <p-button
+      icon="dps-icon dps-icon-person_add"
+      label="Bijverdiener toevoegen"
+      class="flex-none"
+      styleClass="pool-toolbar-btn"
+      (onClick)="addBijverdiener()"
+    />
+
     <p-button
       icon="dps-icon dps-icon-group_add"
       label="Nieuwe vestiging maken"
       class="flex-none"
       styleClass="pool-toolbar-btn"
+      severity="secondary"
+      [outlined]="true"
       (onClick)="newBranchPopover.toggle($event)"
     />
 

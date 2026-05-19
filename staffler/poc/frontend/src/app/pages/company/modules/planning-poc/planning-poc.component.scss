@@ -38,6 +38,17 @@ $muted: #64748b;
   z-index: 10;
 }
 
+// Page title kept compact + left-aligned (pilot feedback item 6).
+// Was text-2xl which towered over the segmented toggles next to it and
+// — because the toolbar wraps on narrower viewports — sometimes ended up
+// floating to the right of the row when the segmented controls reflowed
+// underneath. text-lg matches the rest of the toolbar typography.
+.planning-title {
+  text-align: left;
+  margin-right: 0.25rem;
+  line-height: 1.2;
+}
+
 // Toolbar: nav chevron group + Vandaag button. Matches the body's
 // "Inter 500 / 0.5px tracking" so the date label doesn't look like a
 // floating standalone string anymore.
