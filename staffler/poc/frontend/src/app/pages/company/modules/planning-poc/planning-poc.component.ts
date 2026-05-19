@@ -723,6 +723,14 @@ export class PlanningPocComponent implements AfterViewInit {
   private openContractDialogForEvent(employeeId: string, eventRecord: EventModel): void {
     const employee = this.employeesById.get(employeeId);
     if (!employee) return;
+    // Pilot feedback 2026-05-19: in the Medewerkers (Names) view the
+    // service-locatie / vestiging concept does not apply — the wage
+    // pakket's own address is the implicit context, so the dialog must
+    // not surface a separate "Service locatie" field. The flag is
+    // consumed by contract-dialog.component.html (see the
+    // hideServiceLocation @if guard around the employment-address
+    // block). Locaties view keeps the field as before.
+    const isNamesView = this.view() === 'names';
     const ref = this.dialogService.open(ContractDialogComponent, {
       modal: true,
       showHeader: false,
@@ -730,6 +738,7 @@ export class PlanningPocComponent implements AfterViewInit {
       data: {
         contractEventRecord: eventRecord,
         employee,
+        hideServiceLocation: isNamesView,
       } satisfies ContractDialogDataModel,
     });
     ref.onClose.subscribe(result => {

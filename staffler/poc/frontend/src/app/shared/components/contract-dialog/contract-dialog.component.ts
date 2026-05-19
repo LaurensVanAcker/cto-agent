@@ -456,6 +456,20 @@ export class ContractDialogComponent implements OnInit {
       this.scheduleFormArray.enable();
     }
 
+    // Pilot feedback 2026-05-19: in the Medewerkers (Names) view the
+    // service-locatie field is hidden (see ContractDialogDataModel.
+    // hideServiceLocation) because the wage pakket's address is the
+    // implicit context. The control still receives that address via
+    // wageControl.valueChanges → form.patchValue(selectedWage), but we
+    // must drop its required + addressValidator validators so an
+    // operator who has not yet picked a wage doesn't see a hidden-field
+    // validation error block the Save button. The control stays enabled
+    // so wage-driven patches still flow into the create payload.
+    if (this.data.hideServiceLocation) {
+      this.form.controls.employmentAddress.clearValidators();
+      this.form.controls.employmentAddress.updateValueAndValidity({ emitEvent: false });
+    }
+
     if (this.isCreateMode) {
       this.isLoadingWages.set(true);
 
