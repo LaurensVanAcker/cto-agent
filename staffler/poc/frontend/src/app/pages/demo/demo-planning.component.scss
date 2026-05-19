@@ -28,16 +28,18 @@
 
 // Banner card (mockup 10/11) — kept in sync with the auth-gated
 // planning-poc.scss so the demo route previews the same chrome.
-// Brand-aligned with Staffler pink #fc074f (pilot feedback item 5).
+// Pilot feedback (item 5, follow-up): colours come from the upstream
+// wlnob/dps `.scheduler-banner` — --dps-planning-primary-color (#3c51f0)
+// drives the border/icon/text, with a 20% tint as the surface.
 .poc-banner {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 1px solid #fbcfd9;
-  background: #fff1f4;
+  border: 1px solid #3c51f0;
+  background: rgba(60, 81, 240, 0.2);
   border-radius: 8px;
-  color: #3e2b30;
+  color: #3c51f0;
   font-size: 13px;
 }
 
@@ -46,7 +48,7 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #fc074f;
+  background: #3c51f0;
   color: white;
   display: inline-flex;
   align-items: center;
@@ -66,7 +68,7 @@
 .poc-banner-body strong {
   font-size: 14px;
   font-weight: 700;
-  color: #3e2b30;
+  color: #3c51f0;
 }
 
 .poc-banner-body span {

@@ -1346,19 +1346,23 @@ $smallScreenSize: 425px;
 // ── Shared "PoC banner" card (mockup 10/11 stijl) ──────────────────────
 // Promoted from the planning-poc scoped scss so the prestatiebevestiging
 // (actuals) page and any future module can use the same chrome without
-// re-defining it. Soft Staffler-pink card + icon-tile + title/subtitle.
-// Pilot feedback (item 5): banner had drifted back to indigo blue; brand
-// primary is #fc074f (staffler_brand_tokens.md), so the surface, border,
-// icon-tile and text all live in the pink family.
+// re-defining it. Pilot feedback (item 5, follow-up): "Kijk in de originele
+// Git source, daar staat het kleur" — the chrome was lifted from the
+// upstream wlnob/dps `.scheduler-banner` (cloned in 0ceb738), whose driving
+// colour is --dps-planning-primary-color: #3c51f0 (cobalt indigo). The
+// surrounding surface is transparentizeColor(currentColor, 0.2), i.e.
+// rgba(60,81,240,0.2), and the icon-tile fills with currentColor with a
+// white glyph. Subtitle text stays in the default body colour ("initial"
+// in the original) — kept as #475569 here for legibility on the tint.
 .poc-banner {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 1px solid #fbcfd9;
-  background: #fff1f4;
+  border: 1px solid #3c51f0;
+  background: rgba(60, 81, 240, 0.2);
   border-radius: 8px;
-  color: #3e2b30;
+  color: #3c51f0;
   font-size: 13px;
   margin-bottom: 1rem;
 }
@@ -1368,7 +1372,7 @@ $smallScreenSize: 425px;
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #fc074f;
+  background: #3c51f0;
   color: white;
   display: inline-flex;
   align-items: center;
@@ -1388,7 +1392,7 @@ $smallScreenSize: 425px;
 .poc-banner-body strong {
   font-size: 14px;
   font-weight: 700;
-  color: #3e2b30;
+  color: #3c51f0;
 }
 
 .poc-banner-body span {
