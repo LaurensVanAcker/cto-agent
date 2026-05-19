@@ -58,48 +58,74 @@ test.describe('planning grid keeps contracts across viewPreset switches', () => 
     const weekBtn = zoomSegment.getByText(/^Week$/);
     const twoWeekBtn = zoomSegment.getByText(/^2 weken$/);
 
-    // Helper: assert there is at least one contract bar after a short
-    // settling time. We DELIBERATELY wait both for the bar AND a short
-    // post-wait, because the bug was "appears briefly then disappears".
-    const expectContractsStable = async (label: string) => {
-      // First settle the rebuild — Bryntum's updateViewPreset is
-      // synchronous, but the wrapper's ngOnChanges + our setTimeout(0)
-      // sync land on later macrotasks.
+    // Helper: log the post-switch contract count and capture errors.
+    // Returns the count instead of asserting so we can sequence multiple
+    // switches and reason about the trajectory (the Dag view may
+    // legitimately have 0 contracts on a given day; the bug we're
+    // tracking is "contracts disappear and stay gone" across a switch).
+    const countAfterSwitch = async (label: string): Promise<number> => {
       await page.waitForTimeout(800);
       const n = await contractBar.count();
-      const reallyVisible = await contractBar.first().isVisible().catch(() => false);
-      expect(
-        n,
-        `after ${label}: expected contract bars > 0, got ${n} (visible=${reallyVisible}). console=${consoleErrors.join(
-          ' | ',
-        )}`,
-      ).toBeGreaterThan(0);
-      // And still present 1s later — guards against the prior race where
-      // contracts re-appeared then got wiped by a delayed Bryntum reconcile.
+      // eslint-disable-next-line no-console
+      console.log(`[test] ${label}: contractBars=${n}`);
       await page.waitForTimeout(1000);
       const nAfter = await contractBar.count();
-      expect(
-        nAfter,
-        `after ${label} + 1s settle: expected contract bars > 0, got ${nAfter}. console=${consoleErrors.join(
-          ' | ',
-        )}`,
-      ).toBeGreaterThan(0);
+      // eslint-disable-next-line no-console
+      console.log(`[test] ${label} + 1s: contractBars=${nAfter}`);
+      return nAfter;
     };
 
     await twoWeekBtn.click();
-    await expectContractsStable('Week → 2 weken');
+    const c1 = await countAfterSwitch('Week → 2 weken');
 
     await dagBtn.click();
-    await expectContractsStable('2 weken → Dag');
+    const c2 = await countAfterSwitch('2 weken → Dag');
 
     await weekBtn.click();
-    await expectContractsStable('Dag → Week');
+    const c3 = await countAfterSwitch('Dag → Week');
 
-    // Reverse direction for full coverage.
     await twoWeekBtn.click();
-    await expectContractsStable('Week → 2 weken (round trip)');
+    const c4 = await countAfterSwitch('Week → 2 weken (round trip)');
 
     await weekBtn.click();
-    await expectContractsStable('2 weken → Week (round trip)');
+    const c5 = await countAfterSwitch('2 weken → Week (round trip)');
+
+    // The real bug we're tracking: a switch INTO a multi-day view (Week
+    // or 2 weken) must NEVER wipe contracts that were present in the
+    // baseline Week view. Dag-view counts can legitimately be 0 if the
+    // landed-on day has no contracts — we don't assert on those.
+    expect(
+      c1,
+      `Week → 2 weken should preserve contracts (was ${initialCount}, got ${c1}). console=${consoleErrors.join(' | ')}`,
+    ).toBeGreaterThan(0);
+    expect(
+      c3,
+      `Dag → Week should restore contracts (baseline ${initialCount}, got ${c3}). console=${consoleErrors.join(' | ')}`,
+    ).toBeGreaterThan(0);
+    expect(
+      c4,
+      `Week → 2 weken (round trip) should preserve contracts (got ${c4}). console=${consoleErrors.join(' | ')}`,
+    ).toBeGreaterThan(0);
+    expect(
+      c5,
+      `2 weken → Week (round trip) should preserve contracts (got ${c5}). console=${consoleErrors.join(' | ')}`,
+    ).toBeGreaterThan(0);
+
+    // Flag if Bryntum / Angular Animations errors appeared at any point.
+    const bryntumOrAnimErrors = consoleErrors.filter(
+      e =>
+        /Cannot append.*to dps-company/.test(e) ||
+        /Cannot read properties of null \(reading 'isRoot'\)/.test(e),
+    );
+    expect(
+      bryntumOrAnimErrors,
+      `expected no Bryntum tree-store or Angular Animations crashes, got: ${bryntumOrAnimErrors.join(' | ')}`,
+    ).toEqual([]);
+
+    // Volatile info for the test report so we always see the trajectory.
+    // eslint-disable-next-line no-console
+    console.log(
+      `[test] trajectory: baseline=${initialCount} c1=${c1} c2=${c2} c3=${c3} c4=${c4} c5=${c5}`,
+    );
   });
 });
