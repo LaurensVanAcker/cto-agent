@@ -105,6 +105,27 @@ $muted: #64748b;
   border-color: #cbd5e1;
 }
 
+// Pilot feedback 2026-05-19: the PrimeNG p-button used for "Open shifts
+// delen (N)" rendered taller than its toolbar siblings (.planning-today,
+// .planning-nav) because the default --p-button-padding/line-height in
+// PrimeNG ≠ the 36px / 13px / 0.5px-tracking spec used by the rest of
+// the toolbar. Force the inner .p-button element to match those exact
+// dimensions so the row aligns on a single baseline.
+::ng-deep .planning-toolbar-cta.p-button,
+::ng-deep .planning-toolbar-cta .p-button {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  border-radius: 8px;
+}
+
+::ng-deep .planning-toolbar-cta .p-button-icon {
+  font-size: 16px;
+}
+
 .poc-scheduler-host {
   position: relative;
   border: 1px solid var(--surface-border, #{$border});
