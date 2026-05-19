@@ -18,6 +18,8 @@ import { MessageService } from 'primeng/api';
 
 import { Store } from '@ngxs/store';
 import { DateTime } from 'luxon';
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 import {
   ShiftApiService,
@@ -32,8 +34,21 @@ import {
   EngagementGroupApiService,
   EngagementGroupModel,
 } from '@dps/core/api/engagement-group/engagement-group.api.service';
-import { CompanyGroupApiService, EmployeeApiService } from '@dps/core/api';
-import { EmployeeGroupEngagement, EmployeeModel, Group } from '@dps/shared/models';
+import {
+  CompanyGroupApiService,
+  ContractApiService,
+  EmployeeApiService,
+  EmployeeWageApiService,
+} from '@dps/core/api';
+import {
+  ContractDayScheduleModel,
+  ContractModel,
+  ContractStatusEnum,
+  EmployeeGroupEngagement,
+  EmployeeModel,
+  EmployeeWageModel,
+  Group,
+} from '@dps/shared/models';
 import { RootState } from '@dps/core/store';
 
 interface DialogData {
@@ -188,6 +203,8 @@ export class DialogShiftBatchComponent {
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly companyGroupsApi = inject(CompanyGroupApiService);
+  private readonly contractsApi = inject(ContractApiService);
+  private readonly wagesApi = inject(EmployeeWageApiService);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly messageService = inject(MessageService, { optional: true });
@@ -1003,55 +1020,134 @@ export class DialogShiftBatchComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    let assignedIds = this.slots()
+    const assignedIds = this.slots()
       .filter(s => s.kind === 'assigned' && !!s.employeeId)
       .map(s => s.employeeId!) as string[];
+    const openCount = this.slots().filter(s => s.kind === 'open').length;
 
-    // status: when every slot is assigned, the shift is "fulfilled" — it's
-    // not an open shift broadcast. When at least one slot is open we keep
-    // it as a draft → publish so the pool gets notified. This fixes the
-    // bug where assigning an employee still produced an Open shift block.
-    const allAssigned = assignedIds.length === this.slots().length;
-    let targetType: ShiftTargetType = allAssigned ? 'SELECTION' : 'ALL_POOL';
-
-    // Edit mode: PATCH /api/shifts/:id/share with the updated target +
-    // deadline. The PoC-DB endpoint accepts a partial merge.
+    // ── Edit mode ────────────────────────────────────────────────────────
+    // P1 follow-up 2026-05-19: the PoC-DB no longer accepts
+    // `targetEmployeeIds` on POST /api/shifts or PATCH /api/shifts/:id/share
+    // (backend strips them to prevent flex-employee shadow rows). The
+    // "Specifieke namen" path must now mint a real DPS contract per
+    // newly-assigned employee. The share call is kept for cases where
+    // only deadline / open-seats need to change.
     if (this.isEdit && this.editingShiftId) {
-      // Split-branch edit: the dialog only shows one slice of the
-      // underlying shift (either the focused assigned employee, or
-      // only the open seats). Merge the visible slots back with the
-      // unseen ones from the original shift so we don't accidentally
-      // wipe other people's assignments.
-      if (this.isSplitBranchEdit) {
-        const original = this.config.data?.existingShift;
-        const originalTargets = original?.target_employee_ids ?? [];
-        if (this.focusedEmployeeId) {
-          // Keep all other assigned ids untouched; the focused row is
-          // read-only in this PoC pass (no rename, no removal), so the
-          // merged target set equals the original.
-          assignedIds = originalTargets.slice();
-        } else if (this.slotFilter === 'open') {
-          // Only open seats were visible — preserve all assigned ids.
-          assignedIds = originalTargets.slice();
+      const original = this.config.data?.existingShift;
+      const originalTargets = new Set(original?.target_employee_ids ?? []);
+      // Newly assigned employees (visible in this dialog but not on the
+      // original shift) become contracts. Existing ones stay as-is.
+      const newAssignedIds = assignedIds.filter(id => !originalTargets.has(id));
+
+      this.createContractsForEmployees(newAssignedIds).subscribe(contractResult => {
+        // After contracts: still patch the shift's deadline / share-state
+        // (no targetEmployeeIds — backend ignores them anyway, but we
+        // omit them to keep the call clean).
+        const stillHasOpenSeats =
+          (original?.capacity ?? originalTargets.size) > originalTargets.size;
+        const shouldShare =
+          stillHasOpenSeats ||
+          (this.isSplitBranchEdit && this.slotFilter === 'open');
+
+        const closeWith = (shift: ShiftModel) => {
+          this.saving.set(false);
+          this.surfaceContractFailures(contractResult);
+          this.ref.close({ kind: 'shift.batch.published', shift });
+        };
+
+        if (!shouldShare) {
+          // No share needed — just close, refresh will pick up the new
+          // contracts.
+          this.saving.set(false);
+          this.surfaceContractFailures(contractResult);
+          this.ref.close({
+            kind: 'shift.batch.published',
+            shift: original ?? ({ id: this.editingShiftId! } as unknown as ShiftModel),
+          });
+          return;
         }
-        const stillHasOpen =
-          (original?.capacity ?? assignedIds.length) > assignedIds.length;
-        targetType = stillHasOpen ? 'ALL_POOL' : 'SELECTION';
+
+        this.shiftsApi
+          .share(this.editingShiftId!, {
+            targetType: 'ALL_POOL',
+            reactionDeadline: this.form.deadline || undefined,
+          })
+          .subscribe({
+            next: shift => closeWith(shift),
+            error: err => {
+              this.saving.set(false);
+              this.error.set(this.parseError(err));
+              this.cdr.markForCheck();
+            },
+          });
+      });
+      return;
+    }
+
+    // ── Create mode ──────────────────────────────────────────────────────
+    // 1. Mint a real DPS contract per assigned employee.
+    // 2. If there are still open seats, create an open shift (no
+    //    targetEmployeeIds — backend strips them anyway).
+    this.createContractsForEmployees(assignedIds).subscribe(contractResult => {
+      if (openCount === 0) {
+        // All slots were assigned — no open shift needed. Close and let
+        // the planning grid refresh pick up the new contracts.
+        this.saving.set(false);
+        this.surfaceContractFailures(contractResult);
+        this.ref.close({
+          kind: 'shift.batch.published',
+          // Synthesize a minimal shift object so the planning-poc toast
+          // doesn't crash on missing fields. The actual data shown comes
+          // from the post-close refresh.
+          shift: {
+            id: '',
+            date_from: this.form.dateFrom,
+            date_to: this.form.dateTo || this.form.dateFrom,
+            from_time: this.form.fromTime,
+            to_time: this.form.toTime,
+          } as unknown as ShiftModel,
+        });
+        return;
       }
+
+      // Open shift for the remaining open seats. Capacity = openCount,
+      // no targetEmployeeIds (assigned slots became contracts).
+      const targetType: ShiftTargetType = 'ALL_POOL';
       this.shiftsApi
-        .share(this.editingShiftId, {
+        .create({
+          companyId: this.companyId,
+          serviceLocationId: this.form.serviceLocationId,
+          dateFrom: this.form.dateFrom,
+          dateTo: this.form.dateTo || this.form.dateFrom,
+          fromTime: this.form.fromTime,
+          toTime: this.form.toTime,
+          pauseFrom: this.form.pauseFrom || undefined,
+          pauseTo: this.form.pauseTo || undefined,
+          capacity: openCount,
+          deadline: this.form.deadline || undefined,
           targetType,
-          targetEmployeeIds: assignedIds.length > 0 ? assignedIds : undefined,
-          reactionDeadline:
-            (this.hasOpenSlot() || (this.isSplitBranchEdit && this.slotFilter === 'open')) &&
-            this.form.deadline
-              ? this.form.deadline
-              : undefined,
+          status: 'draft',
         })
         .subscribe({
-          next: shift => {
-            this.saving.set(false);
-            this.ref.close({ kind: 'shift.batch.published', shift });
+          next: ({ shift, merged }) => {
+            if (merged) {
+              this.saving.set(false);
+              this.surfaceContractFailures(contractResult);
+              this.ref.close({ kind: 'shift.batch.merged', shift });
+              return;
+            }
+            this.shiftsApi.publish(shift.id).subscribe({
+              next: published => {
+                this.saving.set(false);
+                this.surfaceContractFailures(contractResult);
+                this.ref.close({ kind: 'shift.batch.published', shift: published });
+              },
+              error: () => {
+                this.saving.set(false);
+                this.surfaceContractFailures(contractResult);
+                this.ref.close({ kind: 'shift.batch.created-no-publish', shift });
+              },
+            });
           },
           error: err => {
             this.saving.set(false);
@@ -1059,77 +1155,191 @@ export class DialogShiftBatchComponent {
             this.cdr.markForCheck();
           },
         });
-      return;
-    }
+    });
+  }
 
-    this.shiftsApi
-      .create({
-        companyId: this.companyId,
-        serviceLocationId: this.form.serviceLocationId,
-        dateFrom: this.form.dateFrom,
-        dateTo: this.form.dateTo || this.form.dateFrom,
-        fromTime: this.form.fromTime,
-        toTime: this.form.toTime,
-        pauseFrom: this.form.pauseFrom || undefined,
-        pauseTo: this.form.pauseTo || undefined,
-        capacity: this.slots().length,
-        deadline: this.form.deadline || undefined,
-        targetType,
-        targetEmployeeIds: assignedIds.length > 0 ? assignedIds : undefined,
-        status: 'draft',
-      })
-      .subscribe({
-        next: ({ shift, merged }) => {
-          // The server may have folded this payload into an existing
-          // draft/open shift on the same SL + dates + hours. We forward
-          // that signal up so the caller can show a toast instead of
-          // pretending a fresh shift was created. Merged shifts also
-          // skip publish — the original shift was already published
-          // (or is still a draft, in which case the operator publishes
-          // explicitly via the next save).
-          if (merged) {
-            this.saving.set(false);
-            this.ref.close({ kind: 'shift.batch.merged', shift });
-            return;
-          }
-          // Fully-assigned shifts skip publish — they don't need to be
-          // broadcast. The PoC-DB still flips status to "fulfilled" via
-          // /share so the planning grid renders them as solid (not open).
-          if (allAssigned) {
-            this.shiftsApi
-              .share(shift.id, {
-                targetType: 'SELECTION',
-                targetEmployeeIds: assignedIds,
-              })
-              .subscribe({
-                next: updated => {
-                  this.saving.set(false);
-                  this.ref.close({ kind: 'shift.batch.published', shift: updated });
-                },
-                error: () => {
-                  this.saving.set(false);
-                  this.ref.close({ kind: 'shift.batch.published', shift });
-                },
-              });
-            return;
-          }
-          this.shiftsApi.publish(shift.id).subscribe({
-            next: published => {
-              this.saving.set(false);
-              this.ref.close({ kind: 'shift.batch.published', shift: published });
-            },
-            error: () => {
-              this.saving.set(false);
-              this.ref.close({ kind: 'shift.batch.created-no-publish', shift });
-            },
-          });
-        },
-        error: err => {
-          this.saving.set(false);
-          this.error.set(this.parseError(err));
-          this.cdr.markForCheck();
-        },
+  /**
+   * Create one DPS contract per employee id (Specifieke-namen flow,
+   * P1 follow-up 2026-05-19). Each contract fetches the employee's
+   * wage packets and uses the first one as the default loonpakket —
+   * same convention the per-employee dialog-contract-create dialog
+   * uses. The contract spans the dialog's dateFrom..dateTo range with
+   * the same werkuren per day.
+   *
+   * Returns ONE observable that resolves when every per-employee
+   * create call has settled (success OR error — see
+   * `surfaceContractFailures`). Empty list → emits an empty result
+   * immediately. Per-employee errors do not short-circuit siblings.
+   */
+  private createContractsForEmployees(
+    employeeIds: string[],
+  ): Observable<{
+    created: ContractModel[];
+    failed: Array<{ employeeId: string; reason: string }>;
+  }> {
+    if (employeeIds.length === 0) {
+      return of({ created: [], failed: [] });
+    }
+    // For each employee: fetch wages → take first → POST contract.
+    // Each per-employee chain catches its own errors so one Dimona
+    // rejection doesn't abort siblings in the forkJoin.
+    const requests = employeeIds.map(employeeId =>
+      this.wagesApi
+        .getEmployeeWages({
+          companyId: this.companyId,
+          employeeId,
+          page: 0,
+          size: 50,
+        } as Parameters<EmployeeWageApiService['getEmployeeWages']>[0])
+        .pipe(
+          map(wages => (wages ?? [])[0]),
+          switchMap(wage => this.createOneContract(employeeId, wage)),
+          catchError(err =>
+            of({
+              ok: false as const,
+              employeeId,
+              reason: this.parseError(err),
+            }),
+          ),
+        ),
+    );
+    return forkJoin(requests).pipe(
+      map(results => {
+        const created: ContractModel[] = [];
+        const failed: Array<{ employeeId: string; reason: string }> = [];
+        for (const r of results) {
+          if (r.ok) created.push(r.contract);
+          else failed.push({ employeeId: r.employeeId, reason: r.reason });
+        }
+        return { created, failed };
+      }),
+    );
+  }
+
+  /**
+   * Build + POST one contract for `employeeId`. Returns an observable
+   * that always resolves (success → `{ ok: true, contract }`, failure →
+   * `{ ok: false, employeeId, reason }`) so siblings in a forkJoin
+   * aren't aborted by a single Dimona rejection.
+   */
+  private createOneContract(
+    employeeId: string,
+    wage: EmployeeWageModel | undefined,
+  ): Observable<
+    | { ok: true; contract: ContractModel; employeeId: string }
+    | { ok: false; employeeId: string; reason: string }
+  > {
+    if (!wage) {
+      return of({
+        ok: false as const,
+        employeeId,
+        reason: 'Geen loonpakket gevonden voor medewerker.',
       });
+    }
+    const dateFrom = this.form.dateFrom;
+    const dateTo = this.form.dateTo || this.form.dateFrom;
+    const schedule = this.buildContractSchedule(dateFrom, dateTo);
+    const payload: ContractModel = {
+      id: '',
+      employeeId,
+      companyId: this.companyId,
+      dateFrom,
+      dateTo,
+      status: ContractStatusEnum.DRAFT,
+      timetable: { schedule },
+      allocationId: wage.allocationId,
+      wageHour: wage.wageHour,
+      position: wage.position,
+      compensationHours: wage.compensationHours,
+      mealVoucher: wage.mealVoucher,
+      travelAllowance: wage.travelAllowance,
+      statute: wage.statute,
+      paritairComite: wage.paritairComite,
+      reason: wage.reason,
+      employmentAddress: wage.employmentAddress,
+      revenueConsultant: wage.revenueConsultant,
+      revenueOfficeCode: wage.revenueOfficeCode,
+      invoicing: {
+        coefficient: 0,
+        coefficientTravelAllowance: 0,
+        coefficientMealVouchers: 0,
+        coefficientEcoVouchers: 0,
+        coefficientBankHoliday: 0,
+        dimonaCost: 0,
+        defaultTaxRate: { code: '', name: '' },
+      },
+      // DPS rejects 0/null on these — sensible defaults; planner can
+      // tune per-contract afterwards via the standard contract dialog.
+      companyHoursPerWeek: 40,
+      employeeHoursPerWeek: 40,
+      cancelReason: null,
+      cancelExtraInfo: null,
+      result: null,
+      socialSecurityCategory: null,
+    };
+    return this.contractsApi.createContract(payload).pipe(
+      map(contract => ({ ok: true as const, contract, employeeId })),
+      catchError(err => of({
+        ok: false as const,
+        employeeId,
+        reason: this.parseError(err),
+      })),
+    );
+  }
+
+  /**
+   * One day-schedule entry per day in the inclusive range. The dialog
+   * applies the same werkuren / pauze on every day — multi-day shifts
+   * are expanded into per-day rows because that's what the DPS contract
+   * schema demands (one ContractDayScheduleModel per calendar day).
+   */
+  private buildContractSchedule(
+    dateFrom: string,
+    dateTo: string,
+  ): ContractDayScheduleModel[] {
+    const start = DateTime.fromISO(dateFrom);
+    const end = DateTime.fromISO(dateTo);
+    if (!start.isValid || !end.isValid) return [];
+    const out: ContractDayScheduleModel[] = [];
+    let cursor = start;
+    while (cursor <= end) {
+      out.push({
+        shiftTemplateName: null,
+        createShiftTemplate: false,
+        date: cursor.toISODate() ?? '',
+        fromTime: this.form.fromTime || null,
+        toTime: this.form.toTime || null,
+        pauseFromTime: this.form.pauseFrom || null,
+        pauseToTime: this.form.pauseTo || null,
+      });
+      cursor = cursor.plus({ days: 1 });
+    }
+    return out;
+  }
+
+  /**
+   * Toast partial failures from the contract-create forkJoin. Success-
+   * only batches stay silent (the dialog closes + the planning grid
+   * refresh is its own confirmation). Logged details give the operator
+   * the per-employee error code so they can retry from the standard
+   * contract dialog if Dimona pushed back.
+   */
+  private surfaceContractFailures(result: {
+    created: ContractModel[];
+    failed: Array<{ employeeId: string; reason: string }>;
+  }): void {
+    if (result.failed.length === 0) return;
+    const total = result.created.length + result.failed.length;
+    this.messageService?.add({
+      severity: 'warn',
+      summary: 'Contracten gedeeltelijk aangemaakt',
+      detail: `${result.created.length} van ${total} contracten aangemaakt. Probeer de overige opnieuw via Medewerkers.`,
+      life: 6000,
+    });
+    for (const f of result.failed) {
+      // eslint-disable-next-line no-console
+      console.warn('[dialog-shift-batch] contract create failed', f);
+    }
   }
 
   private parseError(err: unknown): string {
