@@ -1190,22 +1190,6 @@ a {
   }
 }
 
-// dps-page-header title chip — cap the size so it doesn't tower over the
-// row chrome on the planning + prestatiebevestiging pages (pilot feedback
-// item 6: "die titels niet meer rechts en zo groot"). The h3 inside
-// .title-wrapper renders at the browser default (≈1.5rem) and on narrow
-// rows wraps to the right of the divider — both effects went away once
-// the title is sized down to match the surrounding toolbar typography.
-dps-page-header .title-wrapper h3 {
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-dps-page-header > div > h3 {
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
 dps-company-planning {
   dps-page-header .title-wrapper {
     background-color: var(--dps-planning-primary-color) !important;
