@@ -1,2 +1,0 @@
-npm run test:ci-cd
-npm run detect-circular-deps
