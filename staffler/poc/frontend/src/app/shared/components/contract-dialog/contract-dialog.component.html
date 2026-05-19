@@ -12,7 +12,16 @@
   </h3>
 
   <div class="flex align-items-center">
-    @if (canCancelContract) {
+    <!--
+      Pilot feedback 2026-05-19: "I shouldn't be able to remove the
+      user in the shift list" when editing an existing contract within
+      the 8h lock-down window. The cancel-contract trash IS the remove-
+      user action (canceling = removing the operator's only link to
+      that shift), so we hide it whenever applyExistingContractEditRules
+      has flipped isContractEditLocked() to true. Outside the 8h window
+      eligible roles can still cancel via the same button.
+    -->
+    @if (canCancelContract && !isContractEditLocked()) {
       <p-button
         [text]="true"
         [rounded]="true"
