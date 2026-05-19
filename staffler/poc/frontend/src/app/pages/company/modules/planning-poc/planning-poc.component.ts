@@ -427,7 +427,17 @@ export class PlanningPocComponent implements AfterViewInit {
         // employee + the remaining open block); they all land on the same
         // service_location row so Bryntum needs allowOverlap=true to stack
         // them into lanes instead of refusing to render.
+        //
+        // Pilot feedback 2026-05-18 (regression of 17c9c16): dragging a new
+        // contract / open shift onto a day-view row that already contained
+        // an event landed exactly on top of the existing bar because
+        // Bryntum's default `pack` layout squeezes overlaps into a single
+        // lane. Force `stack` + a small `barMargin` so each overlap gets
+        // its own y-lane below the previous one, matching the actuals
+        // scheduler fix.
         allowOverlap: true,
+        eventLayout: 'stack',
+        barMargin: 6,
         timeRanges: [
           ...baseTimeRanges.filter(r => r.id !== TODAY_TIME_RANGE_ID),
           nowLineRange,
@@ -456,8 +466,13 @@ export class PlanningPocComponent implements AfterViewInit {
       eventStyle: 'plain',
       eventRenderer: this.eventBarRenderer,
       rowHeight: 65,
-      // Same lane-stacking reason as the day-zoom config above.
+      // Same lane-stacking reason as the day-zoom config above. Also need
+      // `eventLayout: 'stack'` + `barMargin` so dropped events land BELOW
+      // the existing bar instead of on top of it (pilot feedback 2026-05-18,
+      // regression of 17c9c16 after the service_locations rename).
       allowOverlap: true,
+      eventLayout: 'stack',
+      barMargin: 6,
     } as unknown as Partial<SchedulerConfig>;
   });
 
