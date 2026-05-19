@@ -70,15 +70,18 @@
         {{ 'CONTRACT.DATE_LABEL' | translate }}
       </label>
       <!--
-        Pilot feedback 2026-05-19: "datum veldje is nu breder, maar valt
-        uit de popup?" The previous round (05-18) capped the column at
-        14rem but still rendered the calendar icon as an external
-        button next to the input (showIcon=true), which pushed the
-        column past its cap on narrow viewports. Switching to
-        iconDisplay="input" moves the icon INSIDE the input chrome so
-        the whole control respects the .contract-dialog-date column
-        width (set in styles.scss). showIcon stays true so the icon is
-        still rendered.
+        Pilot feedback 2026-05-19 (re-report): "datum veldje is nu
+        breder, maar valt uit de popup?" The 05-19 fix (iconDisplay=
+        "input" + 13rem column cap) helped the trigger input but the
+        calendar PANEL — appended to body via appendTo="body" — has no
+        natural width constraint and can still render past the dialog
+        edge on narrow viewports. Two-pronged fix:
+          - drop column cap from 13rem → 12rem so the trigger input
+            (incl. inline icon + " > " range separator + two dates)
+            always fits the 34rem dialog body
+          - add panelStyleClass="contract-dialog-date-panel" so the
+            overlay panel inherits a max-width: 18rem rule in
+            styles.scss and can't escape its anchor either
       -->
       <p-datepicker
         selectionMode="range"
@@ -86,6 +89,7 @@
         rangeSeparator=">"
         styleClass="w-full"
         inputStyleClass="w-full"
+        panelStyleClass="contract-dialog-date-panel"
         [showIcon]="true"
         iconDisplay="input"
         [readonlyInput]="true"

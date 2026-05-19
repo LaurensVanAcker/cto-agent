@@ -584,17 +584,21 @@ dps-contract-dialog .contract-dialog-top-row {
   min-width: 0;
 }
 
-// Date column: shrink/grow within 13rem so the date input (icon now
+// Date column: shrink/grow within 12rem so the date input (icon now
 // rendered INSIDE the input via iconDisplay="input") + label all stay
 // inside the dialog. The datepicker itself is set to w-full above, so
 // it inherits this cap. min-width:0 is the canonical "let flex
 // children shrink past their content" trick. overflow:hidden on the
 // column is a defensive belt-and-braces: even if PrimeNG renders an
 // off-cap icon button on some zoom level, it won't escape the popup.
+// Pilot feedback 2026-05-19 (re-report): "datum veldje valt nog
+// steeds uit de popup" — dropped from 13rem to 12rem so the rendered
+// "DD/MM/YYYY > DD/MM/YYYY" string + inline icon definitely fits the
+// 34rem dialog chrome on every zoom level we test.
 dps-contract-dialog .contract-dialog-date {
-  flex: 0 1 13rem;
+  flex: 0 1 12rem;
   min-width: 9rem;
-  max-width: 13rem;
+  max-width: 12rem;
   overflow: hidden;
 }
 
@@ -612,6 +616,22 @@ dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker-input {
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+// Datepicker OVERLAY panel — because the contract-dialog datepicker
+// uses appendTo="body" the panel renders outside the .contract-dialog
+// subtree, so column-level rules can't reach it. The panel gets a
+// dedicated panelStyleClass="contract-dialog-date-panel" set in the
+// component template; cap it here so the calendar can never render
+// wider than the trigger column it's anchored to. 18rem comfortably
+// fits the two-month range view PrimeNG draws by default while still
+// staying inside even the narrowest viewport we see in the pilot
+// (≈ 360px on the smallest tablet).
+.contract-dialog-date-panel.p-datepicker-panel,
+.contract-dialog-date-panel.p-datepicker {
+  max-width: 18rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 dps-contract-dialog .contract-dialog-top-row dps-address-autocomplete-field > label {
