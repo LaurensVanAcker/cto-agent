@@ -924,6 +924,15 @@ export class PlanningPocComponent implements AfterViewInit {
     // a previously cached Week.
     this.rebuildFromCache();
     this.maybeRefresh();
+    // Item 7 (pilot feedback 2026-05-19): when switching Dag/Week/2 weken
+    // all contracts disappeared until a manual F5. Root cause: changing
+    // [viewPreset] makes Bryntum tear down + rebuild its internal time
+    // axis and event store; the queueMicrotask `syncSchedulerStores` from
+    // rebuildFromCache fires BEFORE that rebuild settles, so the events
+    // we just pushed get wiped by Bryntum's own reconcile. A second sync
+    // via setTimeout(0) lands AFTER the viewPreset rebuild, restoring
+    // the events from the (still-fresh) signals.
+    setTimeout(() => this.syncSchedulerStores(this.resources(), this.events()), 0);
   }
 
   /**
@@ -1414,6 +1423,13 @@ export class PlanningPocComponent implements AfterViewInit {
         // and end up rendering the previous resource set. Forcing the stores
         // imperatively here guarantees a clean swap.
         queueMicrotask(() => this.syncSchedulerStores(resources, events));
+        // Item 7 (pilot feedback 2026-05-19): if refresh() lands while
+        // Bryntum is still rebuilding its time axis after a viewPreset
+        // (Dag/Week/2 weken) switch, the microtask sync gets clobbered
+        // by Bryntum's own reconcile and the contracts vanish. A second
+        // setTimeout-deferred sync runs AFTER the viewPreset rebuild
+        // and restores the events from the freshly-fetched signals.
+        setTimeout(() => this.syncSchedulerStores(resources, events), 0);
       },
       error: err => {
         this.loading.set(false);
