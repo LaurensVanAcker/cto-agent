@@ -177,6 +177,18 @@ export class CompanyInvitationsComponent implements OnInit {
   }
 
   /**
+   * Pilot feedback 2026-05-19: "Uitnodigingen" is now reached from the pool
+   * toolbar (the sidebar entry was removed). Mirror that flow with an
+   * explicit back button so users have a clear way back without relying on
+   * the browser history.
+   */
+  goToPool(): void {
+    this.company$.pipe(take(1)).subscribe(company => {
+      this.router.navigate([AppRouteEnum.COMPANY, company.id, CompanyRouteEnum.POOL]);
+    });
+  }
+
+  /**
    * Open the permanent-employee creation dialog. Bypasses the existing
    * invitation/Dimona flow — vaste medewerkers go straight into PoC-DB.
    * After creation we re-fire the filters subject so the user sees the

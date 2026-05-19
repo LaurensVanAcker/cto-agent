@@ -21,9 +21,18 @@
       Pilot feedback 2026-05-19 (item 9): all employee-add CTAs
       ("Bijverdiener toevoegen" + "Vaste medewerker toevoegen")
       live on the /pool toolbar now. This page is a pure list view —
-      reachable via the "Uitnodigingen" button on /pool. The
-      access-gating message is kept for the group-user role.
+      reachable via the "Uitnodigingen" button on /pool. Back button
+      mirrors that entry-point so users have a clear way back.
+      The access-gating message is kept for the group-user role.
     -->
+    <p-button
+      icon="dps-icon dps-icon-chevron rotate-180"
+      label="Terug naar pool"
+      severity="secondary"
+      [text]="true"
+      (onClick)="goToPool()"
+    ></p-button>
+
     @if (!(isInviteNewEmployeeBtnShown$ | async)) {
       <span>{{ 'INVITATIONS.NO_ACCESS_TO_GROUPS_YET' | translate }}</span>
     }
