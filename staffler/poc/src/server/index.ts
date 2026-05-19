@@ -60,6 +60,14 @@ interface Session {
    *  route reads this field, but every other authed call should 401
    *  until the password is set. */
   forceResetSession?: string;
+  /** The username the upstream returned in the FORCE_PASSWORD_RESET
+   *  challenge response. Cognito's RespondToAuthChallenge requires the
+   *  username from the challenge (often the Cognito sub or alias), NOT
+   *  the email the user typed. Echoing back the wrong value makes
+   *  Cognito throw an unhandled exception which the gateway surfaces
+   *  as a generic 500 INTERNAL_SERVER_ERROR — see comment in
+   *  /api/employee-set-password. */
+  forceResetUsername?: string;
   /** Companies the logged-in user can read/write. Populated from
    *  `getCurrentUser().companyMemberships` after login. Used by
    *  `assertCompanyAccess` to 403 cross-tenant reads even when the
@@ -361,12 +369,23 @@ app.post<{ Body: { username?: string; password?: string } }>(
       // Stash the session token so /api/employee-set-password can pick
       // it up via the (about-to-be-set) cookie. The client will follow
       // up with new password + we'll flip authStatus to SUCCESS.
+      //
+      // IMPORTANT: Cognito's RespondToAuthChallenge wants the username
+      // exactly as it came back in the challenge — for some pools that's
+      // an alias / sub-id rather than the email the operator typed.
+      // Falling back to the lowercased input keeps single-field pools
+      // working too.
+      const upstreamUsername =
+        typeof result.username === "string" && result.username.length > 0
+          ? result.username
+          : username;
       const sid = newSessionId();
       sessions.set(sid, {
         skey: "",
         username,
         kind: "employee",
         forceResetSession: result.session,
+        forceResetUsername: upstreamUsername,
       });
       reply.header(
         "Set-Cookie",
@@ -1043,6 +1062,27 @@ app.post<{
       reply.status(400);
       return { kind: "validation", message: "serviceLocationId, dateFrom, fromTime, toTime required" };
     }
+    // Architectural rule (pilot directive 2026-05-19): a flex employee
+    // assigned to a slot is a DPS *contract*, not a PoC-DB shadow row.
+    // The shifts table is reserved for OPEN shifts (capacity that nobody
+    // is yet pinned to) and for ALL_POOL / GROUP broadcast metadata.
+    //
+    // We therefore drop `targetEmployeeIds` at the boundary: the planning
+    // grid used to read this list and paint each id as a "filled contract"
+    // block, which was a lie — DPS QA had no contract for those employees.
+    // Operators must use POST /api/contracts (pure proxy → DPS, Dimona-
+    // bound) to pin a flex employee to a slot. The shift itself stays in
+    // PoC-DB as an open vraag with `target_employee_ids: []`.
+    if (b.targetEmployeeIds && b.targetEmployeeIds.length > 0) {
+      req.log.warn(
+        { shiftCompany: b.companyId, dropped: b.targetEmployeeIds.length },
+        "[shifts] dropping targetEmployeeIds — flex assignments must go through POST /api/contracts",
+      );
+    }
+    // SELECTION without per-employee targets makes no sense; downgrade
+    // to NONE so the open shift is honest about being unassigned.
+    const safeTargetType =
+      b.targetType === "SELECTION" ? "NONE" : (b.targetType ?? "NONE");
     const result = pocDb.createShift({
       company_id: b.companyId,
       service_location_id: b.serviceLocationId,
@@ -1054,8 +1094,8 @@ app.post<{
       pause_to: b.pauseTo ?? null,
       capacity: b.capacity ?? 1,
       deadline: b.deadline ?? null,
-      target_type: b.targetType ?? "NONE",
-      target_employee_ids: b.targetEmployeeIds ?? [],
+      target_type: safeTargetType,
+      target_employee_ids: [],
       target_group_ids: b.targetGroupIds ?? [],
       status: b.status ?? "draft",
       published_at: null,
@@ -1124,8 +1164,25 @@ app.patch<{
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
     const patch: Record<string, unknown> = {};
-    if (req.body?.targetType) patch.target_type = req.body.targetType;
-    if (req.body?.targetEmployeeIds) patch.target_employee_ids = req.body.targetEmployeeIds;
+    // Per-employee assignments belong on DPS as contracts, not as
+    // PoC-DB shadow rows. Drop targetEmployeeIds here — see the long
+    // comment on POST /api/shifts for the architectural rule. The
+    // share endpoint stays useful for ALL_POOL / GROUP broadcasts and
+    // for moving the reaction deadline.
+    if (req.body?.targetEmployeeIds && req.body.targetEmployeeIds.length > 0) {
+      req.log.warn(
+        { shiftId: req.params.id, dropped: req.body.targetEmployeeIds.length },
+        "[shifts/share] dropping targetEmployeeIds — flex assignments must go through POST /api/contracts",
+      );
+    }
+    if (req.body?.targetType) {
+      patch.target_type =
+        req.body.targetType === "SELECTION" ? "NONE" : req.body.targetType;
+    }
+    // Always force target_employee_ids back to empty when the share
+    // endpoint is touched. This also retroactively clears any rows
+    // that slipped through before this fix landed.
+    patch.target_employee_ids = [];
     if (req.body?.targetGroupIds) patch.target_group_ids = req.body.targetGroupIds;
     if (req.body?.reactionDeadline) patch.deadline = req.body.reactionDeadline;
     const updated = pocDb.patchShift(req.params.id, patch);
