@@ -310,6 +310,7 @@
     "EMPLOYMENT_ADDRESS_LABEL": "Service location",
     "EMPLOYMENT_ADDRESS_PLACEHOLDER": "Geen service location",
     "LOADING_CONTRACT": "Contract laden…",
+    "EDIT_LOCKED_WITHIN_8H": "Bewerken niet meer mogelijk binnen 8u voor start",
     "SELECT_EMPLOYEE_WAGE": "Selecteer een loonpakket",
     "SELECT_SHIFT": "Selecteer een bestaande shift",
     "GIVE_SHIFT_NAME": "Geef een naam aan deze shift",

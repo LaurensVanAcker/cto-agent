@@ -312,6 +312,7 @@
     "EMPLOYMENT_ADDRESS_LABEL": "Service location",
     "EMPLOYMENT_ADDRESS_PLACEHOLDER": "No service location",
     "LOADING_CONTRACT": "Loading contract…",
+    "EDIT_LOCKED_WITHIN_8H": "Editing is no longer possible within 8h of the contract start",
     "SELECT_EMPLOYEE_WAGE": "Select an employee wage",
     "SELECT_SHIFT": "Select an existing shift",
     "GIVE_SHIFT_NAME": "Give a name to this new shift",

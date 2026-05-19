@@ -345,6 +345,21 @@
   </footer>
 
 <ng-template #scheduleTemplate>
+  <!--
+    Pilot feedback 2026-05-19: when we open an existing contract within
+    8h of its start we lock EVERY field (incl. from/to time). The chip
+    below tells the operator why the form is read-only so they don't
+    think the dialog is broken.
+  -->
+  @if (isEditMode && isContractEditLocked()) {
+    <div
+      class="contract-dialog-edit-lock-chip flex align-items-center gap-2 mb-2"
+      role="status"
+    >
+      <span class="dps-icon dps-icon-info"></span>
+      <small>{{ 'CONTRACT.EDIT_LOCKED_WITHIN_8H' | translate }}</small>
+    </div>
+  }
   <section class="flex flex-column border-round p-3 surface-100">
     <div class="flex align-items-center justify-content-center gap-2 mb-2">
       <p-button

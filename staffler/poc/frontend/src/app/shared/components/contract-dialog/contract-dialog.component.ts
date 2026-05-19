@@ -282,6 +282,19 @@ export class ContractDialogComponent implements OnInit {
     RootState.isCompanyActualsEnabled
   );
   readonly isPastContractWithConfirmedActual = signal(false);
+  /**
+   * Pilot feedback 2026-05-19: when an existing contract is opened in the
+   * dialog the operator should ONLY be able to edit the per-day fromTime /
+   * toTime, and even those should lock once we're within 8 hours of the
+   * contract start (matches the upstream DPS behaviour the pilot referenced
+   * as "the original source code"). Wage-package fields and the date
+   * picker are always read-only on edit; the time fields flip read-only
+   * via this signal which is computed once the originalContract resolves.
+   */
+  readonly isContractEditLocked = signal(false);
+  /** Window before contract start in which from-/to-time editing is still
+   *  allowed. Mirrors the 8h cut-off the pilot asked for. */
+  private static readonly HOURS_BEFORE_CONTRACT_EDIT_LOCK = 8;
   private scheduleCache: ContractDayScheduleModel[] = [];
 
   isCancelMode = false;
@@ -607,6 +620,10 @@ export class ContractDialogComponent implements OnInit {
               this.datesRangeControl.disable({ emitEvent: false });
             }
           }
+          // Pilot feedback 2026-05-19: lock existing-contract editing
+          // down to fromTime/toTime only, and even those go read-only
+          // within 8h of contract start. Wage + dates always read-only.
+          this.applyExistingContractEditRules(contract);
           // Note: loading flag is cleared by the finalize() above so it
           // also resolves on errors.
         });
@@ -797,6 +814,65 @@ export class ContractDialogComponent implements OnInit {
         this.shiftAutocompleteControl.reset();
       }
     });
+  }
+
+  /**
+   * Pilot feedback 2026-05-19 — "If I click an existing contract the only
+   * thing I can do is edit the start and end time 8h before the contract
+   * starts. No date editing, no wage packet editing."
+   *
+   * Applied on top of (after) the existing role-based gating that lives
+   * in the same /api/contracts/:id resolve callback. This method is the
+   * single source of truth for the lock-down — it always runs in edit
+   * mode regardless of role, so even an admin reading the dialog sees
+   * the same restricted shape the pilot operators see.
+   *
+   * Rules:
+   *   - wage / position / statute / paritairComite / employmentAddress
+   *     and every other top-level form control → disabled
+   *   - datesRangeControl → disabled
+   *   - per-day fromTime / toTime → enabled ONLY when now is more than
+   *     HOURS_BEFORE_CONTRACT_EDIT_LOCK hours before the contract starts;
+   *     pauze + shift name + date stay disabled
+   *   - when we're inside the 8h window every schedule field is disabled
+   *     and the template renders an explanatory chip via
+   *     `isContractEditLocked()`.
+   */
+  private applyExistingContractEditRules(contract: ContractModel): void {
+    if (!this.isEditMode || this.isCancelMode) return;
+
+    // Wage / package fields — always read-only on edit. The wage select
+    // itself is already disabled when only one wage exists; we extend
+    // that here so the lock applies even when there are multiple wages.
+    this.wageControl.disable({ emitEvent: false });
+    this.datesRangeControl.disable({ emitEvent: false });
+    // Disable EVERY top-level form control except `timetable` so we can
+    // selectively re-enable fromTime/toTime per schedule day below.
+    Object.entries(this.form.controls).forEach(([name, control]) => {
+      if (name !== 'timetable') control.disable({ emitEvent: false });
+    });
+    this.form.controls.timetable.enable({ emitEvent: false });
+
+    const firstDay = contract.timetable?.schedule?.[0];
+    const contractStartDatetime = firstDay
+      ? DateTime.fromSQL(`${contract.dateFrom} ${firstDay.fromTime}`)
+      : DateTime.fromISO(contract.dateFrom);
+    const hoursUntilStart = contractStartDatetime.diff(this.today).as('hours');
+    const locked =
+      hoursUntilStart < ContractDialogComponent.HOURS_BEFORE_CONTRACT_EDIT_LOCK;
+    this.isContractEditLocked.set(locked);
+
+    // For each schedule day: disable everything, then conditionally
+    // re-enable from/to time. We don't use disablePassedContractDatesSchedules
+    // here because that method has different semantics (it gates by
+    // "passed" vs "future" — we want a flat 8h cut-off).
+    for (const scheduleDayForm of this.scheduleFormArray.controls) {
+      scheduleDayForm.disable({ emitEvent: false });
+      if (!locked) {
+        scheduleDayForm.controls.fromTime.enable({ emitEvent: false });
+        scheduleDayForm.controls.toTime.enable({ emitEvent: false });
+      }
+    }
   }
 
   private disablePassedContractDatesSchedules(): void {
