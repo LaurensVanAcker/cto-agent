@@ -26,6 +26,34 @@
       (onClick)="addBijverdiener()"
     />
 
+    <!--
+      Pilot feedback 2026-05-19 (item 9): consolidated all employee-add
+      CTAs onto the pool toolbar. "Vaste medewerker toevoegen" used to
+      live on /invitations; it now opens the same
+      DialogAddPermanentEmployeeComponent here. PoC-DB-only flow.
+    -->
+    <p-button
+      icon="dps-icon dps-icon-person_add"
+      label="Vaste medewerker toevoegen"
+      class="flex-none"
+      styleClass="pool-toolbar-btn"
+      (onClick)="addVastemedewerker()"
+    />
+
+    <!--
+      "Uitnodigingen" replaces the former INVITATIONS sidebar entry —
+      the page is now a pure list view, reached from here.
+    -->
+    <p-button
+      icon="dps-icon dps-icon-mail"
+      label="Uitnodigingen"
+      class="flex-none"
+      styleClass="pool-toolbar-btn"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="viewInvitations()"
+    />
+
     <p-button
       icon="dps-icon dps-icon-group_add"
       label="Nieuwe vestiging maken"

@@ -61,6 +61,7 @@ import {
   AssignGroupsDialogComponent,
   AssignGroupsDialogData,
 } from '@dps/shared/components';
+import { DialogAddPermanentEmployeeComponent } from '@dps/shared/components/dialog-add-permanent-employee/dialog-add-permanent-employee.component';
 
 type StatusFilter = 'all' | EmployeeMyStafflerStatus;
 
@@ -284,6 +285,48 @@ export class PoolComponent {
       company.id,
       CompanyRouteEnum.INVITATIONS,
       InvitationsRouteEnum.CREATE,
+    ]);
+  }
+
+  /**
+   * Pilot feedback 2026-05-19 (item 9): "Vaste medewerker toevoegen" moved
+   * from /invitations onto the pool toolbar. Opens the same
+   * DialogAddPermanentEmployeeComponent — PoC-DB-only permanent record,
+   * bypasses the DPS invitation/Dimona flow. After creation we refresh
+   * the pool so the new row appears.
+   */
+  protected addVastemedewerker(): void {
+    const company = this.company();
+    if (!company) return;
+    const ref = this.dialogService.open(DialogAddPermanentEmployeeComponent, {
+      header: 'Vaste medewerker toevoegen',
+      modal: true,
+      width: '28rem',
+      data: { companyId: company.id },
+    });
+    ref.onClose.subscribe((result: { kind?: string; row?: { first_name?: string; last_name?: string } } | undefined) => {
+      if (result?.kind === 'permanent-employee.created') {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Vaste medewerker aangemaakt',
+          detail: `${result.row?.first_name ?? ''} ${result.row?.last_name ?? ''}`.trim(),
+        });
+        this.refresh();
+      }
+    });
+  }
+
+  /**
+   * Pilot feedback 2026-05-19 (item 9): the INVITATIONS sidebar entry was
+   * removed; the invitations list is reached from this toolbar button.
+   */
+  protected viewInvitations(): void {
+    const company = this.company();
+    if (!company) return;
+    this.router.navigate([
+      AppRouteEnum.COMPANY,
+      company.id,
+      CompanyRouteEnum.INVITATIONS,
     ]);
   }
 

@@ -85,18 +85,13 @@
     <span class="link-text">{{ 'COMPANY_SIDENAV.POOL' | translate }}</span>
   </a>
 
-  <a
-    [pTooltip]="'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate"
-    [tooltipDisabled]="isMenuExpanded()"
-    [routerLink]="[companyRouteEnum.INVITATIONS]"
-    [routerLinkActive]="activeLinkClasses"
-    [class]="linkClasses"
-  >
-    <span
-      class="dps-icon dps-icon-{{ companyRoutesIconsMap[companyRouteEnum.INVITATIONS] }}"
-    ></span>
-    <span class="link-text">{{ 'COMPANY_SIDENAV.NEW_EMPLOYEES' | translate }}</span>
-  </a>
+  <!--
+    Pilot feedback 2026-05-19 (item 9): the INVITATIONS sidebar entry
+    was removed. The /invitations route still exists — it's now
+    reached via the "Uitnodigingen" button on the /pool toolbar
+    (which is where the Bijverdiener + Vaste medewerker CTAs also
+    live now).
+  -->
 
   <a
     [pTooltip]="'COMPANY_SIDENAV.PLANNING' | translate"

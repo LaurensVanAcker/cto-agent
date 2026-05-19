@@ -17,31 +17,16 @@
 
 <main class="flex flex-column flex-1 px-3 pt-3 overflow-y-auto">
   <div class="flex align-items-center justify-content-between gap-2 flex-wrap">
-    @if (isInviteNewEmployeeBtnShown$ | async) {
-      <div class="flex align-items-center gap-2 flex-wrap">
-        <!--
-          Pilot feedback 2026-05-19 (item 9): "Bijverdiener toevoegen"
-          moved off this page onto the Pool toolbar — the Dimona/DPS
-          invite flow now lives next to the pool list where the operator
-          picks who they want to invite. "Vaste medewerker toevoegen"
-          stays here (PoC-DB-only permanent record, dedicated dialog).
-        -->
-        <p-button
-          icon="dps-icon dps-icon-person_add"
-          label="Vaste medewerker toevoegen"
-          styleClass="pool-toolbar-btn"
-          (onClick)="openAddPermanentDialog()"
-        ></p-button>
-      </div>
-    } @else {
+    <!--
+      Pilot feedback 2026-05-19 (item 9): all employee-add CTAs
+      ("Bijverdiener toevoegen" + "Vaste medewerker toevoegen")
+      live on the /pool toolbar now. This page is a pure list view —
+      reachable via the "Uitnodigingen" button on /pool. The
+      access-gating message is kept for the group-user role.
+    -->
+    @if (!(isInviteNewEmployeeBtnShown$ | async)) {
       <span>{{ 'INVITATIONS.NO_ACCESS_TO_GROUPS_YET' | translate }}</span>
     }
-
-    <!--
-      "Te valideren" was a shortcut that only applies to non-company-user
-      roles in the production DPS app. It is not in any PoC mockup, and the
-      pilot users are all company-users, so the link is gone.
-    -->
   </div>
 
   <p-float-label variant="on" class="mt-3 mb-2 md: mb-3">
