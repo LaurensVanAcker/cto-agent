@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-18T15:38:29.671Z",
+  "projectRoot": "/Users/laurens/Documents/Repositories/cto",
+  "structure": {
+    "hasPackageJson": false,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1779118709671
+}

@@ -1,0 +1,343 @@
+{
+  "service_groups": [
+    {
+      "id": "d913459e-d0f8-4248-a8f1-82ff4ec0b85c",
+      "deleted_at": null,
+      "created_at": "2026-05-12T06:50:36.521Z",
+      "updated_at": "2026-05-12T06:50:36.521Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "",
+      "name": "Toog",
+      "address_line1": "Dok Noord 4F",
+      "address_line2": null,
+      "postal_code": "9000",
+      "city": "Gent"
+    },
+    {
+      "id": "fc8cb4bf-0bed-43f0-aef0-373e62e2eac5",
+      "deleted_at": null,
+      "created_at": "2026-05-12T06:50:36.523Z",
+      "updated_at": "2026-05-12T19:57:41.539Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "f21a9e14-f3e3-4d06-a048-05e226407ab8",
+      "name": "Kassa",
+      "address_line1": "Dok Noord 4F",
+      "address_line2": null,
+      "postal_code": "9000",
+      "city": "Gent"
+    },
+    {
+      "id": "0f06488d-a090-433c-b62b-e9373b32f5c4",
+      "deleted_at": null,
+      "created_at": "2026-05-12T06:50:36.523Z",
+      "updated_at": "2026-05-13T13:17:30.566Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "def96fdf-4dcd-4879-873b-e23cc1ba7d6a",
+      "name": "Terras voorin",
+      "address_line1": "Dok Noord 4F",
+      "address_line2": null,
+      "postal_code": "9000",
+      "city": "Gent"
+    },
+    {
+      "id": "43dde9ab-e6ae-409c-9629-816dcc7e4d49",
+      "deleted_at": null,
+      "created_at": "2026-05-12T10:59:42.347Z",
+      "updated_at": "2026-05-12T10:59:42.347Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "_orphans",
+      "name": "Test",
+      "address_line1": null,
+      "address_line2": null,
+      "postal_code": null,
+      "city": null
+    },
+    {
+      "id": "18b5f3bb-3724-4cf1-8715-79feb51695b6",
+      "deleted_at": null,
+      "created_at": "2026-05-12T12:07:56.871Z",
+      "updated_at": "2026-05-12T12:07:56.871Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "f21a9e14-f3e3-4d06-a048-05e226407ab8",
+      "name": "Toog",
+      "address_line1": "Atlantastraat 4",
+      "address_line2": null,
+      "postal_code": "9000",
+      "city": "Gent"
+    },
+    {
+      "id": "51c58c9a-c960-41f0-a544-d3bf2cad9c6f",
+      "deleted_at": null,
+      "created_at": "2026-05-12T15:01:33.831Z",
+      "updated_at": "2026-05-12T15:01:33.831Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "branch_group_id": "a77c44c2-b379-47a0-9d10-1a4a3ec3a5cd",
+      "name": "Bar",
+      "address_line1": "Lindestuk 15",
+      "address_line2": null,
+      "postal_code": "9032",
+      "city": "Gent"
+    }
+  ],
+  "permanent_employees": [
+    {
+      "id": "4b51b738-25e8-4261-942a-0c539714890c",
+      "deleted_at": null,
+      "created_at": "2026-05-12T06:50:36.524Z",
+      "updated_at": "2026-05-12T06:50:36.524Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "first_name": "Jeff",
+      "last_name": "Callebaut"
+    },
+    {
+      "id": "4f3c556d-6d92-4fc0-be4b-272707761ab4",
+      "deleted_at": null,
+      "created_at": "2026-05-12T06:50:36.524Z",
+      "updated_at": "2026-05-12T06:50:36.524Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "first_name": "Joke",
+      "last_name": "Carton"
+    },
+    {
+      "id": "9f28829b-e2f3-4a99-a353-7b1841520940",
+      "deleted_at": null,
+      "created_at": "2026-05-13T13:13:13.902Z",
+      "updated_at": "2026-05-13T13:13:13.902Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "first_name": "laurens",
+      "last_name": "VA"
+    }
+  ],
+  "permanent_assignments": [],
+  "permanent_blocks": [
+    {
+      "id": "8c3f68ef-ef07-40dc-ba8d-3b84a694bb95",
+      "created_at": "2026-05-13T12:47:44.184Z",
+      "updated_at": "2026-05-13T12:47:44.184Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "permanent_employee_id": "4b51b738-25e8-4261-942a-0c539714890c",
+      "date_from": "2026-05-11",
+      "date_to": "2026-05-11",
+      "from_time": "09:00",
+      "to_time": "17:00"
+    },
+    {
+      "id": "c6f96caa-5863-44bc-808d-087c75ec81c4",
+      "created_at": "2026-05-13T13:15:16.072Z",
+      "updated_at": "2026-05-13T13:15:16.072Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "permanent_employee_id": "4f3c556d-6d92-4fc0-be4b-272707761ab4",
+      "date_from": "2026-05-12",
+      "date_to": "2026-05-12",
+      "from_time": "09:00",
+      "to_time": "20:02"
+    }
+  ],
+  "shifts": [
+    {
+      "id": "053b38c1-8a0e-48f1-82b4-45ce9efed0c6",
+      "created_at": "2026-05-12T15:00:56.593Z",
+      "updated_at": "2026-05-13T13:21:30.735Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "18b5f3bb-3724-4cf1-8715-79feb51695b6",
+      "date_from": "2026-05-11",
+      "date_to": "2026-05-11",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 1,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-12T15:00:56.605Z",
+      "created_by_user_id": null
+    },
+    {
+      "id": "9a143571-9e38-43eb-aaa5-a4162032a9ea",
+      "created_at": "2026-05-12T15:05:43.451Z",
+      "updated_at": "2026-05-13T13:21:30.738Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "51c58c9a-c960-41f0-a544-d3bf2cad9c6f",
+      "date_from": "2026-05-11",
+      "date_to": "2026-05-11",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 1,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-12T15:05:43.462Z",
+      "created_by_user_id": null
+    },
+    {
+      "id": "600ccfb3-e8fc-4eaa-86dd-91c205b59945",
+      "created_at": "2026-05-12T15:08:25.407Z",
+      "updated_at": "2026-05-13T13:21:30.741Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "18b5f3bb-3724-4cf1-8715-79feb51695b6",
+      "date_from": "2026-05-12",
+      "date_to": "2026-05-12",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 1,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-12T15:08:25.414Z",
+      "created_by_user_id": null
+    },
+    {
+      "id": "93ed49d2-86c2-460d-9412-1b731e3d6aa3",
+      "created_at": "2026-05-12T19:59:36.249Z",
+      "updated_at": "2026-05-13T13:21:30.743Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "fc8cb4bf-0bed-43f0-aef0-373e62e2eac5",
+      "date_from": "2026-05-14",
+      "date_to": "2026-05-14",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 3,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-12T19:59:36.260Z",
+      "created_by_user_id": null
+    },
+    {
+      "id": "5f5da782-3f5e-45f4-b1de-33c32fe79e96",
+      "created_at": "2026-05-13T12:45:00.921Z",
+      "updated_at": "2026-05-13T13:21:30.744Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "fc8cb4bf-0bed-43f0-aef0-373e62e2eac5",
+      "date_from": "2026-05-12",
+      "date_to": "2026-05-12",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 3,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-13T12:45:00.932Z",
+      "created_by_user_id": null
+    },
+    {
+      "id": "25452719-6629-4685-9616-b6d450f5931c",
+      "created_at": "2026-05-13T13:19:20.466Z",
+      "updated_at": "2026-05-13T13:21:30.746Z",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "service_group_id": "0f06488d-a090-433c-b62b-e9373b32f5c4",
+      "date_from": "2026-05-12",
+      "date_to": "2026-05-12",
+      "from_time": "09:00",
+      "to_time": "17:00",
+      "pause_from": null,
+      "pause_to": null,
+      "capacity": 3,
+      "deadline": "2026-05-17T21:00:00.000+02:00",
+      "target_type": "SELECTION",
+      "target_employee_ids": [
+        "d2d13889-8191-41de-97b2-195282e9ccff",
+        "30ce71a0-bf86-472c-8029-91f89a8405b9",
+        "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+        "9f18beee-eb81-4d84-a3d2-39b2b29c3172"
+      ],
+      "target_group_ids": [],
+      "status": "open",
+      "published_at": "2026-05-13T13:19:20.486Z",
+      "created_by_user_id": null
+    }
+  ],
+  "shift_applications": [],
+  "availabilities": [],
+  "mystaffler_invites": [
+    {
+      "id": "d5146344-4825-4b87-8bc7-99fb0ae4e3ae",
+      "employee_id": "07e6664b-dda4-42ee-8a0f-840fb894b78d",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "status": "active",
+      "invited_at": "2026-05-12T09:08:57.895Z",
+      "accepted_at": "2026-05-13T08:30:27.331Z",
+      "last_login_at": "2026-05-13T08:30:27.331Z"
+    },
+    {
+      "id": "f777cfc4-8275-47df-bf71-3d5654b33b40",
+      "employee_id": "bc2dc200-45a4-4bc3-ad81-c40ec48693d5",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "status": "invited",
+      "invited_at": "2026-05-12T09:09:00.547Z",
+      "accepted_at": null,
+      "last_login_at": null
+    },
+    {
+      "id": "e3bcb82c-f5e2-43dd-9b2f-986692f81646",
+      "employee_id": "30ce71a0-bf86-472c-8029-91f89a8405b9",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "status": "invited",
+      "invited_at": "2026-05-12T11:32:10.661Z",
+      "accepted_at": null,
+      "last_login_at": null
+    },
+    {
+      "id": "8797eca9-3d45-4314-9c23-bcc965e8cb14",
+      "employee_id": "d2d13889-8191-41de-97b2-195282e9ccff",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "status": "invited",
+      "invited_at": "2026-05-13T13:07:58.358Z",
+      "accepted_at": null,
+      "last_login_at": null
+    },
+    {
+      "id": "99e78cef-f49b-41d3-abe4-467df8883b10",
+      "employee_id": "727f87f1-ca01-4567-b809-09bd3d8eec3f",
+      "company_id": "1bbabbe5-d9b0-4dbb-ac49-a17663d63328",
+      "status": "invited",
+      "invited_at": "2026-05-13T13:10:49.912Z",
+      "accepted_at": null,
+      "last_login_at": null
+    }
+  ]
+}

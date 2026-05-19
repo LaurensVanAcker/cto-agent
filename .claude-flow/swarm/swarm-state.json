@@ -1,0 +1,64 @@
+{
+  "swarms": {
+    "swarm-1779183196028-7x2gaz": {
+      "swarmId": "swarm-1779183196028-7x2gaz",
+      "topology": "hierarchical",
+      "maxAgents": 8,
+      "status": "terminated",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical",
+        "maxAgents": 8,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-05-19T09:33:16.028Z",
+      "updatedAt": "2026-05-19T10:12:38.464Z",
+      "pid": 62194,
+      "terminationReason": "host process 62194 exited"
+    },
+    "swarm-1779185558463-s931ja": {
+      "swarmId": "swarm-1779185558463-s931ja",
+      "topology": "hierarchical",
+      "maxAgents": 8,
+      "status": "terminated",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical",
+        "maxAgents": 8,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-05-19T10:12:38.463Z",
+      "updatedAt": "2026-05-19T12:51:47.178Z",
+      "pid": 71120,
+      "terminationReason": "host process 71120 exited"
+    },
+    "swarm-1779195107177-tqvbxo": {
+      "swarmId": "swarm-1779195107177-tqvbxo",
+      "topology": "hierarchical-mesh",
+      "maxAgents": 15,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical-mesh",
+        "maxAgents": 15,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-05-19T12:51:47.177Z",
+      "updatedAt": "2026-05-19T12:51:47.177Z",
+      "pid": 1792
+    }
+  },
+  "version": "3.0.0"
+}
