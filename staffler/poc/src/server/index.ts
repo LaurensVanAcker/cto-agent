@@ -68,6 +68,48 @@ interface Session {
    *  route reads this field, but every other authed call should 401
    *  until the password is set. */
   forceResetSession?: string;
+  /** Companies the logged-in user can read/write. Populated from
+   *  `getCurrentUser().companyMemberships` after login. Used by
+   *  `assertCompanyAccess` to 403 cross-tenant reads even when the
+   *  caller forges a different companyId in the query string. Empty /
+   *  undefined means "not hydrated yet" — the guard falls open in that
+   *  case so a profile-fetch failure doesn't take the PoC offline. */
+  companyIds?: string[];
+}
+
+/** Pull the set of companyIds the user has access to from a hydrated
+ *  DpsUserDetailsWebDto. Returns [] when the profile is missing/unparseable
+ *  — callers should treat empty as "not enforced", not "no access". */
+function companyIdsFromProfile(profileJson: string | undefined): string[] {
+  if (!profileJson) return [];
+  try {
+    const profile = JSON.parse(profileJson) as {
+      companyMemberships?: Array<{ companyId?: string }>;
+    };
+    return (profile.companyMemberships ?? [])
+      .map((m) => m?.companyId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/** Returns null on success, or { status, body } to short-circuit the
+ *  handler. Enforces (a) session present, (b) companyId provided,
+ *  (c) the session's user has membership of that company. Skip (c) when
+ *  the session's company list is empty (= profile not hydrated yet) so
+ *  the PoC stays usable when /api/users/currentuser briefly fails. */
+function assertCompanyAccess(
+  session: Session | null,
+  companyId: string | undefined,
+): { status: number; body: { kind: string; message: string } } | null {
+  if (!session) return { status: 401, body: { kind: "unauthenticated", message: "login required" } };
+  if (!companyId) return { status: 400, body: { kind: "validation", message: "companyId required" } };
+  const allowed = session.companyIds ?? [];
+  if (allowed.length > 0 && !allowed.includes(companyId)) {
+    return { status: 403, body: { kind: "forbidden", message: "no access to this company" } };
+  }
+  return null;
 }
 
 const sessions = new Map<string, Session>();
@@ -230,6 +272,7 @@ app.post<{ Body: { username: string; password: string } }>(
       try {
         const profile = await client.getCurrentUser();
         session.profileJson = JSON.stringify(profile);
+        session.companyIds = companyIdsFromProfile(session.profileJson);
       } catch {
         // negeer; /api/me kan later hertryen
       }
@@ -355,6 +398,7 @@ app.post<{ Body: { username?: string; password?: string } }>(
         skey: result.skey,
       }).getCurrentUser();
       session.profileJson = JSON.stringify(profile);
+      session.companyIds = companyIdsFromProfile(session.profileJson);
       const employeeId =
         (profile as { managedEmployeeId?: string }).managedEmployeeId ??
         (profile as { employeeId?: string }).employeeId ??
@@ -548,6 +592,7 @@ app.patch<{
   try {
     const updated = await clientFor(session).updateCurrentUser(payload);
     session.profileJson = JSON.stringify(updated);
+    session.companyIds = companyIdsFromProfile(session.profileJson);
     return updated;
   } catch (err) {
     const e = asResponse(err);
@@ -574,6 +619,7 @@ app.get("/api/me", async (req, reply) => {
   try {
     const profile = await clientFor(session).getCurrentUser();
     session.profileJson = JSON.stringify(profile);
+    session.companyIds = companyIdsFromProfile(session.profileJson);
     return profile;
   } catch (err) {
     const e = asResponse(err);
@@ -701,20 +747,18 @@ app.post<{ Params: { id: string; eid: string }; Body: unknown }>(
 // ── PoC-DB admin / seed ───────────────────────────────────────────────────
 
 // POST /api/poc-seed-demo?companyId= → create a small starter dataset
-// (3 service-groups + 2 permanent employees) for demos.
+// (3 service-locations + 2 permanent employees) for demos.
 app.post<{ Querystring: { companyId?: string } }>(
   "/api/poc-seed-demo",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
+    const denied = assertCompanyAccess(session, req.query.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
+    const companyId = req.query.companyId!; // narrowed by assertCompanyAccess
     let branchGroupIds: string[] = [];
     try {
       const groups = (await clientFor(session).listCompanyGroups(
-        req.query.companyId,
+        companyId,
       )) as { id: string }[];
       branchGroupIds = groups.map((g) => g.id);
     } catch {
@@ -729,7 +773,7 @@ app.post<{ Querystring: { companyId?: string } }>(
     let employeeIds: string[] = [];
     try {
       const page = (await clientFor(session).listEmployees({
-        companyId: req.query.companyId,
+        companyId,
         page: 0,
         size: 50,
       })) as { content?: Array<{ id: string }> };
@@ -738,7 +782,7 @@ app.post<{ Querystring: { companyId?: string } }>(
       // intentionally empty — availability seed is best-effort.
     }
     return pocDb.seedDemo({
-      companyId: req.query.companyId,
+      companyId,
       branchGroupIds,
       employeeIds,
     });
@@ -755,24 +799,20 @@ app.post("/api/poc-reset", async (req, reply) => {
 
 // ── PoC-DB endpoints ──────────────────────────────────────────────────────
 
-// Service groups (= sub-row under a vestiging, e.g. "Toog Gent", "Bar Sluizeken")
+// Service locations (= sub-row under a vestiging, e.g. "Toog Gent", "Bar Sluizeken")
 
-// GET /api/service-groups?companyId=
+// GET /api/service-locations?companyId=
 app.get<{ Querystring: { companyId?: string } }>(
-  "/api/service-groups",
+  "/api/service-locations",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const companyId = req.query.companyId;
-    if (!companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    return pocDb.listServiceGroups(companyId);
+    const denied = assertCompanyAccess(session, req.query.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
+    return pocDb.listServiceLocations(req.query.companyId!);
   },
 );
 
-// POST /api/service-groups
+// POST /api/service-locations
 app.post<{
   Body: {
     companyId: string;
@@ -785,19 +825,20 @@ app.post<{
     openingHours?: import("../store/poc-db.js").OpeningHours;
   };
 }>(
-  "/api/service-groups",
+  "/api/service-locations",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const denied = assertCompanyAccess(session, req.body?.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
     const b = req.body;
-    if (!b?.companyId || !b?.branchGroupId || !b?.name) {
+    if (!b?.branchGroupId || !b?.name) {
       reply.status(400);
       return {
         kind: "validation",
-        message: "companyId, branchGroupId and name are required",
+        message: "branchGroupId and name are required",
       };
     }
-    return pocDb.createServiceGroup({
+    return pocDb.createServiceLocation({
       company_id: b.companyId,
       branch_group_id: b.branchGroupId,
       name: b.name,
@@ -810,7 +851,7 @@ app.post<{
   },
 );
 
-// PUT /api/service-groups/:id
+// PUT /api/service-locations/:id
 app.put<{
   Params: { id: string };
   Body: {
@@ -823,11 +864,11 @@ app.put<{
     openingHours?: import("../store/poc-db.js").OpeningHours;
   };
 }>(
-  "/api/service-groups/:id",
+  "/api/service-locations/:id",
   async (req, reply) => {
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const patch: Parameters<typeof pocDb.updateServiceGroup>[1] = {};
+    const patch: Parameters<typeof pocDb.updateServiceLocation>[1] = {};
     if (req.body.name !== undefined) patch.name = req.body.name;
     if (req.body.branchGroupId !== undefined) patch.branch_group_id = req.body.branchGroupId;
     if (req.body.addressLine1 !== undefined) patch.address_line1 = req.body.addressLine1 || null;
@@ -835,72 +876,21 @@ app.put<{
     if (req.body.postalCode !== undefined) patch.postal_code = req.body.postalCode || null;
     if (req.body.city !== undefined) patch.city = req.body.city || null;
     if (req.body.openingHours !== undefined) patch.opening_hours = req.body.openingHours;
-    const updated = pocDb.updateServiceGroup(req.params.id, patch);
+    const updated = pocDb.updateServiceLocation(req.params.id, patch);
     if (!updated) { reply.status(404); return { kind: "not_found" }; }
     return updated;
   },
 );
 
-// DELETE /api/service-groups/:id (soft delete)
+// DELETE /api/service-locations/:id (soft delete)
 app.delete<{ Params: { id: string } }>(
-  "/api/service-groups/:id",
+  "/api/service-locations/:id",
   async (req, reply) => {
     const session = pickSession(req);
     if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const ok = pocDb.softDeleteServiceGroup(req.params.id);
+    const ok = pocDb.softDeleteServiceLocation(req.params.id);
     if (!ok) { reply.status(404); return { kind: "not_found" }; }
     return { ok: true };
-  },
-);
-
-// Permanent assignments (Vast blokken op het planscherm)
-app.get<{
-  Querystring: { companyId?: string; serviceGroupId?: string; dateFrom?: string; dateTo?: string };
-}>(
-  "/api/permanent-assignments",
-  async (req, reply) => {
-    const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    return pocDb.listPermanentAssignments({
-      companyId: req.query.companyId,
-      serviceGroupId: req.query.serviceGroupId,
-      dateFrom: req.query.dateFrom,
-      dateTo: req.query.dateTo,
-    });
-  },
-);
-
-app.post<{
-  Body: {
-    serviceGroupId: string;
-    permanentEmployeeId: string;
-    weekdayPattern: Record<string, { from: string; to: string; pauseFrom?: string; pauseTo?: string }>;
-    validFrom: string;
-    validTo?: string;
-    note?: string;
-  };
-}>(
-  "/api/permanent-assignments",
-  async (req, reply) => {
-    const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const b = req.body;
-    if (!b?.serviceGroupId || !b?.permanentEmployeeId || !b?.weekdayPattern || !b?.validFrom) {
-      reply.status(400);
-      return { kind: "validation", message: "serviceGroupId, permanentEmployeeId, weekdayPattern, validFrom required" };
-    }
-    return pocDb.createPermanentAssignment({
-      service_group_id: b.serviceGroupId,
-      permanent_employee_id: b.permanentEmployeeId,
-      weekday_pattern: b.weekdayPattern,
-      valid_from: b.validFrom,
-      valid_to: b.validTo ?? null,
-      note: b.note ?? null,
-    });
   },
 );
 
@@ -909,12 +899,9 @@ app.get<{ Querystring: { companyId?: string } }>(
   "/api/permanent-employees",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    return pocDb.listPermanentEmployees(req.query.companyId);
+    const denied = assertCompanyAccess(session, req.query.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
+    return pocDb.listPermanentEmployees(req.query.companyId!);
   },
 );
 
@@ -924,11 +911,12 @@ app.post<{
   "/api/permanent-employees",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const denied = assertCompanyAccess(session, req.body?.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
     const b = req.body;
-    if (!b?.companyId || !b?.firstName || !b?.lastName) {
+    if (!b?.firstName || !b?.lastName) {
       reply.status(400);
-      return { kind: "validation", message: "companyId, firstName, lastName required" };
+      return { kind: "validation", message: "firstName, lastName required" };
     }
     return pocDb.createPermanentEmployee({
       company_id: b.companyId,
@@ -946,13 +934,10 @@ app.get<{ Querystring: { companyId?: string; dateFrom?: string; dateTo?: string 
   "/api/permanent-blocks",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
+    const denied = assertCompanyAccess(session, req.query.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
     return pocDb.listPermanentBlocks({
-      companyId: req.query.companyId,
+      companyId: req.query.companyId!,
       dateFrom: req.query.dateFrom,
       dateTo: req.query.dateTo,
     });
@@ -972,11 +957,12 @@ app.post<{
   "/api/permanent-blocks",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const denied = assertCompanyAccess(session, req.body?.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
     const b = req.body;
-    if (!b?.companyId || !b?.permanentEmployeeId || !b?.dateFrom || !b?.dateTo || !b?.fromTime || !b?.toTime) {
+    if (!b?.permanentEmployeeId || !b?.dateFrom || !b?.dateTo || !b?.fromTime || !b?.toTime) {
       reply.status(400);
-      return { kind: "validation", message: "companyId, permanentEmployeeId, dates, hours required" };
+      return { kind: "validation", message: "permanentEmployeeId, dates, hours required" };
     }
     return pocDb.createPermanentBlock({
       company_id: b.companyId,
@@ -1005,19 +991,20 @@ app.get<{ Querystring: { companyId?: string; dateFrom?: string; dateTo?: string 
   "/api/shifts",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId || !req.query.dateFrom || !req.query.dateTo) {
+    const denied = assertCompanyAccess(session, req.query.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
+    if (!req.query.dateFrom || !req.query.dateTo) {
       reply.status(400);
-      return { kind: "validation", message: "companyId, dateFrom, dateTo required" };
+      return { kind: "validation", message: "dateFrom, dateTo required" };
     }
-    return pocDb.listShifts(req.query.companyId, req.query.dateFrom, req.query.dateTo);
+    return pocDb.listShifts(req.query.companyId!, req.query.dateFrom, req.query.dateTo);
   },
 );
 
 app.post<{
   Body: {
     companyId: string;
-    serviceGroupId: string;
+    serviceLocationId: string;
     dateFrom: string;
     dateTo: string;
     fromTime: string;
@@ -1036,15 +1023,16 @@ app.post<{
   "/api/shifts",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
+    const denied = assertCompanyAccess(session, req.body?.companyId);
+    if (denied) { reply.status(denied.status); return denied.body; }
     const b = req.body;
-    if (!b?.companyId || !b?.serviceGroupId || !b?.dateFrom || !b?.fromTime || !b?.toTime) {
+    if (!b?.serviceLocationId || !b?.dateFrom || !b?.fromTime || !b?.toTime) {
       reply.status(400);
-      return { kind: "validation", message: "companyId, serviceGroupId, dateFrom, fromTime, toTime required" };
+      return { kind: "validation", message: "serviceLocationId, dateFrom, fromTime, toTime required" };
     }
     const result = pocDb.createShift({
       company_id: b.companyId,
-      service_group_id: b.serviceGroupId,
+      service_location_id: b.serviceLocationId,
       date_from: b.dateFrom,
       date_to: b.dateTo ?? b.dateFrom,
       from_time: b.fromTime,
@@ -1225,6 +1213,8 @@ app.get<{
       return pocDb.listAvailabilitiesBulk(ids, req.query.from, req.query.to);
     }
     if (req.query.companyId) {
+      const denied = assertCompanyAccess(session, req.query.companyId);
+      if (denied) { reply.status(denied.status); return denied.body; }
       try {
         const page = (await clientFor(session).listEmployees({
           companyId: req.query.companyId,
@@ -1297,82 +1287,40 @@ app.delete<{ Params: { id: string } }>(
 
 // ── MyStaffler pool (BCJ-19425) ────────────────────────────────────────────
 
-// GET /api/mystaffler-invites?companyId=
-// Returns the PoC-DB invite/account status per employee for this company.
-app.get<{ Querystring: { companyId?: string } }>(
-  "/api/mystaffler-invites",
-  async (req, reply) => {
-    const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    if (!req.query.companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    return pocDb.listMyStafflerInvites(req.query.companyId);
-  },
-);
-
 // POST /api/employees/:id/mystaffler-invite?companyId=
-// Best-effort proxy to DPS' real invite endpoint, plus a PoC-DB upsert so the
-// Pool overview can render the new status immediately.
+// Thin proxy onto the upstream DPS invite endpoint. Same URL is used for
+// both "first invite" and "resend" — upstream returns 204 either way.
+// Invite/account status is now read from EmployeeWebDto on the upstream
+// `/api/employees` response, so the PoC no longer keeps its own row.
 app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
   "/api/employees/:id/mystaffler-invite",
   async (req, reply) => {
     const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const companyId = req.query.companyId;
-    if (!companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
+    const guard = assertCompanyAccess(session, req.query.companyId);
+    if (guard) {
+      reply.status(guard.status);
+      return guard.body;
     }
-    let upstream: unknown = null;
-    let upstreamError: unknown = null;
-    try {
-      upstream = await clientFor(session).rawAuthed<unknown>(
-        "POST",
-        `/api/companies/${companyId}/employees/${req.params.id}/mystaffler/invite`,
-      );
-    } catch (err) {
-      upstreamError = err;
-    }
-    const invite = pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
-      status: "invited",
-    });
-    return { invite, upstream, upstreamError: upstreamError ? (asResponse(upstreamError).body) : null };
-  },
-);
-
-// POST /api/employees/:id/mystaffler-resend-invite?companyId=
-app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
-  "/api/employees/:id/mystaffler-resend-invite",
-  async (req, reply) => {
-    const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const companyId = req.query.companyId;
-    if (!companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    let upstreamError: unknown = null;
+    const companyId = req.query.companyId as string;
     try {
       await clientFor(session).rawAuthed<unknown>(
         "POST",
         `/api/companies/${companyId}/employees/${req.params.id}/mystaffler/invite`,
       );
+      reply.status(204).send();
+      return;
     } catch (err) {
-      upstreamError = err;
+      const e = asResponse(err);
+      reply.status(e.status);
+      return e.body;
     }
-    const invite = pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
-      status: "invited",
-    });
-    return { invite, upstreamError: upstreamError ? (asResponse(upstreamError).body) : null };
   },
 );
 
 // GET /api/my-staffler/employees/:id/contracts?startDate=&endDate=
 // Cross-company contracts for one employee — mirrors mockup MyStaffler week.
-// Bumps the PoC-DB `last_login_at` so the company-side Pool "Last login"
-// column shows when this employee last opened their MyStaffler view.
+// "Last login" tracking now lives on the upstream EmployeeWebDto, so we
+// no longer touch any PoC-DB state here.
 app.get<{ Params: { id: string }; Querystring: { startDate?: string; endDate?: string } }>(
   "/api/my-staffler/employees/:id/contracts",
   async (req, reply) => {
@@ -1383,13 +1331,11 @@ app.get<{ Params: { id: string }; Querystring: { startDate?: string; endDate?: s
       return { kind: "validation", message: "startDate and endDate required" };
     }
     try {
-      const out = await clientFor(session).listEmployeeContractsCrossCompany({
+      return await clientFor(session).listEmployeeContractsCrossCompany({
         employeeId: req.params.id,
         startDate: req.query.startDate,
         endDate: req.query.endDate,
       });
-      pocDb.touchMyStafflerLogin(req.params.id);
-      return out;
     } catch (err) {
       const e = asResponse(err);
       reply.status(e.status);
@@ -1421,22 +1367,20 @@ app.get<{ Querystring: { employeeId?: string } }>(
     const apps = pocDb.listApplicationsForEmployee(employeeId);
     const appByShift = new Map(apps.map((a) => [a.shift_id, a] as const));
     // Resolve service-location names so the mobile client can show
-    // "Toog Gent" instead of "sg-…-uuid". One pass over service_groups
+    // "Toog Gent" instead of "sl-…-uuid". One pass over service_locations
     // is fine — the PoC has dozens, not thousands.
-    const sgById = new Map(
-      pocDb.raw().service_groups.map((sg) => [sg.id, sg] as const),
+    const slById = new Map(
+      pocDb.raw().service_locations.map((sl) => [sl.id, sl] as const),
     );
-    // Same login-touch as /api/my-staffler/employees/:id/contracts —
-    // viewing my-shifts in the preview counts as the employee being
-    // present in their MyStaffler view.
-    pocDb.touchMyStafflerLogin(employeeId);
+    // Login tracking moved upstream (EmployeeWebDto.lastLogin) — no
+    // PoC-DB touch needed here anymore.
     return targeted.map((s) => {
-      const sg = sgById.get(s.service_group_id);
+      const sl = slById.get(s.service_location_id);
       return {
         shift: {
           ...s,
-          service_group_name: sg?.name ?? null,
-          service_group_city: sg?.city ?? null,
+          service_location_name: sl?.name ?? null,
+          service_location_city: sl?.city ?? null,
         },
         application: appByShift.get(s.id) ?? null,
       };
@@ -1575,28 +1519,6 @@ app.get<{ Querystring: { employeeId?: string } }>(
     }
     notifs.sort((a, b) => (a.at < b.at ? 1 : -1));
     return notifs.slice(0, 30);
-  },
-);
-
-// POST /api/employees/:id/mystaffler-mark-active?companyId=
-// Test/demo helper — flips the PoC-DB status to "active" so the Pool overview
-// shows the green "Account active" badge without needing the employee to
-// actually accept the invite via the MyStaffler app.
-app.post<{ Params: { id: string }; Querystring: { companyId?: string } }>(
-  "/api/employees/:id/mystaffler-mark-active",
-  async (req, reply) => {
-    const session = pickSession(req);
-    if (!session) { reply.status(401); return { kind: "unauthenticated" }; }
-    const companyId = req.query.companyId;
-    if (!companyId) {
-      reply.status(400);
-      return { kind: "validation", message: "companyId required" };
-    }
-    return pocDb.upsertMyStafflerInvite(req.params.id, companyId, {
-      status: "active",
-      accepted_at: new Date().toISOString(),
-      last_login_at: new Date().toISOString(),
-    });
   },
 );
 

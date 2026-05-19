@@ -22,12 +22,12 @@ import { TooltipModule } from 'primeng/tooltip';
 
 import { RootState } from '@dps/core/store';
 import {
-  CreateServiceGroupPayload,
-  ServiceGroupApiService,
-  ServiceGroupModel,
+  CreateServiceLocationPayload,
+  ServiceLocationApiService,
+  ServiceLocationModel,
   OpeningHours,
   OpeningHoursDay,
-} from '@dps/core/api/service-group/service-group.api.service';
+} from '@dps/core/api/service-location/service-location.api.service';
 import {
   EngagementGroupApiService,
   EngagementGroupModel,
@@ -44,7 +44,7 @@ const WEEKDAYS: ReadonlyArray<{ id: WeekDay; short: string; long: string }> = [
   { id: 7, short: 'Zo', long: 'zondag' },
 ];
 
-interface ServiceGroupForm {
+interface ServiceLocationForm {
   id: string | null;
   name: string;
   branchGroupId: string;
@@ -60,7 +60,7 @@ function emptyOpeningHours(): Record<WeekDay, OpeningHoursDay | null> {
   return { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null };
 }
 
-function emptyForm(): ServiceGroupForm {
+function emptyForm(): ServiceLocationForm {
   return {
     id: null,
     name: '',
@@ -73,7 +73,7 @@ function emptyForm(): ServiceGroupForm {
 }
 
 /**
- * Beheer locaties — admin view for the PoC-DB service_groups table.
+ * Beheer locaties — admin view for the PoC-DB service_locations table.
  * Mockup 14 (`mockups/14-locatie-eigenschappen.html`) is the source of
  * truth. Vestigingen come from DPS (read-only); service locations are
  * stored in the Fastify proxy's PoC-DB.
@@ -97,18 +97,18 @@ function emptyForm(): ServiceGroupForm {
   host: { class: 'flex flex-auto flex-column overflow-hidden p-4 gap-3' },
 })
 export class CompanyLocationsComponent {
-  private readonly serviceGroupsApi = inject(ServiceGroupApiService);
+  private readonly serviceLocationsApi = inject(ServiceLocationApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly http = inject(HttpClient);
   private readonly store = inject(Store);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly branches = signal<EngagementGroupModel[]>([]);
-  protected readonly serviceGroups = signal<ServiceGroupModel[]>([]);
+  protected readonly serviceLocations = signal<ServiceLocationModel[]>([]);
   protected readonly loading = signal(false);
   protected readonly dialogVisible = signal(false);
   protected readonly saving = signal(false);
-  protected form: ServiceGroupForm = emptyForm();
+  protected form: ServiceLocationForm = emptyForm();
 
   protected readonly branchOptions = computed(() =>
     this.branches().map(b => ({ label: b.name ?? b.id, value: b.id })),
@@ -136,7 +136,7 @@ export class CompanyLocationsComponent {
     this.dialogVisible.set(true);
   }
 
-  protected openEdit(row: ServiceGroupModel): void {
+  protected openEdit(row: ServiceLocationModel): void {
     const oh = row.opening_hours ?? {};
     const filled: Record<WeekDay, OpeningHoursDay | null> = emptyOpeningHours();
     for (const wd of [1, 2, 3, 4, 5, 6, 7] as const) {
@@ -238,7 +238,7 @@ export class CompanyLocationsComponent {
       if (v) openingHours[wd] = v;
     }
 
-    const payload: CreateServiceGroupPayload = {
+    const payload: CreateServiceLocationPayload = {
       companyId: company.id,
       branchGroupId: this.form.branchGroupId,
       name: this.form.name.trim(),
@@ -249,8 +249,8 @@ export class CompanyLocationsComponent {
     };
 
     const obs = this.form.id
-      ? this.serviceGroupsApi.update(this.form.id, payload)
-      : this.serviceGroupsApi.create(payload);
+      ? this.serviceLocationsApi.update(this.form.id, payload)
+      : this.serviceLocationsApi.create(payload);
 
     obs.subscribe({
       next: () => {
@@ -262,7 +262,7 @@ export class CompanyLocationsComponent {
     });
   }
 
-  protected remove(row: ServiceGroupModel): void {
+  protected remove(row: ServiceLocationModel): void {
     if (
       !confirm(
         `Verwijder service location "${row.name}"? Deze actie kan niet ongedaan gemaakt worden.`,
@@ -271,7 +271,7 @@ export class CompanyLocationsComponent {
       return;
     }
     const company = this.store.selectSnapshot(RootState.getCompanyData);
-    this.serviceGroupsApi.remove(row.id).subscribe(() => {
+    this.serviceLocationsApi.remove(row.id).subscribe(() => {
       if (company) this.refreshAll(company.id);
     });
   }
@@ -285,14 +285,14 @@ export class CompanyLocationsComponent {
       },
       error: () => this.branches.set([]),
     });
-    this.serviceGroupsApi.list(companyId).subscribe({
+    this.serviceLocationsApi.list(companyId).subscribe({
       next: rows => {
-        this.serviceGroups.set(rows ?? []);
+        this.serviceLocations.set(rows ?? []);
         this.loading.set(false);
         this.cdr.markForCheck();
       },
       error: () => {
-        this.serviceGroups.set([]);
+        this.serviceLocations.set([]);
         this.loading.set(false);
       },
     });

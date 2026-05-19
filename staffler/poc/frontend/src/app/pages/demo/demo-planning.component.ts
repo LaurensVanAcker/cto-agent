@@ -222,11 +222,11 @@ export class DemoPlanningComponent {
     { id: 'br-antw', name: 'Antwerpen Eilandje' },
   ];
 
-  private readonly serviceGroups = [
-    { id: 'sg-gent-toog', name: 'Toog', branchId: 'br-gent' },
-    { id: 'sg-gent-kassa', name: 'Kassa', branchId: 'br-gent' },
-    { id: 'sg-gent-terras', name: 'Terras', branchId: 'br-gent' },
-    { id: 'sg-antw-bar', name: 'Bar', branchId: 'br-antw' },
+  private readonly serviceLocations = [
+    { id: 'sl-gent-toog', name: 'Toog', branchId: 'br-gent' },
+    { id: 'sl-gent-kassa', name: 'Kassa', branchId: 'br-gent' },
+    { id: 'sl-gent-terras', name: 'Terras', branchId: 'br-gent' },
+    { id: 'sl-antw-bar', name: 'Bar', branchId: 'br-antw' },
   ];
 
   /** Resources for Bryntum. Flat in Names view, "Vestiging > Service" in Locaties/Dag. */
@@ -240,13 +240,13 @@ export class DemoPlanningComponent {
     //
     // We deliberately omit the `group` field — Bryntum would otherwise
     // try to render a grouping header per branch and squash the
-    // service-group rows behind it, so reviewers couldn't see all four
+    // service-location rows behind it, so reviewers couldn't see all four
     // SLs at once in the demo.
-    return this.serviceGroups.map(sg => {
-      const branch = this.branches.find(b => b.id === sg.branchId)?.name ?? '';
+    return this.serviceLocations.map(sl => {
+      const branch = this.branches.find(b => b.id === sl.branchId)?.name ?? '';
       return {
-        id: sg.id,
-        name: `${branch} › ${sg.name}`,
+        id: sl.id,
+        name: `${branch} › ${sl.name}`,
       };
     });
   });
@@ -319,13 +319,13 @@ export class DemoPlanningComponent {
       return events;
     }
 
-    // Locaties / Dag view: shifts on service-group rows. Names encode
+    // Locaties / Dag view: shifts on service-location rows. Names encode
     // `seats=N apps=M` so the renderer can render the title ("N open
     // shifts") and badge (M applicants). Matches the new buildEvents
     // semantics in planning-poc.
     events.push({
       id: 's-1',
-      resourceId: 'sg-gent-toog',
+      resourceId: 'sl-gent-toog',
       startDate: day(2).set({ hour: 17 }).toJSDate(),
       endDate: day(2).set({ hour: 23 }).toJSDate(),
       name: 'seats=2 apps=5',
@@ -335,7 +335,7 @@ export class DemoPlanningComponent {
     });
     events.push({
       id: 's-2',
-      resourceId: 'sg-gent-kassa',
+      resourceId: 'sl-gent-kassa',
       startDate: day(3).set({ hour: 12 }).toJSDate(),
       endDate: day(3).set({ hour: 22 }).toJSDate(),
       name: 'seats=1 apps=0',
@@ -345,7 +345,7 @@ export class DemoPlanningComponent {
     });
     events.push({
       id: 's-3',
-      resourceId: 'sg-gent-terras',
+      resourceId: 'sl-gent-terras',
       startDate: day(5).set({ hour: 14 }).toJSDate(),
       endDate: day(5).set({ hour: 23 }).toJSDate(),
       name: 'seats=3 apps=2',
@@ -361,7 +361,7 @@ export class DemoPlanningComponent {
     // allowOverlap.
     events.push({
       id: 's-mix-assigned',
-      resourceId: 'sg-antw-bar',
+      resourceId: 'sl-antw-bar',
       startDate: day(4).set({ hour: 18 }).toJSDate(),
       endDate: day(4).set({ hour: 23 }).toJSDate(),
       name: 'Joke Carton',
@@ -371,7 +371,7 @@ export class DemoPlanningComponent {
     });
     events.push({
       id: 's-mix-open',
-      resourceId: 'sg-antw-bar',
+      resourceId: 'sl-antw-bar',
       startDate: day(4).set({ hour: 18 }).toJSDate(),
       endDate: day(4).set({ hour: 23 }).toJSDate(),
       name: 'seats=1 apps=3',
@@ -379,11 +379,11 @@ export class DemoPlanningComponent {
       eventColor: undefined as unknown as string,
       kind: 'shift',
     });
-    // Vast on service-group rows (Sarah on Toog, Thomas on Kassa)
+    // Vast on service-location rows (Sarah on Toog, Thomas on Kassa)
     for (let d = 1; d <= 4; d++) {
       events.push({
-        id: `pl-sg-toog-${d}`,
-        resourceId: 'sg-gent-toog',
+        id: `pl-sl-toog-${d}`,
+        resourceId: 'sl-gent-toog',
         startDate: day(d).set({ hour: 8 }).toJSDate(),
         endDate: day(d).set({ hour: d === 4 ? 13 : 17 }).toJSDate(),
         name: 'Vast — Sarah',

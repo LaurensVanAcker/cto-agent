@@ -63,10 +63,10 @@
     <button
       type="button"
       class="filter-chip"
-      [class.active]="statusFilter() === 'invited'"
-      (click)="setFilter('invited')"
+      [class.active]="statusFilter() === 'pending'"
+      (click)="setFilter('pending')"
     >
-      Uitgenodigd <span class="chip-count">{{ counts().invited }}</span>
+      Uitgenodigd <span class="chip-count">{{ counts().pending }}</span>
     </button>
   </div>
 
@@ -157,7 +157,7 @@
                 <span class="dot dot-green"></span> Account actief
               </span>
             }
-            @case ('invited') {
+            @case ('pending') {
               <span class="ms-pending">
                 <span class="dot dot-amber"></span> Uitgenodigd
               </span>

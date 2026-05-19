@@ -25,9 +25,9 @@ import {
   ShiftTargetType,
 } from '@dps/core/api/shift/shift.api.service';
 import {
-  ServiceGroupApiService,
-  ServiceGroupModel,
-} from '@dps/core/api/service-group/service-group.api.service';
+  ServiceLocationApiService,
+  ServiceLocationModel,
+} from '@dps/core/api/service-location/service-location.api.service';
 import {
   EngagementGroupApiService,
   EngagementGroupModel,
@@ -38,7 +38,7 @@ import { RootState } from '@dps/core/store';
 
 interface DialogData {
   companyId?: string;
-  serviceGroupId?: string;
+  serviceLocationId?: string;
   date?: string;
   /** Pre-selected employee ids (Names-view cell click). Each id becomes
    *  an assigned slot in the dialog. */
@@ -184,7 +184,7 @@ export class DialogShiftBatchComponent {
   private readonly ref = inject(DynamicDialogRef);
   protected readonly config: DynamicDialogConfig<DialogData> = inject(DynamicDialogConfig);
   private readonly shiftsApi = inject(ShiftApiService);
-  private readonly serviceGroupsApi = inject(ServiceGroupApiService);
+  private readonly serviceLocationsApi = inject(ServiceLocationApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly companyGroupsApi = inject(CompanyGroupApiService);
@@ -198,7 +198,7 @@ export class DialogShiftBatchComponent {
 
   protected readonly companyId = this.config.data?.companyId ?? '';
   protected readonly companyName = this.store.selectSnapshot(RootState.getCompanyData)?.name ?? '';
-  protected readonly serviceGroups = signal<ServiceGroupModel[]>([]);
+  protected readonly serviceLocations = signal<ServiceLocationModel[]>([]);
   /** Pool members shown in the per-slot "Persoon kiezen" dropdown — joined
    *  with engagement-group data so the rich item template can render
    *  group chips per row. */
@@ -330,9 +330,9 @@ export class DialogShiftBatchComponent {
   protected readonly isSplitBranchEdit = this.isEdit && !!this.focusedEmployeeId;
 
   protected readonly form = {
-    serviceGroupId:
-      this.config.data?.existingShift?.service_group_id ??
-      this.config.data?.serviceGroupId ??
+    serviceLocationId:
+      this.config.data?.existingShift?.service_location_id ??
+      this.config.data?.serviceLocationId ??
       '',
     dateFrom:
       this.config.data?.existingShift?.date_from ??
@@ -402,8 +402,8 @@ export class DialogShiftBatchComponent {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly serviceGroupOptions = () =>
-    this.serviceGroups().map(s => ({ label: s.name, value: s.id }));
+  protected readonly serviceLocationOptions = () =>
+    this.serviceLocations().map(s => ({ label: s.name, value: s.id }));
 
   /**
    * Flat list of rich options. Kept as an internal helper — the template
@@ -540,13 +540,13 @@ export class DialogShiftBatchComponent {
    */
 
   /** Title chip — "Vestiging — Service Location" derived from the chosen
-   *  service-group. Falls back to a generic label while loading. */
+   *  service-location. Falls back to a generic label while loading. */
   protected positionLabel(): string {
-    const sgId = this.form.serviceGroupId;
-    const sg = this.serviceGroups().find(s => s.id === sgId);
-    if (!sg) return 'service location';
-    const branch = this.branches().find(b => b.id === sg.branch_group_id);
-    return branch ? `${branch.name} — ${sg.name}` : sg.name;
+    const slId = this.form.serviceLocationId;
+    const sl = this.serviceLocations().find(s => s.id === slId);
+    if (!sl) return 'service location';
+    const branch = this.branches().find(b => b.id === sl.branch_group_id);
+    return branch ? `${branch.name} — ${sl.name}` : sl.name;
   }
 
   /** Human-readable "dinsdag 12 mei — woensdag 13 mei 2026" header. */
@@ -575,29 +575,29 @@ export class DialogShiftBatchComponent {
    *  DPS wage-template endpoint. There is no "Standaard pakket" fallback —
    *  the operator must pick a real package per assigned slot.
    *
-   *  Each option carries a `serviceGroupId` so the dialog can detect when
+   *  Each option carries a `serviceLocationId` so the dialog can detect when
    *  the chosen loonpakket belongs to a different vestiging than the one
    *  the shift is for — mockup 09 column 3 shows the inline banner that
    *  surfaces in exactly that case. The first option is intentionally on
-   *  a different service-group to make the banner demoable in the gallery.
+   *  a different service-location to make the banner demoable in the gallery.
    */
   protected readonly loonpakketOptions = signal<
-    Array<{ label: string; value: string; serviceGroupId: string }>
+    Array<{ label: string; value: string; serviceLocationId: string }>
   >([
     {
       label: 'Barista — Flexijob bediende — Antwerpen Eilandje',
       value: 'barista-flex-antwerpen',
-      serviceGroupId: 'sg-antwerpen-eilandje',
+      serviceLocationId: 'sl-antwerpen-eilandje',
     },
     {
       label: 'Barista — Arbeider — Gent Dok Noord',
       value: 'barista-arbeider-gent',
-      serviceGroupId: 'sg-gent-dok-noord',
+      serviceLocationId: 'sl-gent-dok-noord',
     },
     {
       label: 'Kelner — Flexijob bediende — Gent Dok Noord',
       value: 'kelner-flex-gent',
-      serviceGroupId: 'sg-gent-dok-noord',
+      serviceLocationId: 'sl-gent-dok-noord',
     },
   ]);
 
@@ -639,7 +639,7 @@ export class DialogShiftBatchComponent {
     // differs from the chosen service-location's. The current PoC uses
     // placeholder ids ("sg-gent-dok-noord", etc.); production wires this
     // to a real wage-template ↔ vestiging join keyed on address.
-    return opt.serviceGroupId !== this.form.serviceGroupId;
+    return opt.serviceLocationId !== this.form.serviceLocationId;
   }
 
   /**
@@ -661,7 +661,7 @@ export class DialogShiftBatchComponent {
    * "Aanmaken" click on the inline banner.
    *
    * PoC behaviour (per pilot feedback 2026-05-18): clone the slot's
-   * current loonpakket with just the address (≈ serviceGroupId) swapped
+   * current loonpakket with just the address (≈ serviceLocationId) swapped
    * to the dialog's selected vestiging, push the clone into the in-memory
    * options list, auto-select it on this slot, dismiss the banner, and
    * fire a short toast confirming the clone. No backend hit yet — the
@@ -688,11 +688,11 @@ export class DialogShiftBatchComponent {
     const clone = {
       label: newLabel,
       value: newValue,
-      serviceGroupId: this.form.serviceGroupId,
+      serviceLocationId: this.form.serviceLocationId,
     };
     this.loonpakketOptions.update(arr => [...arr, clone]);
     // Auto-select the clone on this slot — banner naturally hides when
-    // serviceGroupId matches.
+    // serviceLocationId matches.
     this.slots.update(arr =>
       arr.map((s, i) => (i === slotIndex ? { ...s, loonpakketId: newValue } : s)),
     );
@@ -771,11 +771,11 @@ export class DialogShiftBatchComponent {
           this.cdr.markForCheck();
         },
       });
-      this.serviceGroupsApi.list(this.companyId).subscribe({
+      this.serviceLocationsApi.list(this.companyId).subscribe({
         next: rows => {
-          this.serviceGroups.set(rows ?? []);
-          if (rows && rows.length > 0 && !this.form.serviceGroupId) {
-            this.form.serviceGroupId = rows[0].id;
+          this.serviceLocations.set(rows ?? []);
+          if (rows && rows.length > 0 && !this.form.serviceLocationId) {
+            this.form.serviceLocationId = rows[0].id;
           }
           this.cdr.markForCheck();
         },
@@ -897,7 +897,7 @@ export class DialogShiftBatchComponent {
    *  failing reason (also shown as a tooltip on the disabled confirm
    *  button so the operator knows why they can't submit). */
   protected validationError(): string | null {
-    if (!this.form.serviceGroupId) return 'Kies een service location.';
+    if (!this.form.serviceLocationId) return 'Kies een service location.';
     if (!this.form.dateFrom || !this.form.dateTo) return 'Vul beide datums in.';
     if (this.form.dateTo < this.form.dateFrom) return 'Tot-datum ligt vóór Van-datum.';
     if (!this.form.fromTime || !this.form.toTime) return 'Vul beide werkuren in.';
@@ -996,7 +996,7 @@ export class DialogShiftBatchComponent {
     this.shiftsApi
       .create({
         companyId: this.companyId,
-        serviceGroupId: this.form.serviceGroupId,
+        serviceLocationId: this.form.serviceLocationId,
         dateFrom: this.form.dateFrom,
         dateTo: this.form.dateTo || this.form.dateFrom,
         fromTime: this.form.fromTime,

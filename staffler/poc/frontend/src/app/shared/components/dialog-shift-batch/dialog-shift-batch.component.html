@@ -5,7 +5,7 @@
 
   Klant subheader is intentionally omitted (operator already sees the
   company in the sidebar). Position chip = vestiging — service-location
-  derived from the chosen service-group.
+  derived from the chosen service-location.
 -->
 <div class="m09-dialog">
   <header class="m09-header">
@@ -26,16 +26,16 @@
   <section class="m09-body">
     <!--
       Service location + Datum on one row to save vertical real-estate
-      (pilot feedback 2026-05-18). When the service-group is fixed by
+      (pilot feedback 2026-05-18). When the service-location is fixed by
       the caller the date input expands to fill the full row.
     -->
     <div class="m09-row-2col">
-      @if (!config.data?.serviceGroupId && serviceGroupOptions().length > 1) {
+      @if (!config.data?.serviceLocationId && serviceLocationOptions().length > 1) {
         <div class="m09-field m09-field-grid">
           <label class="m09-field-label">Service location</label>
           <p-select
-            [options]="serviceGroupOptions()"
-            [(ngModel)]="form.serviceGroupId"
+            [options]="serviceLocationOptions()"
+            [(ngModel)]="form.serviceLocationId"
             optionLabel="label"
             optionValue="value"
             placeholder="Kies service location"

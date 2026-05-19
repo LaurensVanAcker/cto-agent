@@ -2,7 +2,7 @@
 // reloads. Replace with Heroku Postgres in v1 (see staffler/poc/PLAN.md).
 //
 // Six tables per PLAN.md:
-//   service_groups, permanent_employees, permanent_assignments,
+//   service_locations, permanent_employees, permanent_blocks,
 //   shifts, shift_applications, availabilities
 //
 // All rows are plain JSON objects. The store keeps everything in one
@@ -34,7 +34,7 @@ export interface OpeningHoursDay {
 }
 export type OpeningHours = Partial<Record<1 | 2 | 3 | 4 | 5 | 6 | 7, OpeningHoursDay | null>>;
 
-export interface ServiceGroup {
+export interface ServiceLocation {
   id: string;
   company_id: string;
   branch_group_id: string; // ref to DPS EngagementGroup id
@@ -61,21 +61,6 @@ export interface PermanentEmployee {
   updated_at: string;
 }
 
-export interface PermanentAssignment {
-  id: string;
-  service_group_id: string;
-  permanent_employee_id: string;
-  weekday_pattern: Record<
-    string,
-    { from: string; to: string; pauseFrom?: string; pauseTo?: string }
-  >;
-  valid_from: string; // ISO date
-  valid_to: string | null;
-  note: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 /**
  * Flat "vast blok" — single date range + single hour range, no recurrence.
  * Created from the planning grid's empty-cell click on a permanent-employee
@@ -96,7 +81,7 @@ export interface PermanentBlock {
 export interface Shift {
   id: string;
   company_id: string;
-  service_group_id: string;
+  service_location_id: string;
   date_from: string;
   date_to: string;
   from_time: string;
@@ -138,49 +123,35 @@ export interface Availability {
   updated_at: string;
 }
 
-export type MyStafflerStatus = "invited" | "active";
-
-/** BCJ-19425 — MyStaffler invite/account status per employee per company.
- *  This is a PoC-DB shim because DPS does not expose the status field on
- *  /api/employees yet. v1 will read it from the real Staffler endpoint. */
-export interface MyStafflerInvite {
-  id: string;
+/** BCJ-19517 — PoC-only FCM device token store. One row per employee
+ *  (a single device → single token), keyed on employee_id. Lives in a
+ *  tiny standalone table because the upstream DPS endpoint for FCM
+ *  registration isn't shipped yet (BCJ-19445). */
+export interface FcmToken {
   employee_id: string;
-  company_id: string;
-  status: MyStafflerStatus;
-  invited_at: string;
-  accepted_at: string | null;
-  last_login_at: string | null;
-  /** FCM registration token if the employee accepted push permissions
-   *  on their device. `null` = not subscribed yet. Stored per-invite
-   *  (per-company) so an employee with multiple memberships can have
-   *  different devices subscribed for different companies (though in
-   *  practice it'll be the same token everywhere). */
-  fcm_token?: string | null;
-  fcm_subscribed_at?: string | null;
+  token: string;
+  subscribed_at: string;
 }
 
 interface DbShape {
-  service_groups: ServiceGroup[];
+  service_locations: ServiceLocation[];
   permanent_employees: PermanentEmployee[];
-  permanent_assignments: PermanentAssignment[];
   permanent_blocks: PermanentBlock[];
   shifts: Shift[];
   shift_applications: ShiftApplication[];
   availabilities: Availability[];
-  mystaffler_invites: MyStafflerInvite[];
+  fcm_tokens: FcmToken[];
 }
 
 function emptyDb(): DbShape {
   return {
-    service_groups: [],
+    service_locations: [],
     permanent_employees: [],
-    permanent_assignments: [],
     permanent_blocks: [],
     shifts: [],
     shift_applications: [],
     availabilities: [],
-    mystaffler_invites: [],
+    fcm_tokens: [],
   };
 }
 
@@ -195,14 +166,32 @@ class PocDb {
     if (!existsSync(DB_FILE)) return emptyDb();
     try {
       const raw = readFileSync(DB_FILE, "utf-8");
-      const parsed = JSON.parse(raw) as Partial<DbShape>;
+      const parsed = JSON.parse(raw) as Partial<DbShape> & {
+        // Legacy on-disk shape — the rename from service_groups →
+        // service_locations is handled transparently on load so existing
+        // PoC-DB JSON files keep working without a manual migration.
+        service_groups?: ServiceLocation[];
+        /** Pre-BCJ-19425-cutover invites table. Dropped on load — the
+         *  upstream is now the source of truth for invite/account status,
+         *  and FCM tokens moved to their own `fcm_tokens` table. Trivial
+         *  data loss in the PoC (demo will just re-register FCM). */
+        mystaffler_invites?: unknown[];
+      };
+      // Drop legacy `mystaffler_invites` if it's still in the file — we
+      // never read it again and don't want it merging into the new shape.
+      if (parsed.mystaffler_invites) {
+        delete parsed.mystaffler_invites;
+      }
       const merged = { ...emptyDb(), ...parsed };
+      if (parsed.service_groups && (!parsed.service_locations || parsed.service_locations.length === 0)) {
+        merged.service_locations = parsed.service_groups;
+      }
       // Migrations for fields added after the initial PoC-DB shape was
-      // persisted. We keep these cheap — service-group rows on disk
+      // persisted. We keep these cheap — service-location rows on disk
       // pre-dated `opening_hours`, so default to {} (= gesloten elke dag,
       // operator vult invult).
-      for (const sg of merged.service_groups) {
-        if (!sg.opening_hours) sg.opening_hours = {};
+      for (const sl of merged.service_locations) {
+        if (!sl.opening_hours) sl.opening_hours = {};
       }
       return merged;
     } catch {
@@ -215,10 +204,10 @@ class PocDb {
     writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), "utf-8");
   }
 
-  // -- service_groups --
+  // -- service_locations --
 
-  listServiceGroups(companyId: string): ServiceGroup[] {
-    return this.data.service_groups
+  listServiceLocations(companyId: string): ServiceLocation[] {
+    return this.data.service_locations
       .filter((g) => g.company_id === companyId && !g.deleted_at)
       .sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -230,24 +219,24 @@ class PocDb {
    * (the caller filters via Map.get anyway). Matches the Postgres adapter
    * which uses `WHERE id = ANY($1::text[])`.
    */
-  listServiceGroupsByIds(ids: string[]): ServiceGroup[] {
+  listServiceLocationsByIds(ids: string[]): ServiceLocation[] {
     if (ids.length === 0) return [];
     const set = new Set(ids);
-    return this.data.service_groups.filter((g) => set.has(g.id) && !g.deleted_at);
+    return this.data.service_locations.filter((g) => set.has(g.id) && !g.deleted_at);
   }
 
-  getServiceGroup(id: string): ServiceGroup | undefined {
-    return this.data.service_groups.find((g) => g.id === id && !g.deleted_at);
+  getServiceLocation(id: string): ServiceLocation | undefined {
+    return this.data.service_locations.find((g) => g.id === id && !g.deleted_at);
   }
 
-  createServiceGroup(
-    input: Omit<ServiceGroup, "id" | "deleted_at" | "created_at" | "updated_at" | "opening_hours"> & {
+  createServiceLocation(
+    input: Omit<ServiceLocation, "id" | "deleted_at" | "created_at" | "updated_at" | "opening_hours"> & {
       opening_hours?: OpeningHours;
     },
-  ): ServiceGroup {
+  ): ServiceLocation {
     const now = new Date().toISOString();
     const { opening_hours, ...rest } = input;
-    const row: ServiceGroup = {
+    const row: ServiceLocation = {
       id: randomUUID(),
       deleted_at: null,
       created_at: now,
@@ -255,24 +244,24 @@ class PocDb {
       opening_hours: opening_hours ?? {},
       ...rest,
     };
-    this.data.service_groups.push(row);
+    this.data.service_locations.push(row);
     this.save();
     return row;
   }
 
-  updateServiceGroup(
+  updateServiceLocation(
     id: string,
-    patch: Partial<Omit<ServiceGroup, "id" | "created_at" | "company_id">>,
-  ): ServiceGroup | null {
-    const row = this.data.service_groups.find((g) => g.id === id);
+    patch: Partial<Omit<ServiceLocation, "id" | "created_at" | "company_id">>,
+  ): ServiceLocation | null {
+    const row = this.data.service_locations.find((g) => g.id === id);
     if (!row) return null;
     Object.assign(row, patch, { updated_at: new Date().toISOString() });
     this.save();
     return row;
   }
 
-  softDeleteServiceGroup(id: string): boolean {
-    const row = this.data.service_groups.find((g) => g.id === id);
+  softDeleteServiceLocation(id: string): boolean {
+    const row = this.data.service_locations.find((g) => g.id === id);
     if (!row || row.deleted_at) return false;
     row.deleted_at = new Date().toISOString();
     row.updated_at = row.deleted_at;
@@ -302,43 +291,6 @@ class PocDb {
       ...input,
     };
     this.data.permanent_employees.push(row);
-    this.save();
-    return row;
-  }
-
-  // -- permanent_assignments --
-
-  listPermanentAssignments(params: {
-    companyId: string;
-    serviceGroupId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): PermanentAssignment[] {
-    const knownServiceGroupIds = new Set(
-      this.data.service_groups
-        .filter((g) => g.company_id === params.companyId)
-        .map((g) => g.id),
-    );
-    return this.data.permanent_assignments.filter((a) => {
-      if (!knownServiceGroupIds.has(a.service_group_id)) return false;
-      if (params.serviceGroupId && a.service_group_id !== params.serviceGroupId) return false;
-      if (params.dateTo && a.valid_from > params.dateTo) return false;
-      if (params.dateFrom && a.valid_to && a.valid_to < params.dateFrom) return false;
-      return true;
-    });
-  }
-
-  createPermanentAssignment(
-    input: Omit<PermanentAssignment, "id" | "created_at" | "updated_at">,
-  ): PermanentAssignment {
-    const now = new Date().toISOString();
-    const row: PermanentAssignment = {
-      id: randomUUID(),
-      created_at: now,
-      updated_at: now,
-      ...input,
-    };
-    this.data.permanent_assignments.push(row);
     this.save();
     return row;
   }
@@ -418,7 +370,7 @@ class PocDb {
       (s) =>
         (s.status === "draft" || s.status === "open") &&
         s.company_id === input.company_id &&
-        s.service_group_id === input.service_group_id &&
+        s.service_location_id === input.service_location_id &&
         s.date_from === input.date_from &&
         s.date_to === input.date_to &&
         s.from_time === input.from_time &&
@@ -474,7 +426,7 @@ class PocDb {
    * filtered manually before: open shifts where either the broadcast is
    * `ALL_POOL` or the employee is named in `target_employee_ids`.
    * Returns raw shift rows; callers join service-location names via
-   * `listServiceGroupsByIds`.
+   * `listServiceLocationsByIds`.
    */
   listShiftsForEmployee(employeeId: string): Shift[] {
     return this.data.shifts.filter((s) => {
@@ -642,82 +594,28 @@ class PocDb {
     return true;
   }
 
-  // -- mystaffler_invites --
+  // -- fcm_tokens --
 
-  listMyStafflerInvites(companyId: string): MyStafflerInvite[] {
-    return this.data.mystaffler_invites.filter((r) => r.company_id === companyId);
-  }
-
-  getMyStafflerInvite(employeeId: string, companyId: string): MyStafflerInvite | undefined {
-    return this.data.mystaffler_invites.find(
-      (r) => r.employee_id === employeeId && r.company_id === companyId,
-    );
-  }
-
-  upsertMyStafflerInvite(
-    employeeId: string,
-    companyId: string,
-    patch: Partial<Pick<MyStafflerInvite, "status" | "accepted_at" | "last_login_at">> = {},
-  ): MyStafflerInvite {
-    const now = new Date().toISOString();
-    let row = this.getMyStafflerInvite(employeeId, companyId);
-    if (!row) {
-      row = {
-        id: randomUUID(),
-        employee_id: employeeId,
-        company_id: companyId,
-        status: patch.status ?? "invited",
-        invited_at: now,
-        accepted_at: patch.accepted_at ?? null,
-        last_login_at: patch.last_login_at ?? null,
-      };
-      this.data.mystaffler_invites.push(row);
-    } else {
-      if (patch.status !== undefined) row.status = patch.status;
-      if (patch.accepted_at !== undefined) row.accepted_at = patch.accepted_at;
-      if (patch.last_login_at !== undefined) row.last_login_at = patch.last_login_at;
-      // If the row already exists and we're "re-inviting", refresh invited_at.
-      if (patch.status === "invited") row.invited_at = now;
-    }
-    this.save();
-    return row;
-  }
-
-  /** Store the FCM registration token for every invite this employee
-   *  has (one row per company they work for). Returns the count of
-   *  invites updated — zero means the employee has no invite rows
-   *  yet, so the token is dropped. Subsequent calls overwrite; that
-   *  matches FCM where a single device → single token, even though
-   *  the token can rotate. */
+  /** Store the FCM registration token for this employee. The table is
+   *  keyed on employee_id (one device → one token), so the call returns
+   *  1 on every successful write — 0 is reserved for future failure
+   *  modes (e.g. validation). Overwrites the token + bumps
+   *  `subscribed_at` if a row already exists; inserts otherwise. */
   storeFcmToken(employeeId: string, token: string): number {
     const now = new Date().toISOString();
-    let n = 0;
-    for (const inv of this.data.mystaffler_invites) {
-      if (inv.employee_id !== employeeId) continue;
-      inv.fcm_token = token;
-      inv.fcm_subscribed_at = now;
-      n++;
+    const existing = this.data.fcm_tokens.find((r) => r.employee_id === employeeId);
+    if (existing) {
+      existing.token = token;
+      existing.subscribed_at = now;
+    } else {
+      this.data.fcm_tokens.push({
+        employee_id: employeeId,
+        token,
+        subscribed_at: now,
+      });
     }
-    if (n > 0) this.save();
-    return n;
-  }
-
-  /** Bump `last_login_at` on every active invite for this employee.
-   *  Called from the MyStaffler-side read endpoints so the company-side
-   *  Pool "Last login" column reflects when the uitzendkracht actually
-   *  used their view, instead of being frozen at invite-accepted time.
-   *  Only flips invites that are already `active` — `invited` rows
-   *  stay at null (they shouldn't have logged in yet). */
-  touchMyStafflerLogin(employeeId: string): void {
-    const now = new Date().toISOString();
-    let dirty = false;
-    for (const inv of this.data.mystaffler_invites) {
-      if (inv.employee_id !== employeeId) continue;
-      if (inv.status !== "active") continue;
-      inv.last_login_at = now;
-      dirty = true;
-    }
-    if (dirty) this.save();
+    this.save();
+    return 1;
   }
 
   // -- raw access for stats/debug --
@@ -735,7 +633,7 @@ class PocDb {
 
   /** Seed a minimal PoC dataset for a given company (called from the demo
    *  endpoint). Idempotent-ish: skips creation if the company already has
-   *  service-groups or permanent employees. Takes an optional list of DPS
+   *  service-locations or permanent employees. Takes an optional list of DPS
    *  engagement-group ids so the seeded service-locations point at real
    *  vestigingen. */
   seedDemo(input: {
@@ -747,18 +645,18 @@ class PocDb {
     employeeIds?: string[];
   }): {
     created: {
-      serviceGroups: ServiceGroup[];
+      serviceLocations: ServiceLocation[];
       permanentEmployees: PermanentEmployee[];
       availabilities: number;
     };
     skipped: boolean;
   } {
-    const existingServiceGroups = this.listServiceGroups(input.companyId);
+    const existingServiceLocations = this.listServiceLocations(input.companyId);
     const existingPermanentEmployees = this.listPermanentEmployees(input.companyId);
     const hasStructure =
-      existingServiceGroups.length > 0 || existingPermanentEmployees.length > 0;
+      existingServiceLocations.length > 0 || existingPermanentEmployees.length > 0;
     if (hasStructure) {
-      // SGs / vaste medewerkers are already in place — leave them alone.
+      // SLs / vaste medewerkers are already in place — leave them alone.
       // But pilot feedback 2026-05-18: availabilities are still missing
       // because the previous seed only ran end-to-end on a fresh PoC. We
       // separately top up the green hour-blocks below so the Names grid
@@ -772,7 +670,7 @@ class PocDb {
       const demoWeek = this.applyDemoAvailabilityWeek(input.employeeIds ?? []);
       return {
         created: {
-          serviceGroups: [],
+          serviceLocations: [],
           permanentEmployees: [],
           availabilities: availabilities + demoWeek,
         },
@@ -780,8 +678,8 @@ class PocDb {
       };
     }
     const branch = input.branchGroupIds[0] ?? "";
-    const serviceGroups: ServiceGroup[] = [
-      this.createServiceGroup({
+    const serviceLocations: ServiceLocation[] = [
+      this.createServiceLocation({
         company_id: input.companyId,
         branch_group_id: branch,
         name: "Toog",
@@ -790,7 +688,7 @@ class PocDb {
         postal_code: "9000",
         city: "Gent",
       }),
-      this.createServiceGroup({
+      this.createServiceLocation({
         company_id: input.companyId,
         branch_group_id: branch,
         name: "Kassa",
@@ -799,7 +697,7 @@ class PocDb {
         postal_code: "9000",
         city: "Gent",
       }),
-      this.createServiceGroup({
+      this.createServiceLocation({
         company_id: input.companyId,
         branch_group_id: branch,
         name: "Terras",
@@ -857,7 +755,7 @@ class PocDb {
 
     return {
       created: {
-        serviceGroups,
+        serviceLocations,
         permanentEmployees,
         availabilities: availabilitiesCount + demoWeekCount,
       },
@@ -916,7 +814,7 @@ class PocDb {
   /**
    * Seed two weeks of "open" availability rows for the given employees,
    * cycling through the same 4-pattern set as `seedDemo`. Used as a
-   * standalone top-up so a grown-up PoC-DB (with existing service groups
+   * standalone top-up so a grown-up PoC-DB (with existing service locations
    * and permanent employees) still gets the mockup-shaped green
    * hour-blocks behind contracts on the planning grid. No-op when the
    * employees already have any availability rows.

@@ -17,11 +17,11 @@ export type OpeningHours = Partial<
 >;
 
 /**
- * PoC-DB service group (= sub-row under a vestiging in the planning grid,
+ * PoC-DB service location (= sub-row under a vestiging in the planning grid,
  * e.g. "Toog Gent", "Bar Sluizeken"). Lives in the Fastify proxy's
  * in-memory store, not in DPS.
  */
-export interface ServiceGroupModel {
+export interface ServiceLocationModel {
   id: string;
   company_id: string;
   branch_group_id: string;
@@ -39,7 +39,7 @@ export interface ServiceGroupModel {
   updated_at: string;
 }
 
-export interface CreateServiceGroupPayload {
+export interface CreateServiceLocationPayload {
   companyId: string;
   branchGroupId: string;
   name: string;
@@ -50,23 +50,23 @@ export interface CreateServiceGroupPayload {
   openingHours?: OpeningHours;
 }
 
-export type UpdateServiceGroupPayload = Partial<Omit<CreateServiceGroupPayload, 'companyId'>>;
+export type UpdateServiceLocationPayload = Partial<Omit<CreateServiceLocationPayload, 'companyId'>>;
 
 @Injectable({ providedIn: 'root' })
-export class ServiceGroupApiService {
+export class ServiceLocationApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${environment.apiBaseUrl}/service-groups`;
+  private readonly url = `${environment.apiBaseUrl}/service-locations`;
 
-  list(companyId: string): Observable<ServiceGroupModel[]> {
-    return this.http.get<ServiceGroupModel[]>(`${this.url}?companyId=${encodeURIComponent(companyId)}`);
+  list(companyId: string): Observable<ServiceLocationModel[]> {
+    return this.http.get<ServiceLocationModel[]>(`${this.url}?companyId=${encodeURIComponent(companyId)}`);
   }
 
-  create(payload: CreateServiceGroupPayload): Observable<ServiceGroupModel> {
-    return this.http.post<ServiceGroupModel>(this.url, payload);
+  create(payload: CreateServiceLocationPayload): Observable<ServiceLocationModel> {
+    return this.http.post<ServiceLocationModel>(this.url, payload);
   }
 
-  update(id: string, payload: UpdateServiceGroupPayload): Observable<ServiceGroupModel> {
-    return this.http.put<ServiceGroupModel>(`${this.url}/${id}`, payload);
+  update(id: string, payload: UpdateServiceLocationPayload): Observable<ServiceLocationModel> {
+    return this.http.put<ServiceLocationModel>(`${this.url}/${id}`, payload);
   }
 
   remove(id: string): Observable<{ ok: true }> {

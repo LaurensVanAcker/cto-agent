@@ -13,13 +13,13 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectModule } from 'primeng/select';
 
 import {
-  ServiceGroupApiService,
-  ServiceGroupModel,
-} from '@dps/core/api/service-group/service-group.api.service';
+  ServiceLocationApiService,
+  ServiceLocationModel,
+} from '@dps/core/api/service-location/service-location.api.service';
 import { EngagementGroupModel } from '@dps/core/api/engagement-group/engagement-group.api.service';
 
 interface DialogData {
-  serviceLocation: ServiceGroupModel;
+  serviceLocation: ServiceLocationModel;
   branches: EngagementGroupModel[];
 }
 
@@ -39,7 +39,7 @@ interface DialogData {
 export class DialogAttachVestigingComponent {
   private readonly ref = inject(DynamicDialogRef);
   private readonly config: DynamicDialogConfig<DialogData> = inject(DynamicDialogConfig);
-  private readonly api = inject(ServiceGroupApiService);
+  private readonly api = inject(ServiceLocationApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly sl = this.config.data?.serviceLocation;

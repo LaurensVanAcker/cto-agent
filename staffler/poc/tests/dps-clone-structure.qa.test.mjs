@@ -257,9 +257,9 @@ test('locations admin shows 7-pill opening-hours strip + per-weekday editor', ()
   assert.match(html, /setDayTo\(d\.id/, 'to-time setter wired');
 });
 
-test('service-group API model exposes OpeningHours types', () => {
+test('service-location API model exposes OpeningHours types', () => {
   const code = readFileSync(
-    resolve(frontendApp, 'core/api/service-group/service-group.api.service.ts'),
+    resolve(frontendApp, 'core/api/service-location/service-location.api.service.ts'),
     'utf8',
   );
   assert.match(code, /export type OpeningHours/);
@@ -360,10 +360,10 @@ test('backend notifications route surfaces the 4 known kinds', () => {
   assert.match(code, /"rejected"/);
 });
 
-test('backend my-shifts joins service-group name + city', () => {
+test('backend my-shifts joins service-location name + city', () => {
   const code = readFileSync(resolve(repo, 'src/server/index.ts'), 'utf8');
-  assert.match(code, /service_group_name:\s*sg\?\.name/);
-  assert.match(code, /service_group_city:\s*sg\?\.city/);
+  assert.match(code, /service_location_name:\s*sl\?\.name/);
+  assert.match(code, /service_location_city:\s*sl\?\.city/);
 });
 
 test('mystaffler-poc: hero has refresh button + greeting from /me', () => {

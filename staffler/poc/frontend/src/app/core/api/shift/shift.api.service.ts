@@ -12,7 +12,7 @@ export type ShiftStatus = 'draft' | 'open' | 'closed' | 'fulfilled' | 'cancelled
 export interface ShiftModel {
   id: string;
   company_id: string;
-  service_group_id: string;
+  service_location_id: string;
   date_from: string;
   date_to: string;
   from_time: string;
@@ -39,7 +39,7 @@ export interface ShiftModel {
 
 export interface CreateShiftPayload {
   companyId: string;
-  serviceGroupId: string;
+  serviceLocationId: string;
   dateFrom: string;
   dateTo: string;
   fromTime: string;

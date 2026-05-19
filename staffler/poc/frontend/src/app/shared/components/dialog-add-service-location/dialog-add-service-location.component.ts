@@ -18,9 +18,9 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputTextModule } from 'primeng/inputtext';
 
 import {
-  ServiceGroupApiService,
-  ServiceGroupModel,
-} from '@dps/core/api/service-group/service-group.api.service';
+  ServiceLocationApiService,
+  ServiceLocationModel,
+} from '@dps/core/api/service-location/service-location.api.service';
 
 interface DialogData {
   companyId: string;
@@ -32,7 +32,7 @@ interface DialogData {
   branchName?: string;
   /** When present, the dialog runs in "edit" mode and PATCHes the row
    *  instead of POSTing a new one. */
-  existing?: ServiceGroupModel;
+  existing?: ServiceLocationModel;
 }
 
 /**
@@ -58,7 +58,7 @@ interface DialogData {
 export class DialogAddServiceLocationComponent {
   private readonly ref = inject(DynamicDialogRef);
   private readonly config: DynamicDialogConfig<DialogData> = inject(DynamicDialogConfig);
-  private readonly api = inject(ServiceGroupApiService);
+  private readonly api = inject(ServiceLocationApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly isEdit = !!this.config.data?.existing;
@@ -102,7 +102,7 @@ export class DialogAddServiceLocationComponent {
     const obs$ =
       this.isEdit && data.existing ? this.api.update(data.existing.id, payload) : this.api.create(payload);
     obs$.subscribe({
-      next: (row: ServiceGroupModel) => {
+      next: (row: ServiceLocationModel) => {
         this.saving.set(false);
         this.ref.close({
           kind: this.isEdit ? 'service-location.updated' : 'service-location.created',

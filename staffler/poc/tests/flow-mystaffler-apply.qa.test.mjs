@@ -62,7 +62,7 @@ function fresh() { pocDb.reset(); return pocDb; }
 
 const SHIFT = {
   company_id: 'C1',
-  service_group_id: 'SG-Toog',
+  service_location_id: 'SL-Toog',
   date_from: '2026-05-18',
   date_to: '2026-05-18',
   from_time: '09:00',

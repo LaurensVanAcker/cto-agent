@@ -35,9 +35,9 @@ import { GENERAL_SCHEDULER_CONFIG, TODAY_TIME_RANGE_ID } from '@dps/shared/confi
 import { ContractDialogComponent } from '@dps/shared/components/contract-dialog/contract-dialog.component';
 import type { ContractDialogDataModel } from '@dps/shared/components/contract-dialog/contract-dialog-data.model';
 import {
-  ServiceGroupApiService,
-  ServiceGroupModel,
-} from '@dps/core/api/service-group/service-group.api.service';
+  ServiceLocationApiService,
+  ServiceLocationModel,
+} from '@dps/core/api/service-location/service-location.api.service';
 import {
   ShiftApiService,
   ShiftModel,
@@ -120,7 +120,6 @@ interface PocEvent {
  *
  *  - DPS contracts (`/api/contracts`)
  *  - PoC-DB shifts (`/api/shifts`)
- *  - PoC-DB permanent assignments (`/api/permanent-assignments`)
  *
  * Resources change shape per view:
  *  - Names: flat rows = DPS employees (+ permanent employees as siblings)
@@ -163,7 +162,7 @@ export class PlanningPocComponent implements AfterViewInit {
   private readonly permanentEmployeesApi = inject(PermanentEmployeeApiService);
   private readonly permanentBlocksApi = inject(PermanentBlockApiService);
   private readonly availabilityApi = inject(AvailabilityApiService);
-  private readonly serviceGroupsApi = inject(ServiceGroupApiService);
+  private readonly serviceLocationsApi = inject(ServiceLocationApiService);
   private readonly engagementGroupsApi = inject(EngagementGroupApiService);
   private readonly dialogService = inject(DialogService);
   private readonly messageService = inject(MessageService);
@@ -426,7 +425,7 @@ export class PlanningPocComponent implements AfterViewInit {
         rowHeight: 65,
         // Locaties view emits multiple blocks per shift (assigned per
         // employee + the remaining open block); they all land on the same
-        // service_group row so Bryntum needs allowOverlap=true to stack
+        // service_location row so Bryntum needs allowOverlap=true to stack
         // them into lanes instead of refusing to render.
         allowOverlap: true,
         timeRanges: [
@@ -745,7 +744,7 @@ export class PlanningPocComponent implements AfterViewInit {
 
   /** Shift batch dialog opener used by Locaties view. */
   private openShiftDialogForCell(
-    serviceGroupId: string,
+    serviceLocationId: string,
     date: Date | undefined,
     placeholder: EventModel | null,
   ): void {
@@ -786,7 +785,7 @@ export class PlanningPocComponent implements AfterViewInit {
       data: {
         companyId: company.id,
         date: date ? DateTime.fromJSDate(date).toISODate() : undefined,
-        serviceGroupId,
+        serviceLocationId,
         prefillFromTime,
         prefillToTime,
         // Cell-click on a service-location row is the Locaties flow: the
@@ -1033,7 +1032,7 @@ export class PlanningPocComponent implements AfterViewInit {
    *  picked branchGroupId, then refresh so the row leaves the bucket. */
   private openAttachVestigingDialog(slId: string): void {
     if (!slId || !this.lastData) return;
-    const sl = this.lastData.serviceGroups.find(x => x.id === slId);
+    const sl = this.lastData.serviceLocations.find(x => x.id === slId);
     if (!sl) return;
     const ref = this.dialogService.open(DialogAttachVestigingComponent, {
       header: 'Service location koppelen',
@@ -1122,7 +1121,7 @@ export class PlanningPocComponent implements AfterViewInit {
    */
   private openEditServiceLocationDialog(slId: string): void {
     if (!slId || !this.lastData) return;
-    const sl = this.lastData.serviceGroups.find(x => x.id === slId);
+    const sl = this.lastData.serviceLocations.find(x => x.id === slId);
     if (!sl) return;
     const company = this.store.selectSnapshot(RootState.getCompanyData);
     if (!company) return;
@@ -1237,7 +1236,7 @@ export class PlanningPocComponent implements AfterViewInit {
     shifts: ShiftModel[];
     permanentEmployees: PermanentEmployeeModel[];
     permanentBlocks: PermanentBlockModel[];
-    serviceGroups: ServiceGroupModel[];
+    serviceLocations: ServiceLocationModel[];
     branches: EngagementGroupModel[];
     availabilities: AvailabilityModel[];
   } | null = null;
@@ -1265,7 +1264,7 @@ export class PlanningPocComponent implements AfterViewInit {
     queueMicrotask(() => this.syncSchedulerStores(resources, events));
   }
 
-  /** Loads employees, contracts, shifts, permanent-assignments, service-groups, vestigingen
+  /** Loads employees, contracts, shifts, service-locations, vestigingen
    * for the visible week, transforms them into Bryntum resources + events per
    * the active view, and pushes to the scheduler. */
   private refresh(companyId: string): void {
@@ -1320,7 +1319,7 @@ export class PlanningPocComponent implements AfterViewInit {
         this.permanentBlocksApi.list(companyId, startIso, endIso),
         [] as PermanentBlockModel[],
       ),
-      serviceGroups: safe(this.serviceGroupsApi.list(companyId), []),
+      serviceLocations: safe(this.serviceLocationsApi.list(companyId), []),
       branches: safe(this.engagementGroupsApi.listForCompany(companyId), []),
       // Pilot feedback (2026-05-14): seed availabilities paint as green
       // hour-blocks behind each employee row in the Medewerkers grid so
@@ -1349,7 +1348,7 @@ export class PlanningPocComponent implements AfterViewInit {
           `[planning-poc] view=${view} resources=${resources.length} events=${events.length} ` +
             `availabilities=${rtrs.length} ` +
             `(employees=${data.employees?.content?.length ?? 0}, perm=${data.permanentEmployees?.length ?? 0}, ` +
-            `serviceGroups=${data.serviceGroups?.length ?? 0}, branches=${data.branches?.length ?? 0})`,
+            `serviceLocations=${data.serviceLocations?.length ?? 0}, branches=${data.branches?.length ?? 0})`,
         );
         this.resources.set(resources);
         this.events.set(events);
@@ -1399,7 +1398,7 @@ export class PlanningPocComponent implements AfterViewInit {
     data: {
       employees: { content?: { id: string; firstName?: string; lastName?: string }[] };
       branches: EngagementGroupModel[];
-      serviceGroups: ServiceGroupModel[];
+      serviceLocations: ServiceLocationModel[];
       permanentEmployees: PermanentEmployeeModel[];
     },
   ): PocResource[] {
@@ -1418,7 +1417,7 @@ export class PlanningPocComponent implements AfterViewInit {
 
     // Locaties view: interleave a synthetic "branch header" row per
     // vestiging with the service-location rows underneath it. Branches
-    // come from DPS as a paged response; service-groups are PoC-DB rows
+    // come from DPS as a paged response; service-locations are PoC-DB rows
     // referencing the branch by id.
     //
     // Defensive `Array.isArray` checks: DPS occasionally hands back a
@@ -1426,15 +1425,15 @@ export class PlanningPocComponent implements AfterViewInit {
     // on the endpoint. Iterating that with for/of throws and silently
     // breaks the view toggle.
     const branches = Array.isArray(data.branches) ? data.branches : [];
-    const serviceGroups = Array.isArray(data.serviceGroups) ? data.serviceGroups : [];
+    const serviceLocations = Array.isArray(data.serviceLocations) ? data.serviceLocations : [];
 
-    // Bucket service-groups under their parent branch id. An empty string
+    // Bucket service-locations under their parent branch id. An empty string
     // branch_group_id (legacy seed data) ends up in the orphan bucket.
-    const byBranch = new Map<string, ServiceGroupModel[]>();
-    for (const sg of serviceGroups) {
-      const key = sg.branch_group_id || '';
+    const byBranch = new Map<string, ServiceLocationModel[]>();
+    for (const sl of serviceLocations) {
+      const key = sl.branch_group_id || '';
       const arr = byBranch.get(key) ?? [];
-      arr.push(sg);
+      arr.push(sl);
       byBranch.set(key, arr);
     }
 
@@ -1451,16 +1450,16 @@ export class PlanningPocComponent implements AfterViewInit {
         isBranch: true,
       });
       const children = byBranch.get(branch.id) ?? [];
-      for (const sg of children) {
-        rows.push({ id: sg.id, name: sg.name, branchId: branch.id });
+      for (const sl of children) {
+        rows.push({ id: sl.id, name: sl.name, branchId: branch.id });
       }
     }
 
     // Surface orphan SLs (no parent vestiging) so the operator can fix
     // them inline — clicking the row opens the attach-vestiging dialog.
     const knownBranchIds = new Set(branches.map(b => b.id));
-    const orphans = serviceGroups.filter(
-      sg => !sg.branch_group_id || !knownBranchIds.has(sg.branch_group_id),
+    const orphans = serviceLocations.filter(
+      sl => !sl.branch_group_id || !knownBranchIds.has(sl.branch_group_id),
     );
     if (orphans.length && branches.length) {
       rows.push({
@@ -1469,8 +1468,8 @@ export class PlanningPocComponent implements AfterViewInit {
         isBranch: true,
         isOrphanHeader: true,
       });
-      for (const sg of orphans) {
-        rows.push({ id: sg.id, name: sg.name, isOrphan: true });
+      for (const sl of orphans) {
+        rows.push({ id: sl.id, name: sl.name, isOrphan: true });
       }
     }
 
@@ -1542,7 +1541,7 @@ export class PlanningPocComponent implements AfterViewInit {
     data: {
       contracts: ContractListModel[];
       shifts: ShiftModel[];
-      serviceGroups: ServiceGroupModel[];
+      serviceLocations: ServiceLocationModel[];
       permanentEmployees: PermanentEmployeeModel[];
       permanentBlocks?: PermanentBlockModel[];
       availabilities?: AvailabilityModel[];
@@ -1600,7 +1599,7 @@ export class PlanningPocComponent implements AfterViewInit {
     //     service-location concept; in Namen view every row already
     //     represents an assigned employee so there is no "open" block.
     //
-    // V+SL / Day: shown on the service_group resource.
+    // V+SL / Day: shown on the service_location resource.
     // Names: assigned blocks fan out to each target_employee_id;
     //        open seats are NEVER rendered in Names view (pilot
     //        feedback 2026-05-13: ghost open-shift fan-out on Alexander
@@ -1626,7 +1625,7 @@ export class PlanningPocComponent implements AfterViewInit {
         const empName = emp
           ? `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || 'Toegewezen'
           : 'Toegewezen';
-        const resourceId = view === 'names' ? empId : s.service_group_id;
+        const resourceId = view === 'names' ? empId : s.service_location_id;
         events.push({
           id: `shift:${s.id}:assigned:${empId}`,
           resourceId,
@@ -1651,7 +1650,7 @@ export class PlanningPocComponent implements AfterViewInit {
         const baseCls = `poc-event poc-event-shift poc-event-shift-${s.status}`;
         events.push({
           id: `shift:${s.id}:open`,
-          resourceId: s.service_group_id,
+          resourceId: s.service_location_id,
           startDate: start,
           endDate: end,
           name: label,

@@ -101,7 +101,7 @@ $radius-lg: 12px;
 
 // Two-column row for Service Location + Datum on the same horizontal
 // line (pilot feedback 2026-05-18: "plaats besparen"). When the
-// service-group is fixed by the caller (only one .m09-field child)
+// service-location is fixed by the caller (only one .m09-field child)
 // the date field naturally takes the full row.
 //
 // The Datum column needs at least ~16rem so two localized date strings
@@ -115,7 +115,7 @@ $radius-lg: 12px;
   margin-bottom: 14px;
 }
 
-// When the row only has ONE child (service-group fixed by caller), use a
+// When the row only has ONE child (service-location fixed by caller), use a
 // single full-width column instead of forcing the date field into the
 // right half — keeps the date input edge-to-edge.
 .m09-row-2col:has(> :only-child) {

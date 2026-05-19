@@ -18,7 +18,6 @@ import {
   filter,
   of,
   startWith,
-  switchMap,
   take,
   tap,
   throwError,
@@ -54,7 +53,6 @@ import {
 import { EmployeeGroupEngagement, EmployeeModel, Group, UserRole } from '@dps/shared/models';
 import {
   EmployeeMyStafflerStatus,
-  MyStafflerInviteModel,
   MystafflerInviteApiService,
 } from '@dps/core/api/mystaffler-invite/mystaffler-invite.api.service';
 import {
@@ -72,7 +70,6 @@ interface PoolRow {
   assignedGroups: Group[];
   status: EmployeeMyStafflerStatus;
   lastLoginAt: string | null;
-  invitedAt: string | null;
 }
 
 /**
@@ -96,9 +93,9 @@ interface PoolRow {
  *        Account naar actief (demo-only)
  *      * No account     → Toewijzen aan vestiging + Uitnodigen
  *
- * "Last login" + invite/account status come from the PoC-DB
- * mystaffler_invites table; v1 will pull them from the real Staffler
- * endpoint when BE adds it.
+ * "Last login" + invite/account status come from the upstream
+ * EmployeeWebDto (`myStafflerStatus` + `lastLogin`) via the
+ * /companies/.../groups/employees passthrough (BCJ-19425).
  */
 @Component({
   selector: 'dps-pool',
@@ -165,7 +162,7 @@ export class PoolComponent {
     return {
       all: rows.length,
       inactive: rows.filter(r => r.status === 'inactive').length,
-      invited: rows.filter(r => r.status === 'invited').length,
+      pending: rows.filter(r => r.status === 'pending').length,
       active: rows.filter(r => r.status === 'active').length,
     };
   });
@@ -220,23 +217,18 @@ export class PoolComponent {
 
     // Use the engagement-groups endpoint so each row carries its assigned
     // vestigingen — needed both for the "Toegewezen vestigingen" column and
-    // for the AssignGroupsDialog's existingGroups data.
+    // for the AssignGroupsDialog's existingGroups data. The same upstream
+    // payload now carries `myStafflerStatus` + `lastLogin` per BCJ-19425,
+    // so we no longer need a PoC-DB join here.
     this.groupsApi
       .getEmployeeGroupEngagements(company.id, {
         nameLike,
         page: 0,
         size: 100,
       } as Parameters<CompanyGroupApiService['getEmployeeGroupEngagements']>[1])
-      .pipe(
-        switchMap(page =>
-          this.invitesApi
-            .list(company.id)
-            .pipe(switchMap(invites => Promise.resolve(this.mergeRows(page?.content ?? [], invites)))),
-        ),
-      )
       .subscribe({
-        next: rows => {
-          this.rows.set(rows);
+        next: page => {
+          this.rows.set(this.mergeRows(page?.content ?? []));
           this.loading.set(false);
           this.cdr.markForCheck();
         },
@@ -248,27 +240,15 @@ export class PoolComponent {
       });
   }
 
-  private mergeRows(
-    engagements: EmployeeGroupEngagement[],
-    invites: MyStafflerInviteModel[],
-  ): PoolRow[] {
-    const inviteByEmployee = new Map<string, MyStafflerInviteModel>();
-    for (const i of invites) inviteByEmployee.set(i.employee_id, i);
+  private mergeRows(engagements: EmployeeGroupEngagement[]): PoolRow[] {
     return engagements.map(eng => {
-      const invite = inviteByEmployee.get(eng.id);
-      const status: EmployeeMyStafflerStatus =
-        invite?.status === 'active'
-          ? 'active'
-          : invite?.status === 'invited'
-            ? 'invited'
-            : 'inactive';
+      const status: EmployeeMyStafflerStatus = eng.myStafflerStatus ?? 'inactive';
       return {
         employee: eng,
         engagement: eng,
         assignedGroups: eng.engagementGroups ?? [],
         status,
-        invitedAt: invite?.invited_at ?? null,
-        lastLoginAt: invite?.last_login_at ?? null,
+        lastLoginAt: eng.lastLogin ?? null,
       };
     });
   }
@@ -328,21 +308,6 @@ export class PoolComponent {
           summary: 'Opnieuw versturen mislukt',
           detail: this.parseError(err),
         });
-      },
-    });
-  }
-
-  protected markActive(row: PoolRow): void {
-    const company = this.company();
-    if (!company) return;
-    this.invitesApi.markActive(row.employee.id, company.id).subscribe({
-      next: () => {
-        this.messageService.add({
-          severity: 'info',
-          summary: 'Account naar actief (demo)',
-          detail: this.employeeName(row.employee),
-        });
-        this.refresh();
       },
     });
   }
@@ -450,9 +415,7 @@ export class PoolComponent {
   /**
    * Builds the per-row Action menu items based on the employee's status.
    * Mockup 15 spec: "Vestigingen toewijzen" + "Wachtwoord resetten".
-   * We keep two PoC-only extras gated by status (resend invite / mark
-   * active for demo) so the pilot operator has a way to test the invite
-   * flow without rebuilding the seed.
+   * Pending invites also get a "Uitnodiging opnieuw versturen" shortcut.
    */
   protected menuItemsFor(row: PoolRow): MenuItem[] {
     const items: MenuItem[] = [
@@ -472,18 +435,11 @@ export class PoolComponent {
           }),
       },
     ];
-    if (row.status === 'invited') {
+    if (row.status === 'pending') {
       items.push({
         label: 'Uitnodiging opnieuw versturen',
         icon: 'dps-icon dps-icon-double_arrow_right',
         command: () => this.resendInvite(row),
-      });
-    }
-    if (row.status !== 'active') {
-      items.push({
-        label: 'Account naar actief (demo)',
-        icon: 'dps-icon dps-icon-check',
-        command: () => this.markActive(row),
       });
     }
     return items;
