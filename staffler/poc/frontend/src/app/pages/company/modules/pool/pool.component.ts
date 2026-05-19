@@ -127,7 +127,11 @@ interface PoolRow {
   templateUrl: './pool.component.html',
   styleUrl: './pool.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex flex-auto flex-column overflow-hidden p-4 gap-3' },
+  // Pilot feedback 2026-05-19: drop `p-4 gap-3` from host so the
+  // `<dps-page-header>` chip aligns pixel-perfect with /planning-poc,
+  // /user-accounts and /actuals. Padding lives on the inner `<main>`
+  // (`px-3 pt-3 gap-3`) which keeps the body spacing identical.
+  host: { class: 'flex flex-auto flex-column overflow-hidden' },
 })
 export class PoolComponent {
   private readonly employeesApi = inject(EmployeeApiService);

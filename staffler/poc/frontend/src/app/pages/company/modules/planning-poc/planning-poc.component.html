@@ -9,6 +9,13 @@
 -->
 <dps-page-header title="Planning" [subtitle]="company()?.name"></dps-page-header>
 
+<!--
+  Pilot feedback 2026-05-19: padding + gap moved off the page host
+  onto this `<main>` so the `<dps-page-header>` sits flush at the
+  parent's top-left edge — identical x/y as /pool, /user-accounts and
+  /actuals (subtitle no longer dances when switching menu items).
+-->
+<main class="flex flex-column flex-auto overflow-hidden px-3 pt-3 gap-3">
 <div class="flex align-items-center gap-3 flex-wrap">
   <p-selectButton
     class="planning-segment"
@@ -80,16 +87,6 @@
   </button>
 </div>
 
-<p-toast position="bottom-right" />
-
-<!--
-  Shared overflow menu anchored at click-time to the 3-dot trigger on a
-  vestiging-header row. The model is rebuilt per-click in openBranchMenu
-  so each invocation carries the right branchId.
--->
-<p-menu #branchMenu [popup]="true" [model]="branchMenuItems()" appendTo="body" />
-
-
 <!--
   Mockup 10/11 banner card: indigo icon-square + tagline. Keeps the
   surface inviting and tells the operator what the grid does without
@@ -157,3 +154,13 @@
     (onEventClick)="onEventClick($event)"
   ></bryntum-scheduler>
 </div>
+</main>
+
+<p-toast position="bottom-right" />
+
+<!--
+  Shared overflow menu anchored at click-time to the 3-dot trigger on a
+  vestiging-header row. The model is rebuilt per-click in openBranchMenu
+  so each invocation carries the right branchId.
+-->
+<p-menu #branchMenu [popup]="true" [model]="branchMenuItems()" appendTo="body" />
