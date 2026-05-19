@@ -1,12 +1,12 @@
 import { CompanyRouteEnum } from 'src/app/pages/company/company.routes.model';
 
 export const COMPANY_ROUTES_ICONS_MAP: Partial<Record<CompanyRouteEnum, string>> = {
-  // Pilot feedback 2026-05-19: switched USER_ACCOUNTS from "key" to
-  // "person" so the menu entry shows a person glyph consistent with /pool's
-  // "groups" people-icon family. The "key" glyph was reported as not
-  // rendering visibly in the menu; "person" is a known-good glyph that
-  // also reads as "user account" to the pilot users.
-  [CompanyRouteEnum.USER_ACCOUNTS]: 'person',
+  // Pilot feedback 2026-05-19 (re-report): "key" → "person" still came
+  // back as "no icon visible next to Gebruikersaccounts" while Pool's
+  // "groups" glyph renders fine. Swapped to "badge" — an ID-card glyph
+  // from the same dps-icons font that reads clearly as "user account"
+  // and stays visually distinct from Pool's "groups" (plural people).
+  [CompanyRouteEnum.USER_ACCOUNTS]: 'badge',
   [CompanyRouteEnum.GROUPS]: 'groups',
   [CompanyRouteEnum.POOL]: 'groups',
   [CompanyRouteEnum.INVITATIONS]: 'person_add',
