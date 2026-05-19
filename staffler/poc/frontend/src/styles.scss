@@ -591,24 +591,25 @@ dps-contract-dialog .contract-dialog-top-row {
 // children shrink past their content" trick. overflow:hidden on the
 // column is a defensive belt-and-braces: even if PrimeNG renders an
 // off-cap icon button on some zoom level, it won't escape the popup.
-// Pilot feedback 2026-05-19 (re-report, 2nd round): "datum veldje
-// valt nog steeds uit de popup" — the 12rem cap is what we WANT
-// visually (keeps the e482509 readability win), but the previous
-// rules let the column escape on narrow viewports because:
-//   - min-width: 9rem refused to shrink below 144px even when the
-//     dialog body was narrower (e.g. mobile zoom), pushing the
-//     trigger past the right edge instead of wrapping cleanly;
-//   - max-width: 12rem was an absolute cap, not viewport-relative,
-//     so it couldn't yield to a smaller parent.
-// Switch to min-width:0 + max-width:min(12rem, 100%) so the column
-// stays at 12rem when there's room (readable widening from e482509)
-// but clips to the dialog body when there isn't. box-sizing:
-// border-box guards against any future padding from sneaking past
-// the cap.
+// Pilot feedback 2026-05-19 (re-report, 3rd round): "Het laatste
+// calender icoontje valt eruit." — the ad15e37 fix stopped the
+// column from overflowing the dialog, but min-width:0 went too far:
+// without a floor, flex shrinkage clips the trailing inline calendar
+// icon (the trigger button rendered inside the input by
+// iconDisplay="input") whenever the row is even slightly squeezed.
+// Rendered content needs ~12.5rem: "DD/MM/YYYY > DD/MM/YYYY" string
+// (~150px @ 14px font) + 12px left padding + ~40px right padding for
+// the absolute-positioned inline icon ≈ 200px. The previous 12rem
+// cap was JUST shy of that on the rendered fonts, hence the icon
+// clipping. Bump to 13rem (basis + min + max all equal so the column
+// never shrinks past the icon) and only yield to 100% when the
+// dialog body itself is narrower — preserves the ad15e37 overflow
+// guard via flex-wrap on .contract-dialog-top-row.
 dps-contract-dialog .contract-dialog-date {
-  flex: 0 1 12rem;
-  min-width: 0;
-  max-width: min(12rem, 100%);
+  flex: 0 0 auto;
+  width: min(13rem, 100%);
+  min-width: min(13rem, 100%);
+  max-width: min(13rem, 100%);
   box-sizing: border-box;
   overflow: hidden;
 }
