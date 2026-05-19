@@ -4,6 +4,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -19,6 +20,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { RadioButtonModule } from 'primeng/radiobutton';
 
 import { EmployeeApiService } from '@dps/core/api';
+import { EmployeeWageApiService } from '@dps/core/api/employee-wage/employee-wage.api.service';
 import { EmployeeModel } from '@dps/shared/models';
 import {
   ShiftApiService,
@@ -76,6 +78,7 @@ export class DialogShiftShareComponent {
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly shiftsApi = inject(ShiftApiService);
   private readonly availabilityApi = inject(AvailabilityApiService);
+  private readonly wagesApi = inject(EmployeeWageApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly companyId = this.config.data?.companyId ?? '';
@@ -149,6 +152,28 @@ export class DialogShiftShareComponent {
     return this.poolContent().filter(e => set.has(e.id)).length;
   });
 
+  /**
+   * Cache of the most-recent wage statute name per employee id. Drives
+   * the inline "laatst gebruikt statuut" chip in the Specifieke namen
+   * picker — operator needs this to decide who's the right person to
+   * broadcast a shift to (e.g. send a Flexijob shift only to flexi
+   * statuten). Lazy-fetched on first render of each visible employee,
+   * mirrored from `dialog-shift-select-fullscreen` so the two surfaces
+   * share the same recall semantics.
+   *
+   * `null` value = fetched but the employee has no wage row yet
+   * (chip stays hidden). `undefined`/missing = not yet fetched.
+   *
+   * Regression 2026-05-18: pilot reported the chip was missing in
+   * "Specifieke namen" — the inline picker rendered only the name. The
+   * fullscreen variant has the chip but isn't wired in everywhere, so
+   * we restore the recall directly on the inline picker too.
+   */
+  protected readonly statuteByEmployeeId = signal<Map<string, string | null>>(
+    new Map(),
+  );
+  private readonly statuteRequested = new Set<string>();
+
   constructor() {
     // Preload availability ids for the visible week so the "+ Beschikbaar
     // deze week" chip in the SELECTION mode can filter immediately. Falls
@@ -177,6 +202,54 @@ export class DialogShiftShareComponent {
           },
         });
     }
+
+    // Lazy-fetch the most-recent wage statute for every employee that
+    // becomes visible in the picker. The chip lives inline next to the
+    // name (Specifieke namen) — without this lookup the operator has
+    // to guess who is on which statuut. One request per id, deduped
+    // via `statuteRequested`. Failures still mark the id "done" so we
+    // don't retry on every re-render.
+    effect(() => {
+      const pool = this.poolContent();
+      if (!this.companyId || pool.length === 0) return;
+      for (const emp of pool) {
+        if (this.statuteRequested.has(emp.id)) continue;
+        this.statuteRequested.add(emp.id);
+        this.wagesApi
+          .getEmployeeWages({
+            companyId: this.companyId,
+            employeeId: emp.id,
+            page: 0,
+            size: 1,
+          })
+          .pipe(take(1))
+          .subscribe({
+            next: rows => {
+              const name = rows?.[0]?.statute?.name ?? null;
+              this.statuteByEmployeeId.update(m => {
+                const next = new Map(m);
+                next.set(emp.id, name);
+                return next;
+              });
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.statuteByEmployeeId.update(m => {
+                const next = new Map(m);
+                next.set(emp.id, null);
+                return next;
+              });
+            },
+          });
+      }
+    });
+  }
+
+  /** Lookup helper for the template — returns the last-used statute
+   *  name for an employee, or `null` while loading / when the
+   *  employee has no wage row yet. */
+  protected statuteFor(emp: EmployeeModel): string | null {
+    return this.statuteByEmployeeId().get(emp.id) ?? null;
   }
 
   /**

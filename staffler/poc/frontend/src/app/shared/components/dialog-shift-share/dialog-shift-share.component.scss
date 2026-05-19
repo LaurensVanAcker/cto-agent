@@ -156,4 +156,28 @@
   .name-row.checked {
     background: rgba(236, 72, 153, 0.05);
   }
+
+  // Two-column person block: name on top, last-used statuut chip
+  // underneath. Mirrors the meta-row pattern from the fullscreen
+  // selectie-picker so the two surfaces feel consistent.
+  .name-row-person {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .name-row-statuut {
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--text-color-secondary, #6b7280);
+    background: var(--surface-100, #f1f5f9);
+    border-radius: 999px;
+    padding: 2px 8px;
+    align-self: flex-start;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

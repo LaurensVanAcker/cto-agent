@@ -135,7 +135,21 @@
                 [ngModel]="isChecked(emp)"
                 (ngModelChange)="toggle(emp, $event)"
               />
-              <span class="font-medium">{{ emp.firstName }} {{ emp.lastName }}</span>
+              <span class="name-row-person">
+                <span class="font-medium">{{ emp.firstName }} {{ emp.lastName }}</span>
+                <!--
+                  Last-used statuut chip — sourced from EmployeeWage so
+                  the operator can scan by statuut while picking names.
+                  Regression 2026-05-18: chip was missing in Specifieke
+                  namen, restored to match the mockup-06 / fullscreen
+                  variant.
+                -->
+                @if (statuteFor(emp); as statute) {
+                  <span class="name-row-statuut" [attr.aria-label]="'Laatst gebruikt statuut: ' + statute">
+                    {{ statute }}
+                  </span>
+                }
+              </span>
             </label>
           } @empty {
             <span class="text-color-secondary text-sm font-italic p-3">
