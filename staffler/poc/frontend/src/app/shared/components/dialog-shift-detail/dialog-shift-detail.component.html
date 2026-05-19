@@ -24,6 +24,17 @@
       Nog geen kandidaten. Deel deze shift via MyStaffler preview en kandideer
       met een testmedewerker.
     </p>
+  } @else if (visibleCandidates().length === 0) {
+    <!--
+      Item 6 (pilot feedback 2026-05-19): all candidates are filtered out
+      because they each already have a contract on this date. Surface a
+      hint so the operator understands why the list is empty instead of
+      thinking the dialog is broken.
+    -->
+    <p class="text-color-secondary font-italic">
+      Alle kandidaten hebben al een contract op deze dag. Annuleer deze
+      shift of deel hem opnieuw met nieuwe medewerkers.
+    </p>
   } @else {
     <table class="w-full">
       <thead>
@@ -35,7 +46,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (row of candidates(); track row.application.id) {
+        @for (row of visibleCandidates(); track row.application.id) {
           <tr>
             <td class="py-2">{{ employeeName(row) }}</td>
             <td class="py-2">

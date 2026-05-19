@@ -12,7 +12,11 @@ import { DateTime } from 'luxon';
 import { ButtonModule } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 
-import { EmployeeApiService, EmployeeWageApiService } from '@dps/core/api';
+import {
+  ContractApiService,
+  EmployeeApiService,
+  EmployeeWageApiService,
+} from '@dps/core/api';
 import {
   EmployeeModel,
   EmployeeWageModel,
@@ -45,6 +49,12 @@ interface CandidateRow {
   /** Spinner while wages are being fetched on dialog-open. */
   loadingWages: boolean;
   selecting: boolean;
+  /** Item 6 (pilot feedback 2026-05-19): the candidate already has a
+   *  contract that intersects this shift's dates, so picking them would
+   *  create a same-day duplicate. We HIDE the row entirely (filter out
+   *  in the template) rather than disabling Kies — the operator should
+   *  never see the candidate as an option for that slot. */
+  alreadyBookedOnDate: boolean;
 }
 
 /**
@@ -66,11 +76,20 @@ export class DialogShiftDetailComponent {
   private readonly shiftsApi = inject(ShiftApiService);
   private readonly employeesApi = inject(EmployeeApiService);
   private readonly wagesApi = inject(EmployeeWageApiService);
+  private readonly contractsApi = inject(ContractApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly shift = this.config.data?.shift as ShiftModel;
   protected readonly companyId = this.config.data?.companyId ?? '';
   protected readonly candidates = signal<CandidateRow[]>([]);
+  /**
+   * Item 6 (pilot feedback 2026-05-19): same as `candidates()` but with
+   * employees who already have an intersecting contract on this shift's
+   * date filtered out. The template reads this signal (not the raw
+   * candidates) so the operator never sees a name that would create a
+   * same-day duplicate booking.
+   */
+  protected readonly visibleCandidates = signal<CandidateRow[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly cancelling = signal(false);
@@ -123,6 +142,7 @@ export class DialogShiftDetailComponent {
         // Hydrate employee data for each application in parallel.
         if (apps.length === 0) {
           this.candidates.set([]);
+          this.visibleCandidates.set([]);
           this.loading.set(false);
           this.cdr.markForCheck();
           return;
@@ -134,8 +154,78 @@ export class DialogShiftDetailComponent {
           selectedWageId: null,
           loadingWages: true,
           selecting: false,
+          alreadyBookedOnDate: false,
         }));
         this.candidates.set(partial);
+        // Optimistic: show every candidate until the contracts lookup
+        // confirms which to hide. Refines down to `partial.filter(...)`
+        // when the response lands (a beat later).
+        this.visibleCandidates.set(partial);
+
+        // Item 6 (pilot feedback 2026-05-19): one person can't have two
+        // contracts on the same day. Bulk-fetch every contract that
+        // overlaps the shift's date range for the WHOLE candidate list
+        // in ONE call (employeeIds filter on /api/contracts), then mark
+        // every row whose employee has a hit so the template filters
+        // them out of the visible list. Cancelled / cancel-validation
+        // contracts don't block a fresh booking on the same date.
+        const candidateEmployeeIds = Array.from(
+          new Set(apps.map(a => a.employee_id).filter(Boolean)),
+        );
+        if (candidateEmployeeIds.length > 0) {
+          this.contractsApi
+            .getContracts({
+              companyId: this.companyId,
+              startDate: this.shift.date_from,
+              endDate: this.shift.date_to,
+              employeeIds: candidateEmployeeIds,
+              page: 0,
+              size: 500,
+            })
+            .subscribe({
+              next: contracts => {
+                const bookedEmployeeIds = new Set<string>();
+                for (const c of contracts ?? []) {
+                  if (
+                    c.status === ContractStatusEnum.CANCELLED ||
+                    c.status === ContractStatusEnum.CANCEL_VALIDATION
+                  ) {
+                    continue;
+                  }
+                  // Overlap test: contract [dateFrom..dateTo] intersects
+                  // shift [shift.date_from..shift.date_to] iff
+                  // contract.dateFrom <= shift.date_to AND
+                  // contract.dateTo >= shift.date_from.
+                  if (
+                    c.dateFrom <= this.shift.date_to &&
+                    c.dateTo >= this.shift.date_from
+                  ) {
+                    bookedEmployeeIds.add(c.employeeId);
+                  }
+                }
+                for (const row of partial) {
+                  row.alreadyBookedOnDate = bookedEmployeeIds.has(
+                    row.application.employee_id,
+                  );
+                }
+                this.visibleCandidates.set(
+                  partial.filter(r => !r.alreadyBookedOnDate),
+                );
+                this.cdr.markForCheck();
+              },
+              error: err => {
+                // Soft-fail: if the contracts lookup blows up we still
+                // want the dialog to be usable. Log + keep all
+                // candidates visible; the server-side `/select` call
+                // will still 409 if it tries to create a duplicate.
+                // eslint-disable-next-line no-console
+                console.warn(
+                  '[shift-detail] contracts lookup failed; same-day filter skipped',
+                  err,
+                );
+              },
+            });
+        }
         // Hydrate employee + wages in parallel per row. Wages drive the
         // inline picker the operator uses on Kies-click; pre-loading them
         // (instead of fetching after click) keeps the click cheap and
