@@ -199,6 +199,19 @@ export class EmployeeProfileComponent implements OnInit {
   // async; as engagements)` branch from ever resolving, so swallow into
   // an empty array — the @empty branch then shows the
   // "NOT_ADDED_TO_CUSTOMERS_POOL" message instead of an eternal spinner.
+  //
+  // Pilot feedback 2026-05-19 (round 2 — item 2): for customer-scoped
+  // users (`COMPANY_USER` / `GROUP_USER`) the QA upstream `/companies/
+  // engagements` route currently returns 500, so the @empty branch fires
+  // and the operator sees "Deze medewerker werd nog niet toegevoegd in
+  // de pool van een klant" — wrong, because `/employeewages?
+  // employeeId=&companyId=` DOES return the wages for this user/company
+  // pair (verified via curl). Synthesize a single-element engagement
+  // list from `RootState.getCompanyData` whenever the call fails or
+  // returns empty in customer-scoped mode, so `CompanyWagesListComponent`
+  // renders for the active company and pulls the real loonpakketten
+  // from upstream. Operators in DPS-scoped mode keep the original
+  // (correct) empty-state behaviour.
   readonly engagements$ = this.employeeParamId$?.pipe(
     switchMap(employeeId =>
       this.companyApiService
@@ -213,11 +226,41 @@ export class EmployeeProfileComponent implements OnInit {
             // eslint-disable-next-line no-console
             console.error('[employee-profile] getEngagements failed', err);
             return of([] as Array<CompanyBaseModel>);
-          })
+          }),
+          map(engagements => this.withCustomerCompanyFallback(engagements))
         )
     ),
     shareReplay(1)
   );
+
+  /**
+   * Customer-scoped fallback for the loonpakketten tab. When the upstream
+   * `/companies/engagements` call returns nothing useful but the current
+   * user is a customer-side operator (`COMPANY_USER` / `GROUP_USER`), we
+   * already know which company they're acting on via `RootState.
+   * getCompanyData`. Returning a one-element engagement list lets
+   * `dps-company-wages-list` mount for that company and fetch the actual
+   * wages directly — which is what QA DPS does as well, just via a
+   * working engagements route. DPS-scoped operators are untouched.
+   */
+  private withCustomerCompanyFallback(
+    engagements: Array<CompanyBaseModel>
+  ): Array<CompanyBaseModel> {
+    if (engagements.length > 0 || !this.hasCustomerUserRole) {
+      return engagements;
+    }
+    const company = this.store.selectSnapshot(RootState.getCompanyData);
+    if (!company) {
+      return engagements;
+    }
+    return [
+      {
+        companyId: company.id,
+        companyName: company.name,
+        vat: company.vat,
+      },
+    ];
+  }
 
   readonly activeTab = signal(this.hasFullAccessRole ? 1 : 2);
   readonly company = this.store.selectSignal(RootState.getCompanyData);
