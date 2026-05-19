@@ -2,7 +2,7 @@
   [visible]="isSidenavVisible()"
   [modal]="isMobileScreen()"
   position="left"
-  [appendTo]="isMobileScreen() ? 'body' : 'dps-company'"
+  appendTo="body"
   styleClass="w-auto border-none shadow-none bg-transparent {{
     isMobileScreen() ? '' : 'relative'
   }}"

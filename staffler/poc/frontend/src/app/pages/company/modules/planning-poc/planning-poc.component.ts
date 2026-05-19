@@ -379,20 +379,38 @@ export class PlanningPocComponent implements AfterViewInit {
     return `<span class="poc-name-row"><span>${name}</span></span>`;
   };
 
+  // Pilot feedback 2026-05-19 (item 7 re-re-fix): hoisted to a stable
+  // class field so the `[columns]` binding does NOT see a new array
+  // reference on every Dag/Week/2-weken switch. Previously the columns
+  // array was rebuilt inside the schedulerConfig() computed, which made
+  // the Angular Bryntum wrapper see "columns changed" alongside the
+  // genuine viewPreset change and triggered a column-model reconfigure
+  // mid-rebuild — Bryntum's tree-store hit a null parent
+  // (`Cannot read 'isRoot'`) and the eventStore ended up empty until F5.
+  // Same reasoning applies to the static layout flags below.
+  private readonly commonColumns = [
+    {
+      text: '',
+      field: 'name',
+      width: 280,
+      enableHeaderContextMenu: false,
+      enableCellContextMenu: false,
+      cellCls: 'poc-resource-cell',
+      htmlEncode: false,
+      renderer: this.resourceColumnRenderer,
+    },
+  ];
+  // Reference-stable layout constants. Bound directly in the template
+  // instead of going through schedulerConfig() so they never change.
+  protected readonly stableEventStyle = 'plain';
+  protected readonly stableRowHeight = 65;
+  protected readonly stableAllowOverlap = true;
+  protected readonly stableEventLayout = 'stack';
+  protected readonly stableBarMargin = 6;
+
   protected readonly schedulerConfig = computed<Partial<SchedulerConfig>>(() => {
     const z = this.zoom();
-    const commonColumns = [
-      {
-        text: '',
-        field: 'name',
-        width: 280,
-        enableHeaderContextMenu: false,
-        enableCellContextMenu: false,
-        cellCls: 'poc-resource-cell',
-        htmlEncode: false,
-        renderer: this.resourceColumnRenderer,
-      },
-    ];
+    const commonColumns = this.commonColumns;
 
     if (z === 'day') {
       // Mockup 13: horizontal grid, single day on the X-axis, one row per
