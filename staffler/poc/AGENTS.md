@@ -67,12 +67,12 @@ poc/
 ├── PLAN.md                    autoriteit voor WAT te bouwen (3 niveaus, mockup-mapping)
 ├── TODAY-CHECKLIST.md         copy-paste run commando's voor opstart
 ├── README.md                  algemene project README
-├── package.json               backend deps (fastify, tsx, @fastify/static)
+├── package.json               backend deps (fastify, tsx)
 ├── tsconfig.json
 ├── .env.example               STAFFLER_ENV, STAFFLER_GATEWAY_*, STAFFLER_USERNAME, STAFFLER_PASSWORD
 ├── public/                    legacy HTML UI, mag weg na Angular setup
 ├── src/                       Fastify backend
-│   ├── server/index.ts        routes, session, CORS, static dist
+│   ├── server/index.ts        routes, session, CORS (API-only; SPA → sister Heroku app)
 │   ├── client/staffler-client.ts  typed wrapper rond Staffler API
 │   └── types/staffler.ts      hand-written types (subset)
 └── frontend/                  Angular 18 app, standalone components
@@ -95,25 +95,20 @@ npm install
 cp .env.example .env  # vul STAFFLER_USERNAME + STAFFLER_PASSWORD aan
 npm run dev
 
-# Terminal 2: Angular dev server op port 4200
+# Terminal 2: Angular dev server op port 1445
 cd staffler/poc/frontend
 npm install
 npm run start
 ```
 
-Open `http://localhost:4200`. Login pagina verschijnt.
+Open `http://localhost:1445`. Login pagina verschijnt.
 
-Voor een prod-like single-server mode:
+Voor de MyStaffler PWA: zie `mystaffler-poc/` (port 4201) met dezelfde
+opzet — eigen `ng serve` + `proxy.conf.json` die /api/* doorstuurt naar
+:5173.
 
-```bash
-cd staffler/poc/frontend
-npm run build         # produceert dist/frontend/browser/ in poc-root
-
-cd ..
-npm run dev           # Fastify dient nu ook de Angular SPA
-```
-
-Open `http://localhost:5173`.
+In prod splitst Heroku Fastify en de twee frontends over drie aparte
+apps (Option C in DEPLOY.md). Deze server is dus puur API.
 
 ## Endpoints die Fastify exposed
 

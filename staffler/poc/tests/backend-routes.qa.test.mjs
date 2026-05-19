@@ -212,8 +212,10 @@ test('FCM endpoints — config + subscribe', () => {
 test('setNotFoundHandler still proxies /api/* via rawAuthed (kept for unwrapped endpoints)', () => {
   assert.match(src, /app\.setNotFoundHandler\(/);
   assert.match(src, /clientFor\(session\)\.rawAuthed<unknown>\(method,\s*req\.url,\s*req\.body\)/);
-  // Non-/api paths must still fall through to the SPA index.html (when dist exists).
-  assert.match(src, /sendFile\("index\.html"\)/);
+  // Non-/api paths must 404 — the SPA is served by sister Heroku apps
+  // (Option C), not by this server. No SPA fallback here anymore.
+  assert.doesNotMatch(src, /sendFile\(/);
+  assert.doesNotMatch(src, /@fastify\/static/);
 });
 
 test('lockout policy: 5 failed employee-login attempts within 15 min → 423 Locked', () => {

@@ -1,0 +1,17 @@
+# Heroku Procfile — `staffler-poc-api` (Option C in DEPLOY.md).
+#
+# `web` is the only process type the API app needs:
+#   - Fastify listens on $PORT (Heroku injects it)
+#   - serves /api/* (proxy to Staffler gateway, with session cookies)
+#
+# The Angular SPA + MyStaffler PWA are deployed as sister apps
+# (staffler-poc-web, staffler-mystaffler) using the static buildpack —
+# this dyno does NOT serve any frontend.
+#
+# Bumping to two dynos (web + worker) lands here when we add background
+# jobs like FCM token cleanup or daily seedDemo refreshes. Not yet.
+#
+# Migrations: `release` runs once on every deploy before the new `web`
+# starts taking traffic — perfect for the Postgres schema apply.
+release: node scripts/migrate.mjs
+web: node dist/server/index.js

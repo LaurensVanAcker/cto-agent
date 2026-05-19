@@ -27,7 +27,7 @@ cd ~/Documents/Repositories/cto/staffler/poc
 npm install
 ```
 
-Verwacht: fastify, @fastify/static, typescript, tsx als dependencies.
+Verwacht: fastify, typescript, tsx als dependencies.
 
 ## Stap 2: Install frontend deps (3-5 min)
 

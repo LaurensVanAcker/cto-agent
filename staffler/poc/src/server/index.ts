@@ -1,13 +1,11 @@
-// Fastify server-side proxy + statische serving voor Angular PoC.
+// Fastify proxy voor de Angular planning portal + MyStaffler PWA.
 //
-// Twee draaiende modes:
-//
-// 1. Dev: Angular draait op :4200 via `ng serve`. Browser → :4200 → proxy.conf.json
-//    forwardt /api/* naar deze Fastify op :5173. Deze server dient enkel /api/*
-//    en geen static files (er is nog niets gebouwd).
-//
-// 2. Prod-like: Angular gebouwd naar dist/frontend/browser/. Browser → :5173 →
-//    deze server dient de statische app PLUS /api/*.
+// Deze server is API-only. Sinds Option-C rollout (zie DEPLOY.md) staan
+// frontend en backend op aparte Heroku apps; de Angular SPA wordt
+// geserveerd door `staffler-poc-web` met de heroku-static-buildpack en
+// de PWA door `staffler-mystaffler`. Lokaal draai je de frontend met
+// `ng serve` op :1445 (of :4201 voor MyStaffler) met `proxy.conf.json`
+// die /api/* doorstuurt naar deze server op :5173.
 //
 // Endpoints die deze server exposed:
 //   POST /api/login             { username, password } -> { ok, profile? }
@@ -23,18 +21,11 @@
 // door Upstash KV of een echte session store. In-memory is OK voor PoC iteratie.
 
 import { fastify } from "fastify";
-import staticPlugin from "@fastify/static";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
 
 import { StafflerClient, StafflerError, gatewayFor, type StafflerEnv } from "../client/staffler-client.js";
 import type { ContractWebDto } from "../types/staffler.js";
 import { pocDb } from "../store/poc-db.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // -- bootstrap config --
 
@@ -1543,42 +1534,26 @@ app.get<{ Querystring: { employeeId?: string } }>(
   },
 );
 
-// ── static serving (alleen als Angular gebouwd is) ──────────────────────
-
-const distRoot = join(__dirname, "..", "..", "dist", "frontend", "browser");
-const distExists = existsSync(distRoot);
-if (distExists) {
-  await app.register(staticPlugin, {
-    root: distRoot,
-    prefix: "/",
-  });
-  app.log.info(`Serving Angular SPA from ${distRoot}`);
-} else {
-  app.log.warn(
-    `Angular dist not found at ${distRoot}. Run \`cd frontend && npm run build\` to enable static serving. Until then, use \`ng serve\` on :4200 with proxy.conf.json.`,
-  );
-}
-
-// Single not-found handler that covers both modes:
+// Pass-through 404 handler for /api/* endpoints we don't wrap explicitly.
 //
-//  1. `/api/*` paths we don't have a specific handler for → pass through to
-//     DPS using the user's cookie session. This keeps the frontend working
-//     against the full DPS surface (notification preferences, invitations,
-//     contract confirmation counts, etc.) without having to enumerate every
-//     endpoint in this proxy.
-//  2. Everything else: if `dist/` exists, fall back to `index.html` so the
-//     Angular router can handle deep links. Otherwise a plain 404.
+// `/api/*` paths without a specific handler → forward to DPS using the
+// user's cookie session. This keeps the frontend working against the
+// full DPS surface (notification preferences, invitations, contract
+// confirmation counts, etc.) without having to enumerate every endpoint
+// in this proxy.
 //
-// The pass-through is a safety net only — explicit handlers above (login,
-// poc-db tables, contract/employees wrappers) take priority because they
-// add cookie-session logic, validation, or PoC-DB writes that DPS doesn't
-// know about. For paths we've intentionally not wrapped (e.g. read-only
-// reference endpoints), this avoids a stream of "Route not found" 404s
-// silently breaking the frontend.
+// The pass-through is a safety net only — explicit handlers above
+// (login, poc-db tables, contract/employees wrappers) take priority
+// because they add cookie-session logic, validation, or PoC-DB writes
+// that DPS doesn't know about. For paths we've intentionally not
+// wrapped (e.g. read-only reference endpoints), this avoids a stream
+// of "Route not found" 404s silently breaking the frontend.
+//
+// Non-/api paths are a plain 404 — the SPA is served by sister Heroku
+// apps (Option C in DEPLOY.md), not by this server.
 const PASSTHROUGH_VERBS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 app.setNotFoundHandler(async (req, reply) => {
   if (!req.url.startsWith("/api")) {
-    if (distExists) return reply.sendFile("index.html");
     reply.status(404);
     return { kind: "not_found", path: req.url };
   }
