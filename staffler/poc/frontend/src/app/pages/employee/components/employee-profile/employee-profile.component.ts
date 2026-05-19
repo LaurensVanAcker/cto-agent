@@ -13,11 +13,13 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import {
   BehaviorSubject,
+  catchError,
   distinctUntilChanged,
   filter,
   finalize,
   map,
   Observable,
+  of,
   ReplaySubject,
   shareReplay,
   startWith,
@@ -40,6 +42,7 @@ import { ToastModule } from 'primeng/toast';
 
 import {
   AddressModel,
+  CompanyBaseModel,
   UserRole,
   DICTIONARY_ITEM_OPTION_LABEL,
   DICTIONARY_ITEM_OPTION_VALUE,
@@ -190,15 +193,30 @@ export class EmployeeProfileComponent implements OnInit {
     map(paramMap => paramMap.get(EmployeeRoutePathParam.EMPLOYEE_ID)),
     filter(Boolean)
   );
+  // Pilot feedback 2026-05-19: loonpakketten tab stuck on the outer
+  // progressSpinner when /api/companies/engagements failed. async-pipe
+  // surfaces the error and prevents the template's `@if (engagements$ |
+  // async; as engagements)` branch from ever resolving, so swallow into
+  // an empty array — the @empty branch then shows the
+  // "NOT_ADDED_TO_CUSTOMERS_POOL" message instead of an eternal spinner.
   readonly engagements$ = this.employeeParamId$?.pipe(
     switchMap(employeeId =>
-      this.companyApiService.getEngagements({
-        employeeId: employeeId,
-        companyId: this.hasCustomerUserRole
-          ? (this.store.selectSnapshot(RootState.getCompanyId) as string)
-          : '',
-      })
-    )
+      this.companyApiService
+        .getEngagements({
+          employeeId: employeeId,
+          companyId: this.hasCustomerUserRole
+            ? (this.store.selectSnapshot(RootState.getCompanyId) as string)
+            : '',
+        })
+        .pipe(
+          catchError(err => {
+            // eslint-disable-next-line no-console
+            console.error('[employee-profile] getEngagements failed', err);
+            return of([] as Array<CompanyBaseModel>);
+          })
+        )
+    ),
+    shareReplay(1)
   );
 
   readonly activeTab = signal(this.hasFullAccessRole ? 1 : 2);

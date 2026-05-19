@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { BehaviorSubject, Observable, filter, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, filter, finalize, of, switchMap, tap } from 'rxjs';
 
 import { PanelModule } from 'primeng/panel';
 import { ButtonModule } from 'primeng/button';
@@ -49,15 +49,31 @@ export class CompanyWagesListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Pilot feedback 2026-05-19: loonpakketten tab kept spinning forever
+    // when /api/employeewages errored (404 / 401 / upstream blip). The old
+    // `tap(() => isLoadingWages$.next(false))` only fired on the success
+    // branch, so any failure left the skeleton in place indefinitely.
+    // Use finalize() to always clear the flag and catchError() to swallow
+    // the failure into an empty-list emission so the "Geen loonpakketten"
+    // empty state shows instead of an eternal skeleton.
     this.wages$ = this.reloadWagesTrigger$.asObservable().pipe(
       tap(() => this.isLoadingWages$.next(true)),
       switchMap(() =>
-        this.employeeWageApiService.getEmployeeWages({
-          employeeId: this.employee?.id as string,
-          companyId: this.company.companyId,
-        })
+        this.employeeWageApiService
+          .getEmployeeWages({
+            employeeId: this.employee?.id as string,
+            companyId: this.company.companyId,
+          })
+          .pipe(
+            catchError(err => {
+              // Log so we still see the upstream failure in devtools.
+              // eslint-disable-next-line no-console
+              console.error('[company-wages-list] getEmployeeWages failed', err);
+              return of([] as EmployeeWageModel[]);
+            }),
+            finalize(() => this.isLoadingWages$.next(false))
+          )
       ),
-      tap(() => this.isLoadingWages$.next(false)),
       tap(wages => {
         const openedWageId = this.route.snapshot.queryParamMap.get(
           EmployeeProfileQueryParamEnum.OPENED_WAGE_ID
