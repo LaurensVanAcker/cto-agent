@@ -5,6 +5,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  effect,
   inject,
   signal,
   ViewChild,
@@ -515,6 +516,42 @@ export class PlanningPocComponent implements AfterViewInit {
     if (z === 'day') return anchor.plus({ days: 1 }).toJSDate();
     if (z === '2weeks') return anchor.plus({ days: 14 }).toJSDate();
     return anchor.plus({ days: 7 }).toJSDate();
+  });
+
+  /**
+   * Item 3 (re-fix, pilot feedback 2026-05-19): the `eventLayout` and
+   * `barMargin` props were set in the schedulerConfig computed but NEVER
+   * bound to the <bryntum-scheduler> template, AND Bryntum only honours
+   * `eventLayout` at construction time — switching viewPreset after
+   * the instance is up doesn't re-apply it. Net result: dropping a new
+   * contract on a day-view row that already had one landed exactly on
+   * top of the existing bar (Bryntum's default `pack` lane shrinks
+   * overlaps into one lane).
+   *
+   * Fix: re-assert `eventLayout = 'stack'` and `barMargin = 6` on the
+   * live Bryntum instance every time the zoom changes (Dag/Week/2 weken),
+   * which forces Bryntum to recompute lanes for the new viewPreset.
+   * The effect also fires once on first paint via the initial signal
+   * read, so we don't need an explicit kick from ngAfterViewInit.
+   */
+  private readonly forceStackLayoutEffect = effect(() => {
+    // Track zoom so the effect re-runs on every Dag/Week/2-weken switch.
+    this.zoom();
+    const scheduler = this.schedulerComponent?.instance as
+      | (Scheduler & { eventLayout?: string; barMargin?: number })
+      | undefined;
+    if (!scheduler) return;
+    try {
+      scheduler.eventLayout = 'stack';
+      scheduler.barMargin = 6;
+      // Bryntum needs a refresh to recompute lanes after the layout
+      // changes — without this the previous lane geometry sticks.
+      (scheduler as unknown as { refreshWithTransition?: () => void })
+        .refreshWithTransition?.();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[planning-poc] forceStackLayout failed', err);
+    }
   });
 
   ngAfterViewInit(): void {

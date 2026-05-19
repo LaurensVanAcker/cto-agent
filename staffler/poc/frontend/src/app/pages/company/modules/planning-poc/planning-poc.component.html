@@ -122,6 +122,8 @@
     [mode]="schedulerConfig().mode ?? 'horizontal'"
     [weekStartDay]="schedulerConfig().weekStartDay!"
     [allowOverlap]="schedulerConfig().allowOverlap!"
+    [eventLayout]="$any(schedulerConfig()).eventLayout ?? 'stack'"
+    [barMargin]="$any(schedulerConfig()).barMargin ?? 6"
     [fillTicks]="schedulerConfig().fillTicks!"
     [timeRanges]="schedulerConfig().timeRanges!"
     [createEventOnDblClick]="false"
