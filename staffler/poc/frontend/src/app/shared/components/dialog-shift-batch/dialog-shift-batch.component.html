@@ -25,21 +25,42 @@
 
   <section class="m09-body">
     <!--
+      Pilot 2026-05-19 rule (c) — flex bestaande assignment: show a
+      read-only chip when we're inside the 8h lock window so the operator
+      knows why every field is greyed out.
+    -->
+    @if (isExistingFlexLocked()) {
+      <div class="m09-edit-lock-chip" role="status">
+        <span class="dps-icon dps-icon-info"></span>
+        <small>Bewerken niet meer mogelijk binnen 8u voor start.</small>
+      </div>
+    }
+
+    <!--
       Service location + Datum on one row to save vertical real-estate
       (pilot feedback 2026-05-18). When the service-location is fixed by
       the caller the date input expands to fill the full row.
+
+      Pilot 2026-05-19 rule (c) — existing flex assignment: service-
+      location stays editable outside the 8h window (filtered to the
+      same vestiging via `serviceLocationOptionsFiltered`), and goes
+      read-only inside the window. Datum is ALWAYS read-only.
     -->
     <div class="m09-row-2col">
-      @if (!config.data?.serviceLocationId && serviceLocationOptions().length > 1) {
+      @if (
+        (!config.data?.serviceLocationId && serviceLocationOptions().length > 1)
+        || isExistingFlexAssignedEdit
+      ) {
         <div class="m09-field m09-field-grid">
           <label class="m09-field-label">Service location</label>
           <p-select
-            [options]="serviceLocationOptions()"
+            [options]="serviceLocationOptionsFiltered()"
             [(ngModel)]="form.serviceLocationId"
             optionLabel="label"
             optionValue="value"
             placeholder="Kies service location"
             appendTo="body"
+            [disabled]="isExistingFlexLocked()"
           />
         </div>
       }
@@ -52,9 +73,14 @@
             type="date"
             [(ngModel)]="form.dateFrom"
             (ngModelChange)="onDateFromChange($event)"
+            [disabled]="isExistingFlexAssignedEdit"
           />
           <span class="m09-arrow">›</span>
-          <input type="date" [(ngModel)]="form.dateTo" />
+          <input
+            type="date"
+            [(ngModel)]="form.dateTo"
+            [disabled]="isExistingFlexAssignedEdit"
+          />
         </div>
       </div>
     </div>
@@ -63,44 +89,53 @@
     <div class="m09-shift-card">
       <div class="m09-day-title">{{ dayTitle() }}</div>
 
-      <div class="m09-toggle-2">
-        <button
-          type="button"
-          [class.active]="hoursMode() === 'template'"
-          (click)="hoursMode.set('template')"
-        >
-          Bestaande shift gebruiken
-        </button>
-        <button
-          type="button"
-          [class.active]="hoursMode() === 'custom'"
-          (click)="hoursMode.set('custom')"
-        >
-          Nieuwe uren ingeven
-        </button>
-      </div>
-
-      @if (hoursMode() === 'template') {
-        <!--
-          Existing-shift template selector. Picking a preset rewires
-          fromTime / toTime / pauseFrom / pauseTo to the template's values,
-          matching the production "Bestaande shift gebruiken" pattern.
-        -->
-        <div class="m09-template-row">
-          <p-select
-            class="flex-1"
-            [options]="shiftTemplateOptions"
-            [ngModel]="shiftTemplateId()"
-            (ngModelChange)="applyShiftTemplate($event)"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Kies een bestaande shift"
-            appendTo="body"
-          />
-          <button type="button" class="m09-square-btn" (click)="hoursMode.set('custom')">
-            <span class="dps-icon dps-icon-edit"></span>
+      <!--
+        Pilot 2026-05-19 rule (c): the "Bestaande shift gebruiken /
+        Nieuwe uren ingeven" toggle implies replacing the template for
+        the assignment — out of scope for a bestaand flex contract, so
+        we hide it entirely in that case. Werkuren stay editable
+        directly via the inputs below (until 8h before start).
+      -->
+      @if (!isExistingFlexAssignedEdit) {
+        <div class="m09-toggle-2">
+          <button
+            type="button"
+            [class.active]="hoursMode() === 'template'"
+            (click)="hoursMode.set('template')"
+          >
+            Bestaande shift gebruiken
+          </button>
+          <button
+            type="button"
+            [class.active]="hoursMode() === 'custom'"
+            (click)="hoursMode.set('custom')"
+          >
+            Nieuwe uren ingeven
           </button>
         </div>
+
+        @if (hoursMode() === 'template') {
+          <!--
+            Existing-shift template selector. Picking a preset rewires
+            fromTime / toTime / pauseFrom / pauseTo to the template's values,
+            matching the production "Bestaande shift gebruiken" pattern.
+          -->
+          <div class="m09-template-row">
+            <p-select
+              class="flex-1"
+              [options]="shiftTemplateOptions"
+              [ngModel]="shiftTemplateId()"
+              (ngModelChange)="applyShiftTemplate($event)"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Kies een bestaande shift"
+              appendTo="body"
+            />
+            <button type="button" class="m09-square-btn" (click)="hoursMode.set('custom')">
+              <span class="dps-icon dps-icon-edit"></span>
+            </button>
+          </div>
+        }
       }
 
       <div class="m09-time-row">
@@ -111,16 +146,32 @@
 
         <div class="m09-row-label">Werkuren</div>
         <div class="m09-time-pair">
-          <input type="time" [(ngModel)]="form.fromTime" />
+          <input
+            type="time"
+            [(ngModel)]="form.fromTime"
+            [disabled]="isExistingFlexLocked()"
+          />
           <span class="m09-arr">›</span>
-          <input type="time" [(ngModel)]="form.toTime" />
+          <input
+            type="time"
+            [(ngModel)]="form.toTime"
+            [disabled]="isExistingFlexLocked()"
+          />
         </div>
 
         <div class="m09-row-label">Pauze</div>
         <div class="m09-time-pair">
-          <input type="time" [(ngModel)]="form.pauseFrom" />
+          <input
+            type="time"
+            [(ngModel)]="form.pauseFrom"
+            [disabled]="isExistingFlexLocked()"
+          />
           <span class="m09-arr">›</span>
-          <input type="time" [(ngModel)]="form.pauseTo" />
+          <input
+            type="time"
+            [(ngModel)]="form.pauseTo"
+            [disabled]="isExistingFlexLocked()"
+          />
         </div>
       </div>
     </div>
@@ -274,6 +325,13 @@
               <div class="m09-pakket-label">
                 Loonpakket voor {{ firstName(slot.employeeName) }}
               </div>
+              <!--
+                Pilot 2026-05-19 rule (c): loonpakket is part of the
+                "naam / loonpakket / datum / datumrange / vestiging
+                blijft read-only" set for bestaande flex assignments,
+                so disable the select whenever we're in that flow
+                (both inside AND outside the 8h window).
+              -->
               <p-select
                 class="m09-pakket-select-pn"
                 [options]="loonpakketOptions()"
@@ -283,6 +341,7 @@
                 optionValue="value"
                 placeholder="Kies een loonpakket"
                 appendTo="body"
+                [disabled]="isExistingFlexAssignedEdit"
               />
               <!--
                 Inline loonpakket-mismatch banner per mockup 09 column 3.

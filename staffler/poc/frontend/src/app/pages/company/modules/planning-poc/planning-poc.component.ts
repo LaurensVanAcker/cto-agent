@@ -148,7 +148,13 @@ interface PocEvent {
   styleUrl: './planning-poc.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex flex-auto flex-column overflow-hidden p-3 gap-3',
+    // Pilot feedback 2026-05-19: align page-header (Galana nv chip)
+    // pixel-perfect with /pool, /user-accounts, /actuals. The legacy
+    // `p-3 gap-3` here pushed `<dps-page-header>` 16px down/right of
+    // where it sits on the other 3 routes, so the chip + subtitle
+    // "danced" between menu items. Padding + gap now live on the
+    // inner `<main>` wrapper (same pattern as /actuals).
+    class: 'flex flex-auto flex-column overflow-hidden',
     '(click)': 'hostClickHandler($event)',
   },
 })
@@ -621,7 +627,82 @@ export class PlanningPocComponent implements AfterViewInit {
       on('presetChange', () => {
         this.syncSchedulerStores(this.resources(), this.events());
       });
+      // Pilot 2026-05-19 rule (c) — flexibele medewerker: shift mag wel
+      // verplaatst worden naar een andere service-locatie BINNEN dezelfde
+      // vestiging, maar niet naar een andere vestiging. We veto Bryntum's
+      // drag-drop via `beforeEventDrop` (returning false snaps the event
+      // back to its origin row). Open shifts (rule b) and vaste
+      // medewerkers (rule a) are unrestricted; only flex assignments
+      // (kind=contract or assigned-shift block) get the same-vestiging
+      // guard.
+      on('beforeEventDrop', (ev: unknown) =>
+        this.handleBeforeEventDrop(
+          ev as { eventRecords: EventModel[]; newResource?: ResourceModel },
+        ),
+      );
     });
+  }
+
+  /**
+   * Drag-drop guard — rejects flex-employee shift drops onto another
+   * vestiging. The same-branch detection works off the `branchId` field
+   * we already bake into Locaties-view resources (see PocResource +
+   * buildLocatiesResources). Names view rows have no branchId, so the
+   * guard is a no-op there (drags between employees are legitimate
+   * re-assignments, not handled by this rule).
+   *
+   * Returning `false` from a Bryntum listener cancels the in-flight
+   * drop — the event snaps back to its origin row and a toast tells
+   * the operator why. We use a soft return (rather than patching
+   * context.valid) because the listener API is stable across Bryntum
+   * minor versions and doesn't depend on internal flags.
+   */
+  private handleBeforeEventDrop(ev: {
+    eventRecords: EventModel[];
+    newResource?: ResourceModel;
+  }): boolean {
+    const records = ev.eventRecords ?? [];
+    const target = ev.newResource;
+    if (!target || records.length === 0) return true;
+    const targetBranchId =
+      (target.getData('branchId') as string | undefined) ?? '';
+    // No target branchId → Names view, orphan SL, or branch header row
+    // (the latter is dropped by beforeEventEdit anyway). Nothing to
+    // enforce here.
+    if (!targetBranchId) return true;
+    const scheduler = this.schedulerComponent?.instance as Scheduler | undefined;
+    for (const rec of records) {
+      const kind = rec.getData('kind') as PocEvent['kind'] | undefined;
+      // Permanent (vaste medewerker) — rule (a): always allowed.
+      if (kind === 'permanent') continue;
+      const eventId = String((rec as { id?: unknown }).id ?? '');
+      const isOpenShift = eventId.endsWith(':open');
+      // Open-shift branch — rule (b): always allowed.
+      if (kind === 'shift' && isOpenShift) continue;
+      // Flex assignment (kind=contract or assigned-shift block) — rule
+      // (c): same-vestiging only. Look up the origin row's branchId via
+      // the event's current resourceId.
+      const originResourceId = String(rec.getData('resourceId') ?? '');
+      const originResource = (
+        scheduler?.resourceStore as
+          | { getById?: (id: string) => ResourceModel | undefined }
+          | undefined
+      )?.getById?.(originResourceId);
+      const originBranchId =
+        (originResource?.getData?.('branchId') as string | undefined) ?? '';
+      if (originBranchId && originBranchId !== targetBranchId) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Verplaatsen geblokkeerd',
+          detail:
+            'Verplaatsen naar een andere vestiging is niet toegestaan voor ' +
+            'flexibele contracten.',
+          life: 4000,
+        });
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -698,6 +779,23 @@ export class PlanningPocComponent implements AfterViewInit {
     const shift = eventRecord.getData('raw') as ShiftModel | undefined;
     const company = this.store.selectSnapshot(RootState.getCompanyData);
     if (!shift || !company) return;
+    // Split-branch hint from the event id. buildEvents emits one event per
+    // assigned target (`shift:<id>:assigned:<empId>`) and one for the
+    // remaining open seats (`shift:<id>:open`), so the click already
+    // pinpoints which branch the operator wants to edit. Threading that
+    // down to the dialog lets us apply pilot 2026-05-19 rule (c) — when
+    // the clicked block is an assigned flex employee, the dialog opens
+    // in focused mode and locks every field outside the bestaande-edit
+    // exceptions.
+    const eventId = String((eventRecord as { id?: unknown }).id ?? '');
+    let focusedEmployeeId: string | undefined;
+    let slotFilter: 'open' | 'all' | undefined;
+    const m = eventId.match(/^shift:[^:]+:assigned:(.+)$/);
+    if (m) {
+      focusedEmployeeId = m[1];
+    } else if (eventId.endsWith(':open')) {
+      slotFilter = 'open';
+    }
     const ref = this.dialogService.open(DialogShiftBatchComponent, {
       showHeader: false,
       width: '38rem',
@@ -706,7 +804,13 @@ export class PlanningPocComponent implements AfterViewInit {
       focusOnShow: false,
       // Editing an existing shift: the underlying record may have
       // capacity > 1, so we open in multi-slot mode regardless of view.
-      data: { companyId: company.id, existingShift: shift, mode: 'multi' as const },
+      data: {
+        companyId: company.id,
+        existingShift: shift,
+        mode: 'multi' as const,
+        focusedEmployeeId,
+        slotFilter,
+      },
     });
     ref.onClose.subscribe(result => {
       if (result?.kind === 'shift.batch.published') {

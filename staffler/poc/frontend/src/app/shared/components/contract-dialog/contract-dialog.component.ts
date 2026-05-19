@@ -841,10 +841,17 @@ export class ContractDialogComponent implements OnInit {
    * mode regardless of role, so even an admin reading the dialog sees
    * the same restricted shape the pilot operators see.
    *
-   * Rules:
-   *   - wage / position / statute / paritairComite / employmentAddress
-   *     and every other top-level form control → disabled
-   *   - datesRangeControl → disabled
+   * Rules (pilot 2026-05-19 — flexibele medewerker bestaand contract):
+   *   - wage / position / statute / paritairComite and every other
+   *     top-level form control → always disabled
+   *   - datesRangeControl → always disabled
+   *   - employmentAddress (service-locatie) → editable ONLY when we are
+   *     OUTSIDE the HOURS_BEFORE_CONTRACT_EDIT_LOCK window. Spec: a flex
+   *     employee's shift may still be verplaatst naar een andere service-
+   *     locatie WITHIN the same vestiging tot 8u voor start. The
+   *     "same vestiging" half is enforced at the planning grid drag-drop
+   *     level (other-branch drops are rejected); here we only gate by
+   *     the time window.
    *   - per-day fromTime / toTime → enabled ONLY when now is more than
    *     HOURS_BEFORE_CONTRACT_EDIT_LOCK hours before the contract starts;
    *     pauze + shift name + date stay disabled
@@ -875,6 +882,15 @@ export class ContractDialogComponent implements OnInit {
     const locked =
       hoursUntilStart < ContractDialogComponent.HOURS_BEFORE_CONTRACT_EDIT_LOCK;
     this.isContractEditLocked.set(locked);
+
+    // Outside the 8h window: re-enable employmentAddress so the operator
+    // can still move the shift to another service-locatie. The same-
+    // vestiging constraint is enforced upstream by the planning grid
+    // drag-drop guard, so the dialog itself doesn't need to filter
+    // address options.
+    if (!locked) {
+      this.form.controls.employmentAddress.enable({ emitEvent: false });
+    }
 
     // For each schedule day: disable everything, then conditionally
     // re-enable from/to time. We don't use disablePassedContractDatesSchedules

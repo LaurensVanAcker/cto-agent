@@ -329,6 +329,68 @@ export class DialogShiftBatchComponent {
    */
   protected readonly isSplitBranchEdit = this.isEdit && !!this.focusedEmployeeId;
 
+  /**
+   * Pilot 2026-05-19 spec — rule (c) flexibele medewerker bestaand contract:
+   *
+   * When the operator opens an existing shift on a single assigned employee
+   * (split-branch edit with `focusedEmployeeId` set), only werkuren +
+   * service-locatie are editable, and only until 8h before the shift starts.
+   * Naam / datum / datumrange / loonpakket / vestiging are ALWAYS read-only;
+   * remove-slot affordances stay hidden. Within the 8h window even the
+   * uren go read-only and a chip explains why.
+   *
+   * Pure assigned-employee branches map to flex employees in the PoC-DB
+   * — vaste medewerkers go through DialogVastBlockComponent (separate
+   * dialog), open shifts use slotFilter='open' (rule b, fully editable).
+   * So `isSplitBranchEdit` is a sufficient signal for "rule c applies".
+   */
+  protected readonly isExistingFlexAssignedEdit = this.isSplitBranchEdit;
+
+  /** First start datetime of the existing-shift series (multi-day shifts
+   *  use date_from + from_time). Drives the 8h-before-start cutoff. */
+  private existingShiftStartDateTime(): DateTime | null {
+    const sh = this.config.data?.existingShift;
+    if (!sh) return null;
+    const dt = DateTime.fromISO(`${sh.date_from}T${sh.from_time}`);
+    return dt.isValid ? dt : null;
+  }
+
+  /** True when "now" is still more than 8h before the existing shift's
+   *  first day starts. Outside the window → werkuren + service-locatie
+   *  editable; inside → everything read-only. */
+  protected isWithinFlexEditWindow(): boolean {
+    if (!this.isExistingFlexAssignedEdit) return true;
+    const start = this.existingShiftStartDateTime();
+    if (!start) return false;
+    const hoursUntilStart = start.diff(DateTime.now()).as('hours');
+    return hoursUntilStart >= 8;
+  }
+
+  /** True when we're INSIDE the 8h lock window for an existing flex
+   *  assignment — drives the read-only chip + disables everything. */
+  protected isExistingFlexLocked(): boolean {
+    return this.isExistingFlexAssignedEdit && !this.isWithinFlexEditWindow();
+  }
+
+  /**
+   * Same-vestiging service-location options. For existing flex
+   * assignments the spec forbids moving to a different vestiging, so we
+   * filter the dropdown to only the SLs whose branch_group_id matches
+   * the original shift's SL. Outside of rule (c) we return the full set.
+   */
+  protected serviceLocationOptionsFiltered = () => {
+    const baseOpts = this.serviceLocations();
+    if (!this.isExistingFlexAssignedEdit) {
+      return baseOpts.map(s => ({ label: s.name, value: s.id }));
+    }
+    const originalSlId = this.config.data?.existingShift?.service_location_id;
+    const originalSl = baseOpts.find(s => s.id === originalSlId);
+    if (!originalSl) return baseOpts.map(s => ({ label: s.name, value: s.id }));
+    return baseOpts
+      .filter(s => s.branch_group_id === originalSl.branch_group_id)
+      .map(s => ({ label: s.name, value: s.id }));
+  };
+
   protected readonly form = {
     serviceLocationId:
       this.config.data?.existingShift?.service_location_id ??
@@ -897,6 +959,13 @@ export class DialogShiftBatchComponent {
    *  failing reason (also shown as a tooltip on the disabled confirm
    *  button so the operator knows why they can't submit). */
   protected validationError(): string | null {
+    // Rule (c): within 8h of an existing flex assignment everything is
+    // read-only — there is nothing meaningful left to submit. Surface a
+    // dedicated reason so the confirm-button tooltip explains the lock
+    // instead of complaining about a stale field.
+    if (this.isExistingFlexLocked()) {
+      return 'Bewerken niet meer mogelijk binnen 8u voor start van de shift.';
+    }
     if (!this.form.serviceLocationId) return 'Kies een service location.';
     if (!this.form.dateFrom || !this.form.dateTo) return 'Vul beide datums in.';
     if (this.form.dateTo < this.form.dateFrom) return 'Tot-datum ligt vóór Van-datum.';
