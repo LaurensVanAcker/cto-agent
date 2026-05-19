@@ -1399,3 +1399,25 @@ $smallScreenSize: 425px;
   font-size: 12px;
   color: #475569;
 }
+
+// Actuals page (prestatiebevestiging) banner uses a different driving
+// colour than planning, mirroring the upstream wlnob/dps pattern: the
+// planning page scopes .scheduler-banner to --dps-planning-primary-color
+// (indigo #3c51f0), while the actuals page renders the banner with
+// `text-primary` so it picks up the app theme primary. In this PoC the
+// PrimeNG primary is the staffler brand pink (#fc074f, see app.theme.ts).
+// Pilot feedback (item 5): "De prestatiebevestiging heeft een ander kleur
+// banner dan de planning. Ook in de originele source." Keep them distinct.
+dps-company-actuals {
+  .poc-banner {
+    border-color: #fc074f;
+    background: rgba(252, 7, 79, 0.12);
+    color: #fc074f;
+  }
+  .poc-banner-icon {
+    background: #fc074f;
+  }
+  .poc-banner-body strong {
+    color: #fc074f;
+  }
+}
