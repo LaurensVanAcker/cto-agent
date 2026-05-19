@@ -475,10 +475,16 @@ app.post<{ Body: { password?: string } }>(
       return { kind: "validation", message: validity.reason };
     }
     const client = new StafflerClient({ gateway });
+    // Cognito's RespondToAuthChallenge wants the username from the
+    // challenge response, not the email the operator typed. We stashed
+    // it on the session at login time; fall back to session.username
+    // for backwards compatibility with sessions created before
+    // BCJ-19553.
+    const upstreamUsername = session.forceResetUsername ?? session.username;
     try {
       const result = await client.employeeSetPassword({
         session: session.forceResetSession,
-        username: session.username,
+        username: upstreamUsername,
         password,
       });
       if (result.authStatus !== "SUCCESS" || !result.skey) {
@@ -492,10 +498,49 @@ app.post<{ Body: { password?: string } }>(
       // the reset-session token.
       session.skey = result.skey;
       session.forceResetSession = undefined;
+      session.forceResetUsername = undefined;
       clearLoginFailures(session.username);
       return { authStatus: "SUCCESS" };
     } catch (err) {
       const e = asResponse(err);
+      // Cognito's challenge session is single-use; once any call fails
+      // (wrong username echo, password = temp password, expired challenge)
+      // the session is burned and the only recovery is to re-login. The
+      // upstream returns a flavourless `INTERNAL_SERVER_ERROR` for most of
+      // these — surface that as a 400 with a clear actionable message + the
+      // traceId so the pilot owner can escalate, and clear the dead
+      // forceResetSession so the next attempt forces a fresh login instead
+      // of looping on the same 500.
+      const upstreamBody = e.body as
+        | { kind?: string; traceId?: string | null; errors?: unknown }
+        | undefined;
+      const isFlavourlessUpstream500 =
+        e.status === 500 &&
+        upstreamBody?.kind === "business" &&
+        Array.isArray(upstreamBody?.errors) &&
+        (upstreamBody.errors as Array<{ code?: string }>).some(
+          (x) => x?.code === "INTERNAL_SERVER_ERROR",
+        );
+      if (isFlavourlessUpstream500) {
+        console.warn(
+          `[auth] employee-set-password upstream 500 for "${session.username}" ` +
+            `(challenge session is burned). traceId=${upstreamBody?.traceId}. ` +
+            `Most common cause: new password === temp password, expired challenge, ` +
+            `or Cognito alias-vs-email mismatch. The user must log in again.`,
+        );
+        session.forceResetSession = undefined;
+        session.forceResetUsername = undefined;
+        reply.status(400);
+        return {
+          kind: "challenge_expired",
+          traceId: upstreamBody?.traceId,
+          message:
+            "Het nieuwe wachtwoord kon niet ingesteld worden. " +
+            "Mogelijk gebruik je hetzelfde wachtwoord als in de uitnodigingsmail, " +
+            "of is de sessie verlopen. Log opnieuw in en kies een ander wachtwoord. " +
+            (upstreamBody?.traceId ? `(trace ${upstreamBody.traceId})` : ""),
+        };
+      }
       reply.status(e.status);
       return e.body;
     }
