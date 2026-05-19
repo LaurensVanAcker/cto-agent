@@ -56,8 +56,17 @@
         color: var(--p-text-color);
       }
     }
+  }
 
-    &-0 .b-sch-header-timeaxis-cell {
+  // Pilot feedback 2026-05-18 (item 6): the planning-poc and actuals
+  // schedulers ship a single-row header (day-only) — the legacy week-level
+  // row -0 was stripped. The old `:first-child`-style rule below used to
+  // paint the weeknumber row big + right-aligned; without the gate it now
+  // hits the day row, blowing up the weekday names. Scope it to scheduler
+  // instances that still render the two-row header (row -1 present), so
+  // single-row views keep Bryntum's default centered weekday styling.
+  .b-grid-header-container:has(.b-sch-header-row-1) {
+    .b-sch-header-row-0 .b-sch-header-timeaxis-cell {
       font-size: 1.5rem;
       justify-content: end;
       font-weight: normal;
