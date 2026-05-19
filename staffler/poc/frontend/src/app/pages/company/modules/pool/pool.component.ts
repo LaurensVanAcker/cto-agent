@@ -62,6 +62,7 @@ import {
   AssignGroupsDialogData,
 } from '@dps/shared/components';
 import { DialogAddPermanentEmployeeComponent } from '@dps/shared/components/dialog-add-permanent-employee/dialog-add-permanent-employee.component';
+import { PageHeaderComponent } from '@dps/shared/components';
 
 type StatusFilter = 'all' | EmployeeMyStafflerStatus;
 
@@ -120,6 +121,7 @@ interface PoolRow {
     Popover,
     PaginatorModule,
     ConfirmDialogModule,
+    PageHeaderComponent,
   ],
   providers: [MessageService, DialogService, ConfirmationService],
   templateUrl: './pool.component.html',

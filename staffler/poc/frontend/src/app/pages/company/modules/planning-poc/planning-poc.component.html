@@ -1,6 +1,15 @@
-<header class="flex align-items-center gap-3 flex-wrap">
-  <h1 class="text-2xl font-semibold m-0">Planning</h1>
+<!--
+  Pilot feedback 2026-05-19: align planning chrome with accounts/actuals.
+  Page title moves into the shared <dps-page-header> chip (indigo title
+  + company subtitle, auto-resolved icon via COMPANY_ROUTES_ICONS_MAP).
+  Replaces the previous inline `<h1 class="text-2xl ...">Planning</h1>`
+  per user feedback "Change those, so it's the same as in accounts and
+  actuals/prestatiebevestiging". The 948695d revert to text-2xl is now
+  superseded — user explicitly wants the chip header here.
+-->
+<dps-page-header title="Planning" [subtitle]="company()?.name"></dps-page-header>
 
+<div class="flex align-items-center gap-3 flex-wrap">
   <p-selectButton
     class="planning-segment"
     [options]="viewOptions"
@@ -68,7 +77,7 @@
   <button type="button" class="planning-today" (click)="today()">
     Vandaag
   </button>
-</header>
+</div>
 
 <p-toast position="bottom-right" />
 

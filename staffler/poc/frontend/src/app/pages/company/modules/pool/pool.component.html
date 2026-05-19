@@ -1,10 +1,14 @@
-<header class="flex flex-column gap-2 px-3 pt-3">
-  <h1 class="text-2xl font-semibold m-0">Pool</h1>
-  <p class="text-color-secondary m-0">
-    Beheer je pool van medewerkers. Nodig medewerkers uit op MyStaffler en
-    wijs vestigingen toe.
-  </p>
-</header>
+<!--
+  Pilot feedback 2026-05-19: align pool chrome with accounts/actuals.
+  Page title moves into the shared <dps-page-header> chip (indigo title +
+  company subtitle, auto-resolved icon via COMPANY_ROUTES_ICONS_MAP).
+  Replaces the previous inline `<h1 class="text-2xl ...">Pool</h1>` +
+  description paragraph per user feedback "Change those, so it's the
+  same as in accounts and actuals/prestatiebevestiging". The descriptive
+  copy is dropped — accounts/actuals show no subtitle text beneath the
+  header chip either.
+-->
+<dps-page-header title="Pool" [subtitle]="company()?.name"></dps-page-header>
 
 <main class="flex flex-column px-3 pt-3 flex-1 overflow-y-auto gap-3">
   <!--

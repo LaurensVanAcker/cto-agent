@@ -30,6 +30,7 @@ import { MenuItem, MessageService } from 'primeng/api';
 
 import { RootState } from '@dps/core/store';
 import { EmployeeApiService, ContractApiService } from '@dps/core/api';
+import { PageHeaderComponent } from '@dps/shared/components';
 import { ContractListModel, EmployeeModel } from '@dps/shared/models';
 import { mapContractToSchedulerEvent } from '@dps/shared/functions';
 import { GENERAL_SCHEDULER_CONFIG, TODAY_TIME_RANGE_ID } from '@dps/shared/configs';
@@ -140,6 +141,7 @@ interface PocEvent {
     TooltipModule,
     ToastModule,
     MenuModule,
+    PageHeaderComponent,
   ],
   providers: [DialogService, MessageService],
   templateUrl: './planning-poc.component.html',
@@ -197,6 +199,12 @@ export class PlanningPocComponent implements AfterViewInit {
   );
   protected readonly resources = signal<PocResource[]>([]);
   protected readonly events = signal<PocEvent[]>([]);
+  /**
+   * Active company — fed to <dps-page-header [subtitle]> so the planning
+   * page chrome matches accounts/actuals (indigo title chip + tenant
+   * subtitle). Mirrors pool.component's `company` selectSignal.
+   */
+  protected readonly company = this.store.selectSignal(RootState.getCompanyData);
   /**
    * Per-resource background time ranges — used to paint availability
    * hour-blocks BEHIND contracts/shifts in the Medewerkers view. Bryntum
