@@ -123,6 +123,7 @@ export class UserAccountsComponent implements OnInit {
       map(activeUserAccount => [
         {
           label: 'COMPANY_USER_ACCOUNTS.ASSIGN_GROUPS',
+          icon: 'dps-icon dps-icon-building',
           visible:
             this.isCompanyGroupsEnabled() &&
             activeUserAccount.role === UserRole.GROUP_USER &&
@@ -137,6 +138,7 @@ export class UserAccountsComponent implements OnInit {
         },
         {
           label: 'COMPANY_USER_ACCOUNTS.USER_ACCOUNT_MENU.EXPAND_ACCESS_RIGHTS',
+          icon: 'dps-icon dps-icon-key',
           visible: this.isCompanyGroupsEnabled() && activeUserAccount.role === UserRole.GROUP_USER,
           command: () => this.updateUserAccountAccessRole(activeUserAccount),
         },
@@ -153,6 +155,7 @@ export class UserAccountsComponent implements OnInit {
         },
         {
           label: 'COMPANY_USER_ACCOUNTS.USER_ACCOUNT_MENU.REMOVE_ACCOUNT',
+          icon: 'dps-icon dps-icon-delete',
           command: () => this.removeUser(activeUserAccount),
           itemContentClass: 'text-red-500',
         },

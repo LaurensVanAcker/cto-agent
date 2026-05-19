@@ -142,7 +142,13 @@
 
 <p-menu #userAccountMenu [model]="(activeUserAccountMenuItems$ | async) || []" [popup]="true">
   <ng-template pTemplate="item" let-item>
-    <span class="flex cursor-pointer px-3 py-2" [ngClass]="item.itemContentClass">
+    <span
+      class="flex align-items-center gap-2 cursor-pointer px-3 py-2"
+      [ngClass]="item.itemContentClass"
+    >
+      @if (item.icon) {
+        <span [class]="item.icon"></span>
+      }
       {{ item.label | translate }}
     </span>
   </ng-template>
