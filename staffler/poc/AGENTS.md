@@ -70,7 +70,6 @@ poc/
 ├── package.json               backend deps (fastify, tsx)
 ├── tsconfig.json
 ├── .env.example               STAFFLER_ENV, STAFFLER_GATEWAY_*, STAFFLER_USERNAME, STAFFLER_PASSWORD
-├── public/                    legacy HTML UI, mag weg na Angular setup
 ├── src/                       Fastify backend
 │   ├── server/index.ts        routes, session, CORS (API-only; SPA → sister Heroku app)
 │   ├── client/staffler-client.ts  typed wrapper rond Staffler API
@@ -176,7 +175,7 @@ Zie ook `frontend/AGENTS.md` voor de gedetailleerde reuse-tabel.
 | Symptoom | Oorzaak / fix |
 |---|---|
 | `EADDRINUSE :::5173` | Andere proces gebruikt de port. Kill of zet `PORT=5174` in .env. |
-| CORS error in browser console | Origin staat niet in `allowedDevOrigins`. Default is `http://localhost:4200`, override met env var `DEV_ORIGINS`. |
+| CORS error in browser console | Origin staat niet in `allowedDevOrigins`. Default is `http://localhost:1445,http://localhost:4201`, override met env var `DEV_ORIGINS`. |
 | Cookie wordt niet meegestuurd | HttpClient call mist `withCredentials: true`. Onze AuthInterceptor zet die voor `/api/*`, maar dubbelcheck als je een externe call doet. |
 | `401 Unauthorized` ondanks ingelogd | Skey is expired of DynamoDB session wist row. Login opnieuw. |
 | `Verkeerde username of password` | Credentials kloppen niet, of Staffler QA pool kent dit account niet. |

@@ -3,9 +3,8 @@
 PoC bovenop de Staffler / dps-service backend. Server-side proxy in Fastify,
 Angular 19 frontend gekloond van `wlnob/dps` en bijgewerkt voor de PoC-scope.
 
-Voor de pilot draaien drie klanten echte planning hierop. Lees `PLAN.md` voor
-het volledige product-plan en `CONCLUSIONS.md` voor de architecturele
-keuzes.
+Voor de pilot draaien drie klanten echte planning hierop. Lees `PLAN.md`
+voor het volledige product-plan en `DEPLOY.md` voor de Heroku-rollout.
 
 ## Wat is werkend
 

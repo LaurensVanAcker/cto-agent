@@ -34,11 +34,12 @@ const port = parseInt(process.env.PORT ?? "5173");
 const gateway =
   process.env[`STAFFLER_GATEWAY_${env.toUpperCase()}`] ?? gatewayFor(env);
 
-// Tijdens dev draait Angular op :4200 met `ng serve` en proxy.conf.json,
-// dus we hoeven geen extra CORS toe te staan. De MyStaffler-PoC (mobile,
-// employee-side) draait standaard op :4201 met eigen serve.mjs en talkt
-// rechtstreeks naar :5173 — daarom staat die origin er standaard bij.
-const allowedDevOrigins = (process.env.DEV_ORIGINS ?? "http://localhost:4200,http://localhost:4201")
+// Tijdens dev draait de planning portal op :1445 met `ng serve` en
+// proxy.conf.json, dus we hoeven daar geen extra CORS toe te staan
+// (alles is same-origin via de Angular dev-proxy). De MyStaffler-PoC
+// (employee-side) draait standaard op :4201 met eigen serve.mjs en
+// praat rechtstreeks naar :5173 — daarom staat die origin er bij.
+const allowedDevOrigins = (process.env.DEV_ORIGINS ?? "http://localhost:1445,http://localhost:4201")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -1587,5 +1588,5 @@ await app.listen({ port, host: "0.0.0.0" });
 console.log(`Staffler PoC backend listening on http://localhost:${port}`);
 console.log(`Gateway: ${gateway}`);
 console.log(`Env: ${env}`);
-console.log(`Dev: run \`cd frontend && npm install && npm run start\` (port 4200)`);
-console.log(`Prod-like: run \`cd frontend && npm run build\` then refresh this server`);
+console.log(`Frontend: \`cd frontend && npm run start\` → http://localhost:1445`);
+console.log(`MyStaffler PWA: \`cd mystaffler-poc && npm run dev\` → http://localhost:4201`);

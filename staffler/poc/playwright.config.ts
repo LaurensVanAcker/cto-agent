@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Setup:
  *   1. From `poc/`:  `npm install --save-dev @playwright/test`
  *   2. Then:          `npx playwright install --with-deps`  (browsers)
- *   3. Run all:       `npm run e2e`        (assumes dev:all is up on :4200 / :5174)
+ *   3. Run all:       `npm run e2e`        (assumes dev:all is up on :1445 / :4201)
  *   4. Or in CI:      `npm run e2e:ci`     (boots dev:all itself via webServer)
  *
  * Auth strategy:
@@ -53,7 +53,7 @@ export default defineConfig({
       testMatch: /_setup\/.*\.setup\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.COMPANY_PORTAL_URL ?? 'http://localhost:4200',
+        baseURL: process.env.COMPANY_PORTAL_URL ?? 'http://localhost:1445',
         headless: false,
       },
     },
@@ -63,7 +63,7 @@ export default defineConfig({
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.COMPANY_PORTAL_URL ?? 'http://localhost:4200',
+        baseURL: process.env.COMPANY_PORTAL_URL ?? 'http://localhost:1445',
         storageState: AUTH_STATE,
       },
     },
@@ -72,7 +72,7 @@ export default defineConfig({
       testMatch: /mystaffler-poc\/.+\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.MYSTAFFLER_POC_URL ?? 'http://localhost:5174',
+        baseURL: process.env.MYSTAFFLER_POC_URL ?? 'http://localhost:4201',
       },
     },
   ],
@@ -82,7 +82,7 @@ export default defineConfig({
   webServer: process.env.CI
     ? {
         command: 'npm run dev:all',
-        url: 'http://localhost:4200',
+        url: 'http://localhost:1445',
         reuseExistingServer: false,
         timeout: 120_000,
       }

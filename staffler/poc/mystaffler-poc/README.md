@@ -58,7 +58,7 @@ npm run dev           # listens on :5173
 # Terminal 2 — Company-side planning grid
 cd staffler/poc/frontend
 npm install
-npm start             # listens on :4200, proxies /api → :5173
+npm start             # listens on :1445, proxies /api → :5173
 
 # Terminal 3 — MyStaffler employee PoC
 cd staffler/poc/mystaffler-poc

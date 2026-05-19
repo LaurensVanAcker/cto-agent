@@ -5,7 +5,7 @@ the expected outcome, and the file/line where the wiring lives — so when a
 step fails you can jump straight to the source.
 
 Stand up locally: backend on `:5173` (`npm run dev` in `staffler/poc`),
-frontend on `:4200` (`npm start` in `staffler/poc/frontend`). Then log in
+frontend on `:1445` (`npm start` in `staffler/poc/frontend`). Then log in
 with the DPS QA account (`STAFFLER_USERNAME` / `STAFFLER_PASSWORD`).
 
 Legend:

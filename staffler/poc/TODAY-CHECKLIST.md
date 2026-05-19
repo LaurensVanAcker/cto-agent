@@ -56,7 +56,8 @@ Verwacht output:
 Staffler PoC backend listening on http://localhost:5173
 Gateway: https://gw.qa.dps.boemm.eu
 Env: qa
-Dev: run `cd frontend && npm install && npm run start` (port 4200)
+Frontend: `cd frontend && npm run start` → http://localhost:1445
+MyStaffler PWA: `cd mystaffler-poc && npm run dev` → http://localhost:4201
 ```
 
 Laat dit terminal-venster draaien. De backend doet hot-reload bij elke save.
@@ -72,11 +73,11 @@ npm run start
 
 Verwacht output:
 ```
-** Angular Live Development Server is listening on localhost:4200 **
+** Angular Live Development Server is listening on localhost:1445 **
 ✔ Compiled successfully.
 ```
 
-Open `http://localhost:4200` in je browser.
+Open `http://localhost:1445` in je browser.
 
 Je ziet de login pagina van de PoC. Skeleton-Angular zonder data.
 
@@ -92,7 +93,7 @@ Verwacht:
 Mogelijke fouten:
 - `Verkeerde username of password` → check je credentials
 - `Geen connectie met server` → Fastify backend draait niet. Check terminal 1.
-- CORS error in console → check dat allowedDevOrigins `http://localhost:4200` bevat (default OK)
+- CORS error in console → check dat allowedDevOrigins `http://localhost:1445` bevat (default OK)
 - Browser blijft op /login na correcte credentials → check Fastify logs voor errors
 
 ## Stap 6: Employees en contracten zien (5 min)
@@ -222,7 +223,7 @@ Foutmeldingen die ik anticipeer:
 | `Cannot find module '@env/environment'` | tsconfig paths klopt niet, herstart `ng serve` |
 | `EADDRINUSE: address already in use :::5173` | Andere proces gebruikt port 5173. `lsof -i :5173` en kill, of zet `PORT=5174` in .env |
 | `Network error / fetch failed` op POST /api/login | Backend draait niet. Check terminal 1. |
-| CORS error in console | Browser console moet 'Access-Control-Allow-Origin: http://localhost:4200' zien. Backend zou dat moeten zetten als origin matched. |
+| CORS error in console | Browser console moet 'Access-Control-Allow-Origin: http://localhost:1445' zien. Backend zou dat moeten zetten als origin matched. |
 | Login geslaagd maar geen redirect naar dashboard | Check Network tab: `/api/me` response. Mogelijk `401` waardoor auth.guard.ts faalt. |
 | Employees page geeft 401 | Cookie wordt niet meegestuurd. Check Network tab dat `withCredentials` aan staat en cookie zichtbaar is in request headers. |
 | TypeScript errors in component | Strict mode is aan. Check ts files in IDE, fix wat rood is. |
