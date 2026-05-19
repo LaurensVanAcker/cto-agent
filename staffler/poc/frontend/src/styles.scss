@@ -584,30 +584,34 @@ dps-contract-dialog .contract-dialog-top-row {
   min-width: 0;
 }
 
-// Date column: shrink/grow within 14rem so the calendar icon button
-// + input + label all stay inside the dialog. The datepicker itself
-// is set to w-full above, so it inherits this cap. min-width:0 is
-// the canonical "let flex children shrink past their content" trick.
+// Date column: shrink/grow within 13rem so the date input (icon now
+// rendered INSIDE the input via iconDisplay="input") + label all stay
+// inside the dialog. The datepicker itself is set to w-full above, so
+// it inherits this cap. min-width:0 is the canonical "let flex
+// children shrink past their content" trick. overflow:hidden on the
+// column is a defensive belt-and-braces: even if PrimeNG renders an
+// off-cap icon button on some zoom level, it won't escape the popup.
 dps-contract-dialog .contract-dialog-date {
-  flex: 0 1 14rem;
-  min-width: 10rem;
-  max-width: 100%;
+  flex: 0 1 13rem;
+  min-width: 9rem;
+  max-width: 13rem;
+  overflow: hidden;
 }
 
-dps-contract-dialog .contract-dialog-date p-datepicker {
+dps-contract-dialog .contract-dialog-date p-datepicker,
+dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker,
+dps-contract-dialog .contract-dialog-date p-datepicker .p-inputwrapper {
   display: block;
   width: 100%;
   min-width: 0;
-}
-
-dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker {
-  width: 100%;
-  min-width: 0;
+  max-width: 100%;
 }
 
 dps-contract-dialog .contract-dialog-date p-datepicker .p-datepicker-input {
   width: 100% !important;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 dps-contract-dialog .contract-dialog-top-row dps-address-autocomplete-field > label {

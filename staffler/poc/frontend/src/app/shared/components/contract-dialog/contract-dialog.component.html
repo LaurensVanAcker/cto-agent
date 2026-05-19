@@ -61,13 +61,15 @@
         {{ 'CONTRACT.DATE_LABEL' | translate }}
       </label>
       <!--
-        Pilot feedback 2026-05-18: "datum veldje is nu breder, maar valt
-        uit de popup." The previous fixed inputStyleClass="w-15rem" plus
-        the trailing calendar-icon button pushed the datepicker past the
-        34rem dialog width on the narrow popup chrome. We now let the
-        datepicker fill its column (controlled by .contract-dialog-date
-        in styles.scss — 14rem max, shrinks below that) so it stays
-        inside the dialog regardless of locale / icon button width.
+        Pilot feedback 2026-05-19: "datum veldje is nu breder, maar valt
+        uit de popup?" The previous round (05-18) capped the column at
+        14rem but still rendered the calendar icon as an external
+        button next to the input (showIcon=true), which pushed the
+        column past its cap on narrow viewports. Switching to
+        iconDisplay="input" moves the icon INSIDE the input chrome so
+        the whole control respects the .contract-dialog-date column
+        width (set in styles.scss). showIcon stays true so the icon is
+        still rendered.
       -->
       <p-datepicker
         selectionMode="range"
@@ -76,6 +78,7 @@
         styleClass="w-full"
         inputStyleClass="w-full"
         [showIcon]="true"
+        iconDisplay="input"
         [readonlyInput]="true"
         [minDate]="minDate"
         [maxDate]="maxDate"
